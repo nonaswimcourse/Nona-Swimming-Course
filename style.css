@@ -395,8 +395,10 @@ background:#1ebe5d;
     100% { left: 100%; }
 }
 
+
 /* Class untuk menghilangkan loader via JS */
 .loader-hidden {
     opacity: 0;
     visibility: hidden;
-}
+
+
