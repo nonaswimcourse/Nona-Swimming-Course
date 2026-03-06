@@ -305,24 +305,23 @@ overflow:hidden;
 box-shadow:0 5px 20px rgba(0,0,0,0.1);
 }
 
-/* WHATSAPP FLOAT */
-.wa-float{
-position:fixed;
-bottom: 20px;
-right:25px;
-background:#01cb4b;
-color:white;
-font-size:28px;
-width:60px;
-height:60px;
-display:flex;
-align-items:center;
-justify-content:center;
-border-radius:50%;
-text-decoration:none;
-box-shadow:0 5px 15px rgba(0,0,0,0.3);
-z-index:100;
-transition:0.3s;
+.wa-float {
+  position: fixed;
+  bottom: 20px; /* Jarak dari bawah sedikit dinaikkan agar tidak mepet */
+  right: 20px;
+  background: #01cb4b;
+  color: white;
+  width: 50px;       /* Dari 60px menjadi 50px */
+  height: 50px;      /* Dari 60px menjadi 50px */
+  font-size: 24px;   /* Ukuran icon disesuaikan */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  text-decoration: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  z-index: 900;      /* Pastikan di bawah header yang z-index-nya 1000 */
+  transition: 0.3s;
 }
 
 .wa-float:hover{
@@ -444,19 +443,12 @@ background:#1ebe5d;
     .wa-float {
         width: 30px;
         height: 30px;
-        font-size: 22px;
-        bottom: 20px;
-        right: 20px;
+        font-size: 20px;
+        bottom: 15px;
+        right: 15px;
     }
-  @media(max-width:768px){
-  .wa-float {
-    width: 50px;
-    height: 50px;
-    font-size: 22px;
-    bottom: 10px;
-    right: 15px;
-  }
-}
+ 
+
 
 
 
