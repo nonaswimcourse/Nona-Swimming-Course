@@ -401,5 +401,54 @@ background:#1ebe5d;
     opacity: 0;
     visibility: hidden;
 
+  /* Pengaturan dasar agar logo dan teks sejajar */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* RESPONSIVE MOBILE */
+@media (max-width: 768px) {
+    header {
+        padding: 15px 5%; /* Mengurangi padding agar lebih luas */
+        flex-direction: column; /* Menyusun logo di atas dan menu di bawah */
+        gap: 10px;
+    }
+
+    .logo img {
+        height: 35px !important; /* Mengecilkan ukuran logo */
+        width: auto !important;
+    }
+
+    .logo span {
+        font-size: 0.9rem; /* Mengecilkan teks judul */
+    }
+
+    .navbar {
+        display: flex;
+        justify-content: center;
+        gap: 8px; /* Jarak antar menu */
+        flex-wrap: wrap; /* Agar menu turun ke bawah jika layar sangat sempit */
+    }
+
+    header nav a {
+        margin-left: 0; 
+        font-size: 0.8rem; /* Ukuran teks menu lebih kecil */
+        padding: 5px 8px;
+        background: rgba(255, 255, 255, 0.1); /* Memberi sedikit background agar rapi */
+        border-radius: 4px;
+    }
+
+    /* Memastikan tombol WA tetap di pojok bawah */
+    .wa-float {
+        width: 50px;
+        height: 50px;
+        font-size: 22px;
+        bottom: 20px;
+        right: 20px;
+    }
+
+
 
 
