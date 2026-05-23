@@ -396,11 +396,16 @@ background:#1ebe5d;
 
 
 /* Class untuk menghilangkan loader via JS */
+/* --- LOADING SCREEN STYLES (Lanjutan) --- */
+
+/* Class untuk menghilangkan loader via JS */
 .loader-hidden {
     opacity: 0;
     visibility: hidden;
+    pointer-events: none; /* TAMBAHAN: Memastikan kursor mengabaikan loader ini */
+} /* <-- DI SINI TANDA KURUNG YANG SEBELUMNYA HILANG */
 
-  /* Pengaturan dasar agar logo dan teks sejajar */
+/* Pengaturan dasar agar logo dan teks sejajar */
 .logo {
     display: flex;
     align-items: center;
@@ -441,15 +446,13 @@ background:#1ebe5d;
 
     /* Memastikan tombol WA tetap di pojok bawah */
     .wa-float {
-        width: 30px;
-        height: 30px;
+        width: 45px; /* Disesuaikan sedikit agar tidak terlalu kecil di mobile */
+        height: 45px;
         font-size: 20px;
         bottom: 15px;
         right: 15px;
     }
- 
-
-
+} /* <-- JANGAN LUPA PENUTUP MEDIA QUERY MOBILE */
 
 
 
