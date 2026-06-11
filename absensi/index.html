@@ -35,7 +35,6 @@
         .rekap-controls-area { display: flex; align-items: center; gap: 15px; }
         .row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #4d5c75; }
-        /* input ditambahkan di sini agar styling sama dengan select */
         select, input[type="text"], textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; }
         textarea { resize: none; }
         .btn { color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s; white-space: nowrap; }
@@ -266,6 +265,18 @@ async function updateCounter(index, tipe, value) {
     } else {
         if (tipe === 'hadir') {
             if (dataRekap[index].hadir === 0) return;
+            
+            // Logika Deteksi Hadir = 0
+            if (dataRekap[index].hadir - 1 === 0) {
+                let konfirmasiHapus = confirm(`Nilai hadir ${namaSiswa} akan menjadi 0. Apakah Anda ingin langsung menghapus seluruh data siswa ini dari sistem?`);
+                if (konfirmasiHapus) {
+                    await deleteRow(index); // Jalankan fungsi hapus data cloud & lokal
+                    return; // Keluar dari fungsi agar tidak memproses baris kode di bawahnya
+                } else {
+                    return; // Batalkan pengurangan jika user menolak menghapus
+                }
+            }
+            
             dataRekap[index].hadir -= 1;
             statusDikirim = "Kurang Hadir";
         } else {
@@ -301,39 +312,36 @@ async function updateCounter(index, tipe, value) {
 
 async function deleteRow(index) {
     const namaSiswa = dataRekap[index].nama;
-    if (confirm(`Apakah Anda yakin ingin mereset & menghapus data rekap untuk ${namaSiswa} di aplikasi dan Google Spreadsheet?`)) {
-        const btnDelete = document.getElementById(`btnDelete-${index}`);
-        if(btnDelete) {
-            btnDelete.disabled = true;
-            btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-        }
+    const btnDelete = document.getElementById(`btnDelete-${index}`);
+    if(btnDelete) {
+        btnDelete.disabled = true;
+        btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+    }
 
-        const urlEncoded = new URLSearchParams();
-        urlEncoded.append("action", "deleteSiswa");
-        urlEncoded.append("nama", namaSiswa);
+    const urlEncoded = new URLSearchParams();
+    urlEncoded.append("action", "deleteSiswa");
+    urlEncoded.append("nama", namaSiswa);
 
-        try {
-            await fetch(WEB_APP_URL, {
-                method: "POST",
-                mode: "no-cors",
-                body: urlEncoded,
-                headers: { "Content-Type": "application/x-www-form-urlencoded" }
-            });
+    try {
+        await fetch(WEB_APP_URL, {
+            method: "POST",
+            mode: "no-cors",
+            body: urlEncoded,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        });
 
-            dataRekap.splice(index, 1);
-            simpanKeLocalStorage(); 
-            renderTable();
-            alert(`Data rekap untuk ${namaSiswa} berhasil dihapus dari Cloud dan Aplikasi.`);
-        } catch (err) {
-            console.error(err);
-            alert(`Gagal menghapus data ${namaSiswa} di Google Spreadsheet. Periksa koneksi internet Anda.`);
-            renderTable();
-        }
+        dataRekap.splice(index, 1);
+        simpanKeLocalStorage(); 
+        renderTable();
+        alert(`Data rekap untuk ${namaSiswa} berhasil dihapus dari Cloud dan Aplikasi.`);
+    } catch (err) {
+        console.error(err);
+        alert(`Gagal menghapus data ${namaSiswa} di Google Spreadsheet. Periksa koneksi internet Anda.`);
+        renderTable();
     }
 }
 
 async function simpan() {
-    // Diubah untuk mengambil value dari input teks, lalu diubah ke huruf kapital agar konsisten
     const namaInput = document.getElementById("nama").value.trim();
     const nama = namaInput.toUpperCase(); 
     const status = document.getElementById("status").value;
@@ -452,7 +460,7 @@ function exportRowToCSV(index) {
     const item = dataRekap[index];
     let csvContent = "data:text/csv;charset=utf-8,Nama,Hadir,Tidak Hadir,Total,Catatan\n";
     let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
-    csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${totalVal},"${item.catatan || '-'}"\n`;
+    csvContent += `${item.nama},${item.hadir},${item.tidakHadir},totalVal,"${item.catatan || '-'}"\n`;
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
