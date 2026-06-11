@@ -1,10 +1,538 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Absensi Nona Swimming Course</title>
-    <meta http-equiv="refresh" content="0; url=https://sdntanjung03.my.canva.site/absensi-nonaswimmingcourse">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Les Renang NSC</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: #f4f6f9;
+        }
+        
+        .header {
+            background: #234a84;
+            color: white;
+            padding: 20px 30px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            opacity: .8;
+        }
+        
+        .container {
+            padding: 25px;
+            max-width: 1100px;
+            margin: auto;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .tab-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #dbe3ef;
+            color: #5c6f8a;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn.active {
+            background: #1e3a63;
+            color: white;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .rekap-header-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .rekap-title-area h2 {
+            color: #1e293b;
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .rekap-title-area p {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4d5c75;
+        }
+        
+        select, textarea {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #d7dde7;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        
+        textarea {
+            resize: none;
+        }
+        
+        .btn {
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        
+        .btn:hover {
+            opacity: .9;
+        }
+
+        .btn-primary {
+            background: #234a84;
+            padding: 14px 25px;
+            font-size: 16px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .table th {
+            background: #f8fafc;
+            padding: 14px;
+            text-align: left;
+            color: #334155;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .table td {
+            padding: 16px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+            vertical-align: middle;
+        }
+        
+        .export {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .csv { background: #22c55e; }
+        .pdf { background: #f97316; }
+
+        /* Counter Box Styling */
+        .counter-box {
+            display: inline-flex;
+            align-items: center;
+            background: #e2e8f0;
+            border-radius: 6px;
+            padding: 2px;
+            gap: 8px;
+        }
+
+        .counter-btn {
+            background: #cbd5e1;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .counter-btn:hover {
+            background: #94a3b8;
+        }
+
+        .counter-val {
+            font-weight: 600;
+            min-width: 15px;
+            text-align: center;
+        }
+
+        .counter-val.hadir-val { color: #16a34a; }
+        .counter-val.tidak-val { color: #dc2626; }
+
+        .total-fraction {
+            font-weight: 600;
+            color: #ea580c;
+        }
+
+        /* Action Buttons */
+        .actions-cell {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-action {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+
+        .btn-view { background: #22c55e; }
+        .btn-download { background: #f97316; }
+        .btn-delete { background: #ef4444; }
+    </style>
 </head>
 <body>
-    <p>Mengalihkan ke halaman absensi...</p>
+
+<div class="header">
+    <h1>Absensi Les Renang</h1>
+    <p>Nona Swimming Course</p>
+</div>
+
+<div class="container">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('input', this)">
+            <i class="fa fa-clipboard-check"></i> Input Absensi
+        </button>
+        <button class="tab-btn" onclick="showTab('rekap', this)">
+            <i class="fa fa-chart-column"></i> Rekap Data
+        </button>
+    </div>
+
+    <div id="input" class="card">
+        <h2>Tambah Absensi</h2>
+        <div class="row">
+            <div>
+                <label for="nama">Nama Siswa</label>
+                <select id="nama">
+                    <option value="">-- Pilih Nama --</option>
+                    <option value="KALINGGA">KALINGGA</option>
+<option value="ZIDNI">ZIDNI</option>
+<option value="KALA">KALA</option>
+<option value="EGA">EGA</option>
+<option value="ARGHYA">ARGHYA</option>
+<option value="AIRA">AIRA</option>
+<option value="ALDEBARAN">ALDEBARAN</option>
+<option value="ASHIMA">ASHIMA</option>
+<option value="BINTANG">BINTANG</option>
+<option value="BRANDEN">BRANDEN</option>
+<option value="CECIL">CECIL</option>
+<option value="DHIFA">DHIFA</option>
+<option value="FAISAL">FAISAL</option>
+<option value="HAFIZI">HAFIZI</option>
+<option value="ICHA">ICHA</option>
+<option value="KAMIL">KAMIL</option>
+<option value="KECILI">KECILI</option>
+<option value="KHSAN">KHSAN</option>
+<option value="KIRAN">KIRAN</option>
+<option value="NAJMA">NAJMA</option>
+<option value="NAURA">NAURA</option>
+<option value="NAZLA">NAZLA</option>
+<option value="RISYA">RISYA</option>
+<option value="RUL">RUL</option>
+<option value="UMMA">UMMA</option>
+<option value="YUMNA">YUMNA</option>
+<option value="ZULFA">ZULFA</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="status">Status</label>
+                <select id="status">
+                    <option value="Hadir">Hadir</option>
+                    <option value="Tidak Hadir">Tidak Hadir</option>
+                </select>
+            </div>
+        </div>
+
+        <br>
+        <label for="catatan">Catatan</label>
+        <textarea rows="3" id="catatan"></textarea>
+
+        <button class="btn btn-primary" id="btnSimpan" onclick="simpan()">
+            <i class="fa fa-plus-circle"></i> Simpan Data
+        </button>
+    </div>
+
+    <div id="rekap" class="card hidden">
+        <div class="rekap-header-wrapper">
+            <div class="rekap-title-area">
+                <h2>Rekap Kehadiran</h2>
+                <p id="totalPertemuanText">Total 12 Pertemuan Les Renang</p>
+            </div>
+            <div class="export">
+                <button class="btn csv" onclick="exportToCSV()">
+                    <i class="fa fa-file-csv"></i> Export CSV
+                </button>
+                <button class="btn pdf" onclick="exportToPDF()">
+                    <i class="fa fa-file-pdf"></i> Export PDF
+                </button>
+            </div>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nama</th>
+                    <th>Hadir</th>
+                    <th>Tidak Hadir</th>
+                    <th>Total</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="tbody">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+const TOTAL_PERTEMUAN = 12;
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzP5CH-yy4EKe_TbzzUQcGB1WhJgtE2fFireFlipmi9cy_Y2a4_R3Q10leKksTQoZRA/exec";
+
+let dataRekap = [
+    { nama: "KALINGGA", hadir: 1, tidakHadir: 0 },
+    { nama: "ZIDNI", hadir: 1, tidakHadir: 0 }
+];
+
+function renderTable() {
+    let html = "";
+    if(dataRekap.length === 0) {
+        html = "<tr><td colspan='5' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
+    } else {
+        dataRekap.forEach((item, index) => {
+            html += `
+            <tr>
+                <td style="font-weight: 500;">${item.nama}</td>
+                <td>
+                    <div class="counter-box">
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', -1)">-</button>
+                        <span class="counter-val hadir-val">${item.hadir}</span>
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', 1)">+</button>
+                    </div>
+                </td>
+                <td>
+                    <div class="counter-box">
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', -1)">-</button>
+                        <span class="counter-val tidak-val">${item.tidakHadir}</span>
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', 1)">+</button>
+                    </div>
+                </td>
+                <td>
+                    <span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>
+                </td>
+                <td>
+                    <div class="actions-cell">
+                        <button class="btn-action btn-view" title="Detail" onclick="alert('Catatan untuk ${item.nama}')"><i class="fa fa-file-text"></i></button>
+                        <button class="btn-action btn-download" title="Download Baris Ini" onclick="exportRowToCSV(${index})"><i class="fa fa-download"></i></button>
+                        <button class="btn-action btn-delete" title="Hapus" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+            `;
+        });
+    }
+    document.getElementById("tbody").innerHTML = html;
+    document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
+}
+
+function updateCounter(index, tipe, value) {
+    if (tipe === 'hadir') {
+        dataRekap[index].hadir = Math.max(0, dataRekap[index].hadir + value);
+    } else {
+        dataRekap[index].tidakHadir = Math.max(0, dataRekap[index].tidakHadir + value);
+    }
+
+    if (dataRekap[index].hadir === 0 && dataRekap[index].tidakHadir === 0) {
+        dataRekap.splice(index, 1);
+    }
+
+    renderTable();
+}
+
+function deleteRow(index) {
+    if (confirm(`Hapus data rekap untuk ${dataRekap[index].nama}?`)) {
+        dataRekap.splice(index, 1);
+        renderTable();
+    }
+}
+
+async function simpan() {
+    const nama = document.getElementById("nama").value;
+    const status = document.getElementById("status").value;
+    const btnSimpan = document.getElementById("btnSimpan");
+
+    if (!nama) {
+        alert("Pilih nama siswa terlebih dahulu!");
+        return;
+    }
+
+    btnSimpan.disabled = true;
+    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
+
+    let siswaExist = dataRekap.find(s => s.nama === nama);
+    if(siswaExist) {
+        if(status === "Hadir") siswaExist.hadir += 1;
+        else siswaExist.tidakHadir += 1;
+    } else {
+        dataRekap.push({
+            nama: nama,
+            hadir: status === "Hadir" ? 1 : 0,
+            tidakHadir: status === "Tidak Hadir" ? 1 : 0
+        });
+    }
+    
+    renderTable();
+
+    const urlEncoded = new URLSearchParams();
+    urlEncoded.append("nama", nama);
+    urlEncoded.append("status", status);
+    urlEncoded.append("catatan", document.getElementById("catatan").value);
+
+    try {
+        await fetch(WEB_APP_URL, {
+            method: "POST",
+            mode: "no-cors",
+            body: urlEncoded,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        });
+        alert("Data berhasil disimpan!");
+        document.getElementById("nama").value = "";
+        document.getElementById("catatan").value = "";
+    } catch (err) {
+        console.error(err);
+        alert("Gagal sinkronisasi cloud, data lokal diperbarui.");
+    } finally {
+        btnSimpan.disabled = false;
+        btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
+    }
+}
+
+function exportToCSV() {
+    let csvContent = "data:text/csv;charset=utf-8,Nama,Hadir,Tidak Hadir,Total\n";
+    dataRekap.forEach(item => {
+        csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${item.hadir}/${TOTAL_PERTEMUAN}\n`;
+    });
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "Rekap_Kehadiran_NSC.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function exportRowToCSV(index) {
+    const item = dataRekap[index];
+    let csvContent = "data:text/csv;charset=utf-8,Nama,Hadir,Tidak Hadir,Total\n";
+    csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${item.hadir}/${TOTAL_PERTEMUAN}\n`;
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Rekap_${item.nama}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function exportToPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.text("Rekap Kehadiran Nona Swimming Course", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Total Pertemuan Kursus: ${TOTAL_PERTEMUAN}`, 14, 22);
+
+    const tableRows = [];
+    dataRekap.forEach(item => {
+        tableRows.push([item.nama, item.hadir, item.tidakHadir, `${item.hadir}/${TOTAL_PERTEMUAN}`]);
+    });
+
+    doc.autoTable({
+        startY: 28,
+        head: [['Nama', 'Hadir', 'Tidak Hadir', 'Total']],
+        body: tableRows,
+    });
+
+    doc.save("Rekap_Kehadiran_NSC.pdf");
+}
+
+function showTab(tab, btn) {
+    document.getElementById("input").classList.add("hidden");
+    document.getElementById("rekap").classList.add("hidden");
+    document.getElementById(tab).classList.remove("hidden");
+
+    document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+    btn.classList.add("active");
+}
+
+window.onload = function() {
+    renderTable();
+};
+</script>
+
 </body>
 </html>
