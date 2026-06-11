@@ -35,7 +35,8 @@
         .rekap-controls-area { display: flex; align-items: center; gap: 15px; }
         .row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #4d5c75; }
-        select, textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; }
+        /* input ditambahkan di sini agar styling sama dengan select */
+        select, input[type="text"], textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; }
         textarea { resize: none; }
         .btn { color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s; white-space: nowrap; }
         .btn:hover { opacity: .9; }
@@ -85,36 +86,36 @@
         <div class="row">
             <div>
                 <label for="nama">Nama Siswa</label>
-                <select id="nama">
-                    <option value="">-- Pilih Nama --</option>
-                    <option value="KALINGGA">KALINGGA</option>
-                    <option value="ZIDNI">ZIDNI</option>
-                    <option value="KALA">KALA</option>
-                    <option value="EGA">EGA</option>
-                    <option value="ARGHYA">ARGHYA</option>
-                    <option value="AIRA">AIRA</option>
-                    <option value="ALDEBARAN">ALDEBARAN</option>
-                    <option value="ASHIMA">ASHIMA</option>
-                    <option value="BINTANG">BINTANG</option>
-                    <option value="BRANDEN">BRANDEN</option>
-                    <option value="CECIL">CECIL</option>
-                    <option value="DHIFA">DHIFA</option>
-                    <option value="FAISAL">FAISAL</option>
-                    <option value="HAFIZI">HAFIZI</option>
-                    <option value="ICHA">ICHA</option>
-                    <option value="KAMIL">KAMIL</option>
-                    <option value="KECILI">KECILI</option>
-                    <option value="KHSAN">KHSAN</option>
-                    <option value="KIRAN">KIRAN</option>
-                    <option value="NAJMA">NAJMA</option>
-                    <option value="NAURA">NAURA</option>
-                    <option value="NAZLA">NAZLA</option>
-                    <option value="RISYA">RISYA</option>
-                    <option value="RUL">RUL</option>
-                    <option value="UMMA">UMMA</option>
-                    <option value="YUMNA">YUMNA</option>
-                    <option value="ZULFA">ZULFA</option>
-                </select>
+                <input type="text" id="nama" list="list-nama" placeholder="Ketik atau pilih nama..." autocomplete="off">
+                <datalist id="list-nama">
+                    <option value="KALINGGA"></option>
+                    <option value="ZIDNI"></option>
+                    <option value="KALA"></option>
+                    <option value="EGA"></option>
+                    <option value="ARGHYA"></option>
+                    <option value="AIRA"></option>
+                    <option value="ALDEBARAN"></option>
+                    <option value="ASHIMA"></option>
+                    <option value="BINTANG"></option>
+                    <option value="BRANDEN"></option>
+                    <option value="CECIL"></option>
+                    <option value="DHIFA"></option>
+                    <option value="FAISAL"></option>
+                    <option value="HAFIZI"></option>
+                    <option value="ICHA"></option>
+                    <option value="KAMIL"></option>
+                    <option value="KECILI"></option>
+                    <option value="KHSAN"></option>
+                    <option value="KIRAN"></option>
+                    <option value="NAJMA"></option>
+                    <option value="NAURA"></option>
+                    <option value="NAZLA"></option>
+                    <option value="RISYA"></option>
+                    <option value="RUL"></option>
+                    <option value="UMMA"></option>
+                    <option value="YUMNA"></option>
+                    <option value="ZULFA"></option>
+                </datalist>
             </div>
             <div>
                 <label for="status">Status</label>
@@ -178,7 +179,6 @@ let dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [
     { nama: "ZIDNI", hadir: 1, tidakHadir: 0, catatan: "Sesi Pertama" }
 ];
 
-// Mendapatkan string tanggal hari ini dari laptop secara dinamis
 function getTanggalLaptopRealtime() {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -235,7 +235,6 @@ function renderTable() {
     document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
 }
 
-// LOGIKA JIKA KLIK MANUAL + / -
 async function updateCounter(index, tipe, value) {
     const namaSiswa = dataRekap[index].nama;
     const tanggalRealtime = getTanggalLaptopRealtime();
@@ -273,7 +272,6 @@ async function updateCounter(index, tipe, value) {
         catatanKetik = `Pengurangan manual via counter`;
     }
 
-    // Mengganti catatan lokal dengan input terbaru
     dataRekap[index].catatan = catatanKetik;
     
     simpanKeLocalStorage(); 
@@ -331,7 +329,9 @@ async function deleteRow(index) {
 }
 
 async function simpan() {
-    const nama = document.getElementById("nama").value;
+    // Diubah untuk mengambil value dari input teks, lalu diubah ke huruf kapital agar konsisten
+    const namaInput = document.getElementById("nama").value.trim();
+    const nama = namaInput.toUpperCase(); 
     const status = document.getElementById("status").value;
     const catatan = document.getElementById("catatan").value;
     const btnSimpan = document.getElementById("btnSimpan");
@@ -339,7 +339,7 @@ async function simpan() {
     const tanggalRealtime = getTanggalLaptopRealtime();
 
     if (!nama) {
-        alert("Pilih nama siswa terlebih dahulu!");
+        alert("Ketik atau pilih nama siswa terlebih dahulu!");
         return;
     }
 
@@ -352,7 +352,7 @@ async function simpan() {
     if(siswaExist) {
         if(status === "Hadir") siswaExist.hadir += 1;
         else siswaExist.tidakHadir += 1;
-        siswaExist.catatan = catatanTeks; // Langsung menimpa catatan lama secara lokal
+        siswaExist.catatan = catatanTeks; 
     } else {
         dataRekap.push({ 
             nama: nama, 
