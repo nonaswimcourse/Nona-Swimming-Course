@@ -218,6 +218,16 @@
             font-weight: 600;
             color: #ea580c;
         }
+        
+        /* Tambahan style khusus saat lengkap */
+        .total-lengkap {
+            font-weight: bold;
+            color: #16a34a;
+            background: #dcfce7;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+        }
 
         /* Action Buttons */
         .actions-cell {
@@ -268,32 +278,32 @@
                 <select id="nama">
                     <option value="">-- Pilih Nama --</option>
                     <option value="KALINGGA">KALINGGA</option>
-<option value="ZIDNI">ZIDNI</option>
-<option value="KALA">KALA</option>
-<option value="EGA">EGA</option>
-<option value="ARGHYA">ARGHYA</option>
-<option value="AIRA">AIRA</option>
-<option value="ALDEBARAN">ALDEBARAN</option>
-<option value="ASHIMA">ASHIMA</option>
-<option value="BINTANG">BINTANG</option>
-<option value="BRANDEN">BRANDEN</option>
-<option value="CECIL">CECIL</option>
-<option value="DHIFA">DHIFA</option>
-<option value="FAISAL">FAISAL</option>
-<option value="HAFIZI">HAFIZI</option>
-<option value="ICHA">ICHA</option>
-<option value="KAMIL">KAMIL</option>
-<option value="KECILI">KECILI</option>
-<option value="KHSAN">KHSAN</option>
-<option value="KIRAN">KIRAN</option>
-<option value="NAJMA">NAJMA</option>
-<option value="NAURA">NAURA</option>
-<option value="NAZLA">NAZLA</option>
-<option value="RISYA">RISYA</option>
-<option value="RUL">RUL</option>
-<option value="UMMA">UMMA</option>
-<option value="YUMNA">YUMNA</option>
-<option value="ZULFA">ZULFA</option>
+                    <option value="ZIDNI">ZIDNI</option>
+                    <option value="KALA">KALA</option>
+                    <option value="EGA">EGA</option>
+                    <option value="ARGHYA">ARGHYA</option>
+                    <option value="AIRA">AIRA</option>
+                    <option value="ALDEBARAN">ALDEBARAN</option>
+                    <option value="ASHIMA">ASHIMA</option>
+                    <option value="BINTANG">BINTANG</option>
+                    <option value="BRANDEN">BRANDEN</option>
+                    <option value="CECIL">CECIL</option>
+                    <option value="DHIFA">DHIFA</option>
+                    <option value="FAISAL">FAISAL</option>
+                    <option value="HAFIZI">HAFIZI</option>
+                    <option value="ICHA">ICHA</option>
+                    <option value="KAMIL">KAMIL</option>
+                    <option value="KECILI">KECILI</option>
+                    <option value="KHSAN">KHSAN</option>
+                    <option value="KIRAN">KIRAN</option>
+                    <option value="NAJMA">NAJMA</option>
+                    <option value="NAURA">NAURA</option>
+                    <option value="NAZLA">NAZLA</option>
+                    <option value="RISYA">RISYA</option>
+                    <option value="RUL">RUL</option>
+                    <option value="UMMA">UMMA</option>
+                    <option value="YUMNA">YUMNA</option>
+                    <option value="ZULFA">ZULFA</option>
                 </select>
             </div>
 
@@ -362,6 +372,11 @@ function renderTable() {
         html = "<tr><td colspan='5' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
     } else {
         dataRekap.forEach((item, index) => {
+            // Logika pengecekan jika kehadiran sudah mencapai 12
+            let totalTeks = item.hadir === TOTAL_PERTEMUAN 
+                ? `<span class="total-lengkap">LENGKAP</span>` 
+                : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;
+
             html += `
             <tr>
                 <td style="font-weight: 500;">${item.nama}</td>
@@ -380,7 +395,7 @@ function renderTable() {
                     </div>
                 </td>
                 <td>
-                    <span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>
+                    ${totalTeks}
                 </td>
                 <td>
                     <div class="actions-cell">
@@ -472,7 +487,8 @@ async function simpan() {
 function exportToCSV() {
     let csvContent = "data:text/csv;charset=utf-8,Nama,Hadir,Tidak Hadir,Total\n";
     dataRekap.forEach(item => {
-        csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${item.hadir}/${TOTAL_PERTEMUAN}\n`;
+        let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
+        csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${totalVal}\n`;
     });
     
     const encodedUri = encodeURI(csvContent);
@@ -487,7 +503,8 @@ function exportToCSV() {
 function exportRowToCSV(index) {
     const item = dataRekap[index];
     let csvContent = "data:text/csv;charset=utf-8,Nama,Hadir,Tidak Hadir,Total\n";
-    csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${item.hadir}/${TOTAL_PERTEMUAN}\n`;
+    let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
+    csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${totalVal}\n`;
     
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -508,7 +525,8 @@ function exportToPDF() {
 
     const tableRows = [];
     dataRekap.forEach(item => {
-        tableRows.push([item.nama, item.hadir, item.tidakHadir, `${item.hadir}/${TOTAL_PERTEMUAN}`]);
+        let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
+        tableRows.push([item.nama, item.hadir, item.tidakHadir, totalVal]);
     });
 
     doc.autoTable({
