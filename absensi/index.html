@@ -33,10 +33,9 @@
         .rekap-title-area h2 { color: #1e293b; font-size: 22px; margin-bottom: 4px; }
         .rekap-title-area p { color: #64748b; font-size: 14px; }
         .rekap-controls-area { display: flex; align-items: center; gap: 15px; }
-        .date-picker-box { display: flex; flex-direction: column; min-width: 200px; }
         .row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #4d5c75; }
-        select, input[type="date"], textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; }
+        select, textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; }
         textarea { resize: none; }
         .btn { color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s; white-space: nowrap; }
         .btn:hover { opacity: .9; }
@@ -141,10 +140,6 @@
             </div>
             
             <div class="rekap-controls-area">
-                <div class="date-picker-box">
-                    <label for="tanggal">Tanggal Absensi</label>
-                    <input type="date" id="tanggal">
-                </div>
                 <div class="export">
                     <button class="btn reset" id="btnResetAll" onclick="resetSemuaData()">
                         <i class="fa fa-trash-can"></i> Reset Semua Data
@@ -176,16 +171,20 @@
 
 <script>
 const TOTAL_PERTEMUAN = 12;
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz01KIuVG09mXwbghNYBre6xe-0srjOdkej_L_ZN4LhrTTj0aUqeXc5r8r8JFyMQoaz6g/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbysMb6Uy0k3I6JIIFhuL8ySZ2-1rA1dXsrBQ6J5F9QvKb-uJ4rdu_jr537hT3YitBAlMA/exec";
 
 let dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [
     { nama: "KALINGGA", hadir: 1, tidakHadir: 0, catatan: "Sesi Pertama" },
     { nama: "ZIDNI", hadir: 1, tidakHadir: 0, catatan: "Sesi Pertama" }
 ];
 
-function setDefaultTanggal() {
-    const hariIni = new Date().toISOString().split('T')[0];
-    document.getElementById("tanggal").value = hariIni;
+// Mendapatkan string tanggal hari ini dari laptop secara dinamis
+function getTanggalLaptopRealtime() {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
 }
 
 function simpanKeLocalStorage() {
@@ -239,16 +238,10 @@ function renderTable() {
 // LOGIKA JIKA KLIK MANUAL + / -
 async function updateCounter(index, tipe, value) {
     const namaSiswa = dataRekap[index].nama;
-    const tanggalDipilih = document.getElementById("tanggal").value;
+    const tanggalRealtime = getTanggalLaptopRealtime();
     let statusDikirim = "";
     let catatanKetik = "";
 
-    if (!tanggalDipilih) {
-        alert("Silakan atur tanggal absensi terlebih dahulu di bagian atas!");
-        return;
-    }
-
-    // JIKALAU YANG DIKLIK ADALAH TOMBOL "+"
     if (value > 0) {
         if (tipe === 'hadir') {
             statusDikirim = "Hadir";
@@ -256,22 +249,18 @@ async function updateCounter(index, tipe, value) {
             statusDikirim = "Tidak Hadir";
         }
         
-        // MUNCULKAN KOTAK PROMPT JENDELA UNTUK MENGETIK CATATAN
-        let inputCatatan = prompt(`Masukkan Catatan untuk ${namaSiswa} (${statusDikirim}) pada tanggal ${tanggalDipilih}:`, `Update manual via counter`);
+        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa} (${statusDikirim}) pada tanggal ${tanggalRealtime}:`, `Update manual via counter`);
         
-        // Jika user membatalkan (klik Cancel/Batal)
         if (inputCatatan === null) {
-            return; // Batalkan proses update seluruhnya
+            return; 
         }
         
         catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
         
-        // Tambahkan nilai lokal
         if (tipe === 'hadir') dataRekap[index].hadir += 1;
         else dataRekap[index].tidakHadir += 1;
 
     } else {
-        // JIKALAU YANG DIKLIK ADALAH TOMBOL "-"
         if (tipe === 'hadir') {
             if (dataRekap[index].hadir === 0) return;
             dataRekap[index].hadir -= 1;
@@ -284,16 +273,16 @@ async function updateCounter(index, tipe, value) {
         catatanKetik = `Pengurangan manual via counter`;
     }
 
+    // Mengganti catatan lokal dengan input terbaru
     dataRekap[index].catatan = catatanKetik;
     
     simpanKeLocalStorage(); 
     renderTable();
 
-    // Kirim data langsung ke Spreadsheet menggunakan tanggal yang disetel di menu rekap
     const urlEncoded = new URLSearchParams();
     urlEncoded.append("nama", namaSiswa);
     urlEncoded.append("status", statusDikirim);
-    urlEncoded.append("tanggal", tanggalDipilih);
+    urlEncoded.append("tanggal", tanggalRealtime);
     urlEncoded.append("catatan", catatanKetik);
 
     try {
@@ -344,16 +333,13 @@ async function deleteRow(index) {
 async function simpan() {
     const nama = document.getElementById("nama").value;
     const status = document.getElementById("status").value;
-    const tanggal = document.getElementById("tanggal").value; // Membaca dari elemen tanggal yang dipindah
     const catatan = document.getElementById("catatan").value;
     const btnSimpan = document.getElementById("btnSimpan");
+    
+    const tanggalRealtime = getTanggalLaptopRealtime();
 
     if (!nama) {
         alert("Pilih nama siswa terlebih dahulu!");
-        return;
-    }
-    if (!tanggal) {
-        alert("Atur tanggal absensi terlebih dahulu di menu Rekap Data!");
         return;
     }
 
@@ -361,12 +347,12 @@ async function simpan() {
     btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
 
     let siswaExist = dataRekap.find(s => s.nama === nama);
-    let catatanTeks = catatan ? catatan : `Absen pada tanggal ${tanggal}`;
+    let catatanTeks = catatan ? catatan : `Absen pada tanggal ${tanggalRealtime}`;
 
     if(siswaExist) {
         if(status === "Hadir") siswaExist.hadir += 1;
         else siswaExist.tidakHadir += 1;
-        siswaExist.catatan = catatanTeks;
+        siswaExist.catatan = catatanTeks; // Langsung menimpa catatan lama secara lokal
     } else {
         dataRekap.push({ 
             nama: nama, 
@@ -382,7 +368,7 @@ async function simpan() {
     const urlEncoded = new URLSearchParams();
     urlEncoded.append("nama", nama);
     urlEncoded.append("status", status);
-    urlEncoded.append("tanggal", tanggal); 
+    urlEncoded.append("tanggal", tanggalRealtime); 
     urlEncoded.append("catatan", catatanTeks);
 
     try {
@@ -488,7 +474,6 @@ function exportToPDF() {
 }
 
 window.onload = function() { 
-    setDefaultTanggal();
     renderTable(); 
 };
 </script>
