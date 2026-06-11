@@ -32,9 +32,9 @@
         .rekap-header-wrapper { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
         .rekap-title-area h2 { color: #1e293b; font-size: 22px; margin-bottom: 4px; }
         .rekap-title-area p { color: #64748b; font-size: 14px; }
-        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #4d5c75; }
-        select, textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; }
+        select, input[type="date"], textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; }
         textarea { resize: none; }
         .btn { color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s; }
         .btn:hover { opacity: .9; }
@@ -122,10 +122,14 @@
                     <option value="Tidak Hadir">Tidak Hadir</option>
                 </select>
             </div>
+            <div>
+                <label for="tanggal">Tanggal Input / Absensi</label>
+                <input type="date" id="tanggal">
+            </div>
         </div>
         <br>
         <label for="catatan">Catatan</label>
-        <textarea rows="3" id="catatan"></textarea>
+        <textarea rows="3" id="catatan" placeholder="Tambahkan catatan khusus di sini..."></textarea>
         <button class="btn btn-primary" id="btnSimpan" onclick="simpan()">
             <i class="fa fa-plus-circle"></i> Simpan Data
         </button>
@@ -169,9 +173,14 @@ const TOTAL_PERTEMUAN = 12;
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwZVvsH8Lk5ozpZR-xLccjLF9_HYGQNSjPc3Ve8Z_JbjPGaXHYCR6Cjbn2e5e_ZJ9k5cg/exec";
 
 let dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [
-    { nama: "KALINGGA", hadir: 1, tidakHadir: 0 },
-    { nama: "ZIDNI", hadir: 1, tidakHadir: 0 }
+    { nama: "KALINGGA", hadir: 1, tidakHadir: 0, catatan: "Sesi Pertama" },
+    { nama: "ZIDNI", hadir: 1, tidakHadir: 0, catatan: "Sesi Pertama" }
 ];
+
+function setDefaultTanggal() {
+    const hariIni = new Date().toISOString().split('T')[0];
+    document.getElementById("tanggal").value = hariIni;
+}
 
 function simpanKeLocalStorage() {
     localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
@@ -186,6 +195,8 @@ function renderTable() {
             let totalTeks = item.hadir === TOTAL_PERTEMUAN 
                 ? `<span class="total-lengkap">LENGKAP</span>` 
                 : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;
+
+            let catatanTeks = item.catatan ? item.catatan : "-";
 
             html += `
             <tr>
@@ -207,7 +218,7 @@ function renderTable() {
                 <td>${totalTeks}</td>
                 <td>
                     <div class="actions-cell">
-                        <button class="btn-action btn-view" title="Detail" onclick="alert('Catatan untuk ${item.nama}')"><i class="fa fa-file-text"></i></button>
+                        <button class="btn-action btn-view" title="Detail Catatan" onclick="alert('Catatan untuk ${item.nama}:\\n${catatanTeks}')"><i class="fa fa-file-text"></i></button>
                         <button class="btn-action btn-download" title="Download Baris Ini" onclick="exportRowToCSV(${index})"><i class="fa fa-download"></i></button>
                         <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
                     </div>
@@ -219,21 +230,73 @@ function renderTable() {
     document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
 }
 
-function updateCounter(index, tipe, value) {
-    if (tipe === 'hadir') {
-        dataRekap[index].hadir = Math.max(0, dataRekap[index].hadir + value);
+// LOGIKA JIKA KLIK MANUAL + / -
+async function updateCounter(index, tipe, value) {
+    const namaSiswa = dataRekap[index].nama;
+    let statusDikirim = "";
+    let catatanKetik = "";
+
+    // JIKALAU YANG DIKLIK ADALAH TOMBOL "+"
+    if (value > 0) {
+        if (tipe === 'hadir') {
+            statusDikirim = "Hadir";
+        } else {
+            statusDikirim = "Tidak Hadir";
+        }
+        
+        // MUNCULKAN KOTAK PROMPT JENDELA UNTUK MENGETIK CATATAN
+        let inputCatatan = prompt(`Masukkan Catatan untuk ${namaSiswa} (${statusDikirim}):`, `Update manual via counter`);
+        
+        // Jika user membatalkan (klik Cancel/Batal)
+        if (inputCatatan === null) {
+            return; // Batalkan proses update seluruhnya
+        }
+        
+        catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
+        
+        // Tambahkan nilai lokal
+        if (tipe === 'hadir') dataRekap[index].hadir += 1;
+        else dataRekap[index].tidakHadir += 1;
+
     } else {
-        dataRekap[index].tidakHadir = Math.max(0, dataRekap[index].tidakHadir + value);
+        // JIKALAU YANG DIKLIK ADALAH TOMBOL "-"
+        if (tipe === 'hadir') {
+            if (dataRekap[index].hadir === 0) return;
+            dataRekap[index].hadir -= 1;
+            statusDikirim = "Kurang Hadir";
+        } else {
+            if (dataRekap[index].tidakHadir === 0) return;
+            dataRekap[index].tidakHadir -= 1;
+            statusDikirim = "Kurang Tidak Hadir";
+        }
+        catatanKetik = `Pengurangan manual via counter`;
     }
-    if (dataRekap[index].hadir === 0 && dataRekap[index].tidakHadir === 0) {
-        deleteRow(index);
-        return;
-    }
+
+    const tglHariIni = new Date().toISOString().split('T')[0];
+    dataRekap[index].catatan = catatanKetik;
+    
     simpanKeLocalStorage(); 
     renderTable();
+
+    // Kirim data langsung ke Spreadsheet
+    const urlEncoded = new URLSearchParams();
+    urlEncoded.append("nama", namaSiswa);
+    urlEncoded.append("status", statusDikirim);
+    urlEncoded.append("tanggal", tglHariIni);
+    urlEncoded.append("catatan", catatanKetik);
+
+    try {
+        await fetch(WEB_APP_URL, {
+            method: "POST",
+            mode: "no-cors",
+            body: urlEncoded,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        });
+    } catch (err) {
+        console.error("Gagal sinkronisasi data ke Cloud:", err);
+    }
 }
 
-// LOGIKA HAPUS DATA BERDASARKAN NAMA SISWA (CLOUD & LOKAL)
 async function deleteRow(index) {
     const namaSiswa = dataRekap[index].nama;
     if (confirm(`Apakah Anda yakin ingin mereset & menghapus data rekap untuk ${namaSiswa} di aplikasi dan Google Spreadsheet?`)) {
@@ -255,7 +318,6 @@ async function deleteRow(index) {
                 headers: { "Content-Type": "application/x-www-form-urlencoded" }
             });
 
-            // Hapus data dari array lokal jika cloud berhasil dipanggil
             dataRekap.splice(index, 1);
             simpanKeLocalStorage(); 
             renderTable();
@@ -263,7 +325,7 @@ async function deleteRow(index) {
         } catch (err) {
             console.error(err);
             alert(`Gagal menghapus data ${namaSiswa} di Google Spreadsheet. Periksa koneksi internet Anda.`);
-            renderTable(); // Reset state tombol ke awal
+            renderTable();
         }
     }
 }
@@ -271,10 +333,16 @@ async function deleteRow(index) {
 async function simpan() {
     const nama = document.getElementById("nama").value;
     const status = document.getElementById("status").value;
+    const tanggal = document.getElementById("tanggal").value;
+    const catatan = document.getElementById("catatan").value;
     const btnSimpan = document.getElementById("btnSimpan");
 
     if (!nama) {
         alert("Pilih nama siswa terlebih dahulu!");
+        return;
+    }
+    if (!tanggal) {
+        alert("Pilih tanggal absensi terlebih dahulu!");
         return;
     }
 
@@ -282,11 +350,19 @@ async function simpan() {
     btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
 
     let siswaExist = dataRekap.find(s => s.nama === nama);
+    let catatanTeks = catatan ? catatan : `Absen pada tanggal ${tanggal}`;
+
     if(siswaExist) {
         if(status === "Hadir") siswaExist.hadir += 1;
         else siswaExist.tidakHadir += 1;
+        siswaExist.catatan = catatanTeks;
     } else {
-        dataRekap.push({ nama: nama, hadir: status === "Hadir" ? 1 : 0, tidakHadir: status === "Tidak Hadir" ? 1 : 0 });
+        dataRekap.push({ 
+            nama: nama, 
+            hadir: status === "Hadir" ? 1 : 0, 
+            tidakHadir: status === "Tidak Hadir" ? 1 : 0,
+            catatan: catatanTeks
+        });
     }
     
     simpanKeLocalStorage(); 
@@ -295,7 +371,8 @@ async function simpan() {
     const urlEncoded = new URLSearchParams();
     urlEncoded.append("nama", nama);
     urlEncoded.append("status", status);
-    urlEncoded.append("catatan", document.getElementById("catatan").value);
+    urlEncoded.append("tanggal", tanggal); 
+    urlEncoded.append("catatan", catatanTeks);
 
     try {
         await fetch(WEB_APP_URL, {
@@ -304,9 +381,10 @@ async function simpan() {
             body: urlEncoded,
             headers: { "Content-Type": "application/x-www-form-urlencoded" }
         });
-        alert("Data berhasil disimpan!");
+        alert("Data berhasil disimpan ke Cloud!");
         document.getElementById("nama").value = "";
         document.getElementById("catatan").value = "";
+        setDefaultTanggal();
     } catch (err) {
         console.error(err);
         alert("Gagal sinkronisasi cloud, data lokal diperbarui.");
@@ -316,7 +394,6 @@ async function simpan() {
     }
 }
 
-// LOGIKA SINKRONISASI RESET TOTAL KE SPREADSHEET
 async function resetSemuaData() {
     if (confirm("Apakah Anda yakin ingin mereset SELURUH data rekap semua siswa? Semua data di aplikasi dan Google Spreadsheet akan terhapus total.")) {
         const btnReset = document.getElementById("btnResetAll");
@@ -357,10 +434,10 @@ function showTab(tab, btn) {
 }
 
 function exportToCSV() {
-    let csvContent = "data:text/csv;charset=utf-8,Nama,Hadir,Tidak Hadir,Total\n";
+    let csvContent = "data:text/csv;charset=utf-8,Nama,Hadir,Tidak Hadir,Total,Catatan\n";
     dataRekap.forEach(item => {
         let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
-        csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${totalVal}\n`;
+        csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${totalVal},"${item.catatan || '-'}"\n`;
     });
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -373,9 +450,9 @@ function exportToCSV() {
 
 function exportRowToCSV(index) {
     const item = dataRekap[index];
-    let csvContent = "data:text/csv;charset=utf-8,Nama,Hadir,Tidak Hadir,Total\n";
+    let csvContent = "data:text/csv;charset=utf-8,Nama,Hadir,Tidak Hadir,Total,Catatan\n";
     let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
-    csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${totalVal}\n`;
+    csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${totalVal},"${item.catatan || '-'}"\n`;
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -394,13 +471,16 @@ function exportToPDF() {
     const tableRows = [];
     dataRekap.forEach(item => {
         let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
-        tableRows.push([item.nama, item.hadir, item.tidakHadir, totalVal]);
+        tableRows.push([item.nama, item.hadir, item.tidakHadir, totalVal, item.catatan || '-']);
     });
-    doc.autoTable({ startY: 28, head: [['Nama', 'Hadir', 'Tidak Hadir', 'Total']], body: tableRows });
+    doc.autoTable({ startY: 28, head: [['Nama', 'Hadir', 'Tidak Hadir', 'Total', 'Catatan']], body: tableRows });
     doc.save("Rekap_Kehadiran_NSC.pdf");
 }
 
-window.onload = function() { renderTable(); };
+window.onload = function() { 
+    setDefaultTanggal();
+    renderTable(); 
+};
 </script>
 </body>
 </html>
