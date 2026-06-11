@@ -139,7 +139,7 @@
             </div>
             <div class="export">
                 <button class="btn reset" id="btnResetAll" onclick="resetSemuaData()">
-                    <i class="fa fa-trash-can"></i> Reset Data
+                    <i class="fa fa-trash-can"></i> Reset Semua Data
                 </button>
                 <button class="btn csv" onclick="exportToCSV()">
                     <i class="fa fa-file-csv"></i> Export CSV
@@ -166,7 +166,7 @@
 
 <script>
 const TOTAL_PERTEMUAN = 12;
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzZXecBHNFGOkC4qtLdwZvvMy-ObriJ-xZ3LDrGglQLTVlutNmnmlm9W5SowRiOB6JUeg/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwZVvsH8Lk5ozpZR-xLccjLF9_HYGQNSjPc3Ve8Z_JbjPGaXHYCR6Cjbn2e5e_ZJ9k5cg/exec";
 
 let dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [
     { nama: "KALINGGA", hadir: 1, tidakHadir: 0 },
@@ -209,7 +209,7 @@ function renderTable() {
                     <div class="actions-cell">
                         <button class="btn-action btn-view" title="Detail" onclick="alert('Catatan untuk ${item.nama}')"><i class="fa fa-file-text"></i></button>
                         <button class="btn-action btn-download" title="Download Baris Ini" onclick="exportRowToCSV(${index})"><i class="fa fa-download"></i></button>
-                        <button class="btn-action btn-delete" title="Hapus" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
+                        <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
                     </div>
                 </td>
             </tr>`;
@@ -226,17 +226,45 @@ function updateCounter(index, tipe, value) {
         dataRekap[index].tidakHadir = Math.max(0, dataRekap[index].tidakHadir + value);
     }
     if (dataRekap[index].hadir === 0 && dataRekap[index].tidakHadir === 0) {
-        dataRekap.splice(index, 1);
+        deleteRow(index);
+        return;
     }
     simpanKeLocalStorage(); 
     renderTable();
 }
 
-function deleteRow(index) {
-    if (confirm(`Hapus data rekap untuk ${dataRekap[index].nama}?`)) {
-        dataRekap.splice(index, 1);
-        simpanKeLocalStorage(); 
-        renderTable();
+// LOGIKA HAPUS DATA BERDASARKAN NAMA SISWA (CLOUD & LOKAL)
+async function deleteRow(index) {
+    const namaSiswa = dataRekap[index].nama;
+    if (confirm(`Apakah Anda yakin ingin mereset & menghapus data rekap untuk ${namaSiswa} di aplikasi dan Google Spreadsheet?`)) {
+        const btnDelete = document.getElementById(`btnDelete-${index}`);
+        if(btnDelete) {
+            btnDelete.disabled = true;
+            btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+        }
+
+        const urlEncoded = new URLSearchParams();
+        urlEncoded.append("action", "deleteSiswa");
+        urlEncoded.append("nama", namaSiswa);
+
+        try {
+            await fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                body: urlEncoded,
+                headers: { "Content-Type": "application/x-www-form-urlencoded" }
+            });
+
+            // Hapus data dari array lokal jika cloud berhasil dipanggil
+            dataRekap.splice(index, 1);
+            simpanKeLocalStorage(); 
+            renderTable();
+            alert(`Data rekap untuk ${namaSiswa} berhasil dihapus dari Cloud dan Aplikasi.`);
+        } catch (err) {
+            console.error(err);
+            alert(`Gagal menghapus data ${namaSiswa} di Google Spreadsheet. Periksa koneksi internet Anda.`);
+            renderTable(); // Reset state tombol ke awal
+        }
     }
 }
 
@@ -288,9 +316,9 @@ async function simpan() {
     }
 }
 
-// LOGIKA SINKRONISASI RESET KE SPREADSHEET
+// LOGIKA SINKRONISASI RESET TOTAL KE SPREADSHEET
 async function resetSemuaData() {
-    if (confirm("Apakah Anda yakin ingin mereset seluruh data rekap? Semua data di aplikasi dan Google Spreadsheet akan terhapus.")) {
+    if (confirm("Apakah Anda yakin ingin mereset SELURUH data rekap semua siswa? Semua data di aplikasi dan Google Spreadsheet akan terhapus total.")) {
         const btnReset = document.getElementById("btnResetAll");
         btnReset.disabled = true;
         btnReset.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menghapus Cloud...';
@@ -306,17 +334,16 @@ async function resetSemuaData() {
                 headers: { "Content-Type": "application/x-www-form-urlencoded" }
             });
 
-            // Reset data lokal jika cloud sukses dihubungi
             dataRekap = [];
             simpanKeLocalStorage();
             renderTable();
-            alert("Data rekap dan Google Spreadsheet berhasil dikosongkan!");
+            alert("Seluruh data rekap dan Google Spreadsheet berhasil dikosongkan!");
         } catch (err) {
             console.error(err);
             alert("Koneksi gagal. Gagal mereset data di Google Spreadsheet.");
         } finally {
             btnReset.disabled = false;
-            btnReset.innerHTML = '<i class="fa fa-trash-can"></i> Reset Data';
+            btnReset.innerHTML = '<i class="fa fa-trash-can"></i> Reset Semua Data';
         }
     }
 }
