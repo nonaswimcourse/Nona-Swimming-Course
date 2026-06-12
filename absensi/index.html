@@ -18,7 +18,7 @@
         }
         body { background: #f4f6f9; min-height: 100vh; }
         
-        /* STYLE HALAMAN LOGIN (Tampilan Penuh Layar di Awal) */
+        /* STYLE HALAMAN LOGIN */
         .login-wrapper {
             display: flex;
             align-items: center;
@@ -29,29 +29,87 @@
         }
         .login-card {
             background: white;
-            padding: 40px 35px;
+            padding: 35px 35px;
             border-radius: 20px;
             box-shadow: 0 10px 25px rgba(0,0,0,.08);
             border: 1px solid #e2e8f0;
             width: 100%;
             max-width: 420px;
             animation: fadeIn 0.5s ease-in-out;
+            text-align: center;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .login-card h2 { color: #1e3a63; font-size: 26px; margin-bottom: 8px; text-align: center; font-weight: 700; }
-        .login-card p { color: #64748b; font-size: 14px; text-align: center; margin-bottom: 30px; }
-        .login-form-group { margin-bottom: 20px; }
         
-        /* STYLE UTAMA APLIKASI ABSENSI */
-        .header { background: #234a84; color: white; padding: 20px 30px; }
-        .header h1 { font-size: 28px; margin-bottom: 5px; }
-        .header p { opacity: .8; }
+        /* Kontainer Logo Halaman Login */
+        .login-logo-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .login-logo {
+            width: 90px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 2px solid #234a84;
+        }
+
+        .login-card h2 { color: #1e3a63; font-size: 26px; margin-bottom: 8px; font-weight: 700; }
+        .login-card p { color: #64748b; font-size: 14px; margin-bottom: 30px; }
+        .login-form-group { margin-bottom: 20px; text-align: left; }
+        
+        /* Wrapper Password */
+        .password-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .password-container input {
+            width: 100%;
+            padding-right: 45px;
+        }
+        .toggle-password-btn {
+            position: absolute;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
+            transition: color 0.2s;
+        }
+        .toggle-password-btn:hover { color: #475569; }
+        
+        /* STYLE UTAMA HEADER APLIKASI (Ditambah Tata Letak Logo) */
+        .header { 
+            background: #234a84; 
+            color: white; 
+            padding: 20px 30px; 
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header-logo {
+            width: 65px;
+            height: 65px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid white;
+            background: white;
+        }
+        .header-text h1 { font-size: 28px; margin-bottom: 3px; }
+        .header-text p { opacity: .8; }
+        
         .container { padding: 25px; max-width: 1100px; margin: auto; }
         
-        /* Navigasi Menu & Logout Bar */
         .nav-bar {
             display: flex;
             justify-content: space-between;
@@ -68,7 +126,6 @@
         }
         .tab-btn.active { background: #1e3a63; color: white; }
         
-        /* Tombol Logout Utama */
         .logout-main-btn {
             padding: 12px 22px;
             border: 2px solid #ef4444;
@@ -83,10 +140,7 @@
             gap: 8px;
             transition: all 0.2s ease-in-out;
         }
-        .logout-main-btn:hover {
-            background: #ef4444;
-            color: white;
-        }
+        .logout-main-btn:hover { background: #ef4444; color: white; }
 
         .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,.05); border: 1px solid #e2e8f0; }
         
@@ -145,8 +199,8 @@
         .counter-btn { background: #cbd5e1; border: none; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-weight: bold; color: #475569; display: flex; align-items: center; justify-content: center; }
         .counter-btn:hover { background: #94a3b8; }
         .counter-val { font-weight: 600; min-width: 15px; text-align: center; }
-        .counter-val.hadir-val { color: #16a34a; }
-        .counter-val.tidak-val { color: #dc2626; }
+        .counter-val hadir-val { color: #16a34a; }
+        .counter-val tidak-val { color: #dc2626; }
         .total-fraction { font-weight: 600; color: #ea580c; }
         .total-lengkap { font-weight: bold; color: #16a34a; background: #dcfce7; padding: 4px 10px; border-radius: 20px; font-size: 13px; }
         
@@ -160,8 +214,11 @@
         .hidden { display: none !important; }
         .login-footer { text-align: center; margin-top: 25px; font-size: 13px; color: #64748b; }
 
-        /* CSS KHUSUS LAYAR HP (Maksimal Lebar 600px) */
+        /* CSS KHUSUS LAYAR HP */
         @media (max-width: 600px) {
+            .header { padding: 15px; gap: 12px; }
+            .header-logo { width: 50px; height: 50px; }
+            .header-text h1 { font-size: 22px; }
             .container { padding: 15px; }
             .row { grid-template-columns: 1fr; gap: 15px; }
             .nav-bar { flex-direction: column; align-items: stretch; gap: 12px; }
@@ -173,15 +230,8 @@
                 align-items: flex-start;
                 gap: 15px;
             }
-            .rekap-controls-area, .export {
-                width: 100%;
-            }
-            .export .btn {
-                flex: 1 1 auto;
-                justify-content: center;
-                font-size: 13px;
-                padding: 10px 12px;
-            }
+            .rekap-controls-area, .export { width: 100%; }
+            .export .btn { flex: 1 1 auto; justify-content: center; font-size: 13px; padding: 10px 12px; }
         }
     </style>
 </head>
@@ -190,6 +240,11 @@
 <!-- 1. SEKSI HALAMAN LOGIN -->
 <div id="loginSection" class="login-wrapper">
     <div class="login-card">
+        <!-- Logo Percobaan di Halaman Login -->
+        <div class="login-logo-container">
+            <img src="Logo percobaan.jpg" alt="Logo NSC" class="login-logo">
+        </div>
+        
         <h2>Sistem Absensi NSC</h2>
         <p>Silakan masuk menggunakan akun Gmail Anda</p>
         
@@ -201,7 +256,12 @@
             
             <div class="login-form-group">
                 <label for="loginPassword">Password</label>
-                <input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password">
+                <div class="password-container">
+                    <input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password">
+                    <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility()">
+                        <i id="eyeIcon" class="fa fa-eye"></i>
+                    </button>
+                </div>
             </div>
             
             <button type="submit" class="login-btn">
@@ -215,15 +275,18 @@
     </div>
 </div>
 
-<!-- 2. SEKSI UTAMA APLIKASI ABSENSI -->
+<!-- 2. SEKSI UTAMA APLIKASI (Terintegrasi Logo di Header) -->
 <div id="mainAppSection" class="hidden">
     <div class="header">
-        <h1>Absensi Les Renang</h1>
-        <p>Nona Swimming Course</p>
+        <!-- Logo Percobaan di Header Aplikasi -->
+        <img src="Logo percobaan.jpg" alt="Logo NSC" class="header-logo">
+        <div class="header-text">
+            <h1>Absensi Les Renang</h1>
+            <p>Nona Swimming Course</p>
+        </div>
     </div>
 
     <div class="container">
-        <!-- Kombinasi Tab dan Menu Logout -->
         <div class="nav-bar">
             <div class="tabs">
                 <button class="tab-btn active" onclick="showTab('input', this)">
@@ -234,7 +297,6 @@
                 </button>
             </div>
             
-            <!-- Tombol Keluar Sesi -->
             <button class="logout-main-btn" onclick="handleLogout()">
                 <i class="fa fa-arrow-right-from-bracket"></i> Keluar (Logout)
             </button>
@@ -347,6 +409,21 @@ let dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [
     { nama: "ZIDNI", hadir: 1, tidakHadir: 0, catatan: "Sesi Pertama" }
 ];
 
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById("loginPassword");
+    const eyeIcon = document.getElementById("eyeIcon");
+    
+    if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        eyeIcon.classList.remove("fa-eye");
+        eyeIcon.classList.add("fa-eye-slash");
+    } else {
+        passwordInput.type = "password";
+        eyeIcon.classList.remove("fa-eye-slash");
+        eyeIcon.classList.add("fa-eye");
+    }
+}
+
 async function generateSHA256(string) {
     const msgBuffer = new TextEncoder().encode(string);                    
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -370,9 +447,7 @@ async function handleLogin(event) {
         return; 
     }
 
-    // Simpan status login di local storage agar saat di-refresh tidak logout
     localStorage.setItem("isLoggedIn", "true");
-
     document.getElementById("loginSection").classList.add("hidden");
     document.getElementById("mainAppSection").classList.remove("hidden");
     renderTable();
@@ -380,13 +455,15 @@ async function handleLogin(event) {
 
 function handleLogout() {
     if(confirm("Apakah Anda yakin ingin keluar dari sistem?")) {
-        localStorage.removeItem("isLoggedIn"); // Menghapus session login
+        localStorage.removeItem("isLoggedIn");
         document.getElementById("mainAppSection").classList.add("hidden");
         document.getElementById("loginSection").classList.remove("hidden");
         
-        // Bersihkan isian form login demi keamanan
         document.getElementById("loginEmail").value = "";
         document.getElementById("loginPassword").value = "";
+        
+        document.getElementById("loginPassword").type = "password";
+        document.getElementById("eyeIcon").className = "fa fa-eye";
     }
 }
 
@@ -463,7 +540,7 @@ async function updateCounter(index, tipe, value) {
 
     if (value > 0) {
         statusDikirim = (tipe === 'hadir') ? "Hadir" : "Tidak Hadir";
-        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa} (${statusDikirim}) pada tanggal ${formattingText=tanggalRealtime}:`, `Update manual via counter`);
+        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa} (${statusDikirim}) pada tanggal ${tanggalRealtime}:`, `Update manual via counter`);
         if (inputCatatan === null) return; 
         catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
         
@@ -491,7 +568,6 @@ async function updateCounter(index, tipe, value) {
     dataRekap[index].catatan = catatanKetik;
     simpanKeLocalStorage(); 
     renderTable();
-
     sendToCloud(namaSiswa, statusDikirim, tanggalRealtime, catatanKetik);
 }
 
@@ -611,20 +687,56 @@ function exportRowToCSV(index) {
     document.body.removeChild(link);
 }
 
+// LOGO TERINTEGRASI DI HASIL CETAK PDF REKAP DATA
 function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    doc.text("Rekap Kehadiran Nona Swimming Course", 14, 15);
-    const tableRows = [];
-    dataRekap.forEach(item => {
-        let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
-        tableRows.push([item.nama, item.hadir, item.tidakHadir, totalVal, item.catatan || '-']);
-    });
-    doc.autoTable({ startY: 25, head: [['Nama', 'Hadir', 'Tidak Hadir', 'Total', 'Catatan']], body: tableRows });
-    doc.save("Rekap_Kehadiran_NSC.pdf");
+    
+    // Judul Dokumen Utama
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("Rekap Kehadiran Siswa", 14, 18);
+    
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text("Nona Swimming Course (NSC)", 14, 25);
+    
+    // Menambahkan Logo Percobaan ke dalam PDF di pojok kanan atas secara asinkronus
+    const img = new Image();
+    img.src = 'Logo percobaan.jpg';
+    img.onload = function() {
+        // Parameter: gambar, x, y, lebar, tinggi
+        doc.addImage(img, 'JPEG', 165, 10, 30, 30);
+        
+        const tableRows = [];
+        dataRekap.forEach(item => {
+            let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
+            tableRows.push([item.nama, item.hadir, item.tidakHadir, totalVal, item.catatan || '-']);
+        });
+        
+        doc.autoTable({ 
+            startY: 45, 
+            head: [['Nama', 'Hadir', 'Tidak Hadir', 'Total', 'Catatan']], 
+            body: tableRows,
+            theme: 'striped',
+            headStyles: { fillColor: [35, 74, 132] }
+        });
+        
+        doc.save("Rekap_Kehadiran_NSC.pdf");
+    };
+    
+    img.onerror = function() {
+        // Jika file gambar gagal di-load, PDF tetap dicetak tanpa logo agar sistem tidak crash
+        const tableRows = [];
+        dataRekap.forEach(item => {
+            let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
+            tableRows.push([item.nama, item.hadir, item.tidakHadir, totalVal, item.catatan || '-']);
+        });
+        doc.autoTable({ startY: 35, head: [['Nama', 'Hadir', 'Tidak Hadir', 'Total', 'Catatan']], body: tableRows });
+        doc.save("Rekap_Kehadiran_NSC.pdf");
+    };
 }
 
-// Inisialisasi pengecekan session saat halaman dimuat/direfresh
 window.onload = function() {
     checkLoginSession();
 };
