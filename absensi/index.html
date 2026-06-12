@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
         * {
@@ -43,7 +44,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Kontainer Logo Halaman Login - Diubah agar Kotak/Asli */
         .login-logo-container {
             margin-bottom: 20px;
             display: flex;
@@ -61,7 +61,6 @@
         .login-card p { color: #64748b; font-size: 14px; margin-bottom: 30px; }
         .login-form-group { margin-bottom: 20px; text-align: left; }
         
-        /* Wrapper Password */
         .password-container {
             position: relative;
             display: flex;
@@ -87,7 +86,7 @@
         }
         .toggle-password-btn:hover { color: #475569; }
         
-        /* STYLE UTAMA HEADER APLIKASI - Lingkaran Dihapus agar Logo Terlihat Utuh */
+        /* STYLE HEADER UTAMA */
         .header { 
             background: #234a84; 
             color: white; 
@@ -142,7 +141,7 @@
 
         .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,.05); border: 1px solid #e2e8f0; }
         
-        /* RESPONSIVE REKAP DATA */
+        /* REKAP KONTROL PANEL */
         .rekap-header-wrapper { 
             display: flex; 
             justify-content: space-between; 
@@ -162,7 +161,6 @@
         select, input[type="text"], input[type="email"], input[type="password"], textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; background: white; }
         textarea { resize: none; }
         
-        /* Tombol-tombol */
         .btn { 
             color: white; 
             padding: 12px 18px; 
@@ -182,37 +180,33 @@
         .login-btn { width: 100%; background: #234a84; color: white; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 10px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
         .login-btn:hover { background: #1e3a63; }
         
-        /* Tabel Data & Pembungkus Responsif */
         .table-wrapper { width: 100%; overflow-x: auto; margin-top: 10px; -webkit-overflow-scrolling: touch; }
         .table { width: 100%; border-collapse: collapse; min-width: 600px; }
         .table th { background: #f8fafc; padding: 14px; text-align: left; color: #334155; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
         .table td { padding: 16px 14px; border-bottom: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; }
         
-        .csv { background: #22c55e; }
-        .pdf { background: #f97316; }
+        .excel-btn { background: #22c55e; }
+        .pdf-btn { background: #f97316; }
         .reset { background: #dc2626; }
         
-        /* Counter Angka Absen */
         .counter-box { display: inline-flex; align-items: center; background: #e2e8f0; border-radius: 6px; padding: 2px; gap: 8px; }
         .counter-btn { background: #cbd5e1; border: none; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-weight: bold; color: #475569; display: flex; align-items: center; justify-content: center; }
         .counter-btn:hover { background: #94a3b8; }
         .counter-val { font-weight: 600; min-width: 15px; text-align: center; }
-        .counter-val hadir-val { color: #16a34a; }
-        .counter-val tidak-val { color: #dc2626; }
+        .counter-val.hadir-val { color: #16a34a; }
+        .counter-val.tidak-val { color: #dc2626; }
         .total-fraction { font-weight: 600; color: #ea580c; }
         .total-lengkap { font-weight: bold; color: #16a34a; background: #dcfce7; padding: 4px 10px; border-radius: 20px; font-size: 13px; }
         
-        /* Aksi */
         .actions-cell { display: flex; gap: 6px; }
         .btn-action { width: 32px; height: 32px; border-radius: 6px; border: none; color: white; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
-        .btn-view { background: #22c55e; }
-        .btn-download { background: #f97316; }
+        .btn-excel { background: #22c55e; }
+        .btn-pdf { background: #f97316; }
         .btn-delete { background: #ef4444; }
         
         .hidden { display: none !important; }
         .login-footer { text-align: center; margin-top: 25px; font-size: 13px; color: #64748b; }
 
-        /* CSS KHUSUS LAYAR HP */
         @media (max-width: 600px) {
             .header { padding: 15px; gap: 12px; }
             .header-logo { width: 55px; }
@@ -223,11 +217,7 @@
             .tabs { width: 100%; }
             .tab-btn { flex: 1; justify-content: center; font-size: 14px; padding: 10px 15px; }
             .logout-main-btn { width: 100%; justify-content: center; }
-            .rekap-header-wrapper {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
+            .rekap-header-wrapper { flex-direction: column; align-items: flex-start; gap: 15px; }
             .rekap-controls-area, .export { width: 100%; }
             .export .btn { flex: 1 1 auto; justify-content: center; font-size: 13px; padding: 10px 12px; }
         }
@@ -235,14 +225,11 @@
 </head>
 <body>
 
-<!-- 1. SEKSI HALAMAN LOGIN -->
 <div id="loginSection" class="login-wrapper">
     <div class="login-card">
-        <!-- Logo Asli Tanpa Potongan Lingkaran -->
         <div class="login-logo-container">
             <img src="Logo percobaan.png" alt="Logo NSC" class="login-logo">
         </div>
-        
         <h2>Sistem Absensi NSC</h2>
         <p>Silakan masuk menggunakan akun Gmail Anda</p>
         
@@ -261,22 +248,18 @@
                     </button>
                 </div>
             </div>
-            
             <button type="submit" class="login-btn">
                 <i class="fa fa-right-to-bracket"></i> Masuk Aplikasi
             </button>
         </form>
-        
         <div class="login-footer">
             <p>Nona Swimming Course &copy; 2026</p>
         </div>
     </div>
 </div>
 
-<!-- 2. SEKSI UTAMA APLIKASI -->
 <div id="mainAppSection" class="hidden">
     <div class="header">
-        <!-- Logo Asli Tanpa Potongan Lingkaran -->
         <img src="Logo percobaan.png" alt="Logo NSC" class="header-logo">
         <div class="header-text">
             <h1>Absensi Les Renang</h1>
@@ -294,13 +277,11 @@
                     <i class="fa fa-chart-column"></i> Rekap Data
                 </button>
             </div>
-            
             <button class="logout-main-btn" onclick="handleLogout()">
                 <i class="fa fa-arrow-right-from-bracket"></i> Keluar (Logout)
             </button>
         </div>
 
-        <!-- Tab Input -->
         <div id="input" class="card">
             <h2>Tambah Absensi</h2>
             <div class="row">
@@ -308,36 +289,21 @@
                     <label for="nama">Nama Siswa</label>
                     <input type="text" id="nama" list="list-nama" placeholder="Ketik atau pilih nama..." autocomplete="off">
                     <datalist id="list-nama">
-                        <option value="KALINGGA"></option>
-                        <option value="ZIDNI"></option>
-                        <option value="KALA"></option>
-                        <option value="EGA"></option>
-                        <option value="ARGHYA"></option>
-                        <option value="AIRA"></option>
-                        <option value="ALDEBARAN"></option>
-                        <option value="ASHIMA"></option>
-                        <option value="BINTANG"></option>
-                        <option value="BRANDEN"></option>
-                        <option value="CECIL"></option>
-                        <option value="DHIFA"></option>
-                        <option value="FAISAL"></option>
-                        <option value="HAFIZ"></option>
-                        <option value="ICHA"></option>
-                        <option value="KAMIL"></option>
-                        <option value="KECIL"></option>
-                        <option value="KHSAN"></option>
-                        <option value="KEANO"></option>
-                        <option value="ALFA"></option>
-                        <option value="RISKI"></option>
-                        <option value="KIRAN"></option>
-                        <option value="NAJMA"></option>
-                        <option value="NAURA"></option>
-                        <option value="NAZLA"></option>
-                        <option value="RISYA"></option>
-                        <option value="IRUL"></option>
-                        <option value="UMMA"></option>
-                        <option value="YUMNA"></option>
-                        <option value="RAFFA"></option>
+                        <option value="KALINGGA"></option><option value="ZIDNI"></option>
+                        <option value="KALA"></option><option value="EGA"></option>
+                        <option value="ARGHYA"></option><option value="AIRA"></option>
+                        <option value="ALDEBARAN"></option><option value="ASHIMA"></option>
+                        <option value="BINTANG"></option><option value="BRANDEN"></option>
+                        <option value="CECIL"></option><option value="DHIFA"></option>
+                        <option value="FAISAL"></option><option value="HAFIZ"></option>
+                        <option value="ICHA"></option><option value="KAMIL"></option>
+                        <option value="KECIL"></option><option value="KHSAN"></option>
+                        <option value="KEANO"></option><option value="ALFA"></option>
+                        <option value="RISKI"></option><option value="KIRAN"></option>
+                        <option value="NAJMA"></option><option value="NAURA"></option>
+                        <option value="NAZLA"></option><option value="RISYA"></option>
+                        <option value="IRUL"></option><option value="UMMA"></option>
+                        <option value="YUMNA"></option><option value="RAFFA"></option>
                         <option value="ZULFA"></option>
                     </datalist>
                 </div>
@@ -357,24 +323,22 @@
             </button>
         </div>
 
-        <!-- Tab Rekap -->
         <div id="rekap" class="card hidden">
             <div class="rekap-header-wrapper">
                 <div class="rekap-title-area">
                     <h2>Rekap Kehadiran</h2>
                     <p id="totalPertemuanText">Total 12 Pertemuan Les Renang</p>
                 </div>
-                
                 <div class="rekap-controls-area">
                     <div class="export">
                         <button class="btn reset" id="btnResetAll" onclick="resetSemuaData()">
-                            <i class="fa fa-trash-can"></i> Reset Semua Data
+                            <i class="fa fa-trash-can"></i> Reset
                         </button>
-                        <button class="btn csv" onclick="exportToCSV()">
-                            <i class="fa fa-file-csv"></i> Export CSV
+                        <button class="btn excel-btn" onclick="exportTotalExcel()">
+                            <i class="fa fa-file-excel"></i> Excel Total
                         </button>
-                        <button class="btn pdf" onclick="exportToPDF()">
-                            <i class="fa fa-file-pdf"></i> Export PDF
+                        <button class="btn pdf-btn" onclick="exportTotalPDF()">
+                            <i class="fa fa-file-pdf"></i> PDF Total
                         </button>
                     </div>
                 </div>
@@ -388,7 +352,7 @@
                             <th>Hadir</th>
                             <th>Tidak Hadir</th>
                             <th>Total</th>
-                            <th>Aksi</th>
+                            <th>Aksi File Harian</th>
                         </tr>
                     </thead>
                     <tbody id="tbody"></tbody>
@@ -400,51 +364,40 @@
 
 <script>
 const TOTAL_PERTEMUAN = 12;
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzDS9SBKHEug5S5r_sebLaUkWj8VKs6IY5TCxyKjgS0tiBG7YVAL4F2YrBXQfnp4sNL9A/exec";
+// URL Web Apps Script Google Anda
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwu4Lk0gwUWvVWIeKNUIyqzUIcl4VM_5QEC_S9SPVZAIZt7w0tFZfR1rgMREHyqVL_j7g/exec";
 
-let dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [
-    { nama: "KALINGGA", hadir: 1, tidakHadir: 0, catatan: "Sesi Pertama" },
-    { nama: "ZIDNI", hadir: 1, tidakHadir: 0, catatan: "Sesi Pertama" }
-];
+// Cache penampung data rekap lokal
+let dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [];
+let logHarianGlobal = JSON.parse(localStorage.getItem("logHarianGlobal")) || [];
 
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById("loginPassword");
     const eyeIcon = document.getElementById("eyeIcon");
-    
     if (passwordInput.type === "password") {
         passwordInput.type = "text";
-        eyeIcon.classList.remove("fa-eye");
-        eyeIcon.classList.add("fa-eye-slash");
+        eyeIcon.classList.replace("fa-eye", "fa-eye-slash");
     } else {
         passwordInput.type = "password";
-        eyeIcon.classList.remove("fa-eye-slash");
-        eyeIcon.classList.add("fa-eye");
+        eyeIcon.classList.replace("fa-eye-slash", "fa-eye");
     }
 }
 
 async function generateSHA256(string) {
     const msgBuffer = new TextEncoder().encode(string);                    
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 async function handleLogin(event) {
     event.preventDefault(); 
-    
     const email = document.getElementById("loginEmail").value.trim().toLowerCase();
     const password = document.getElementById("loginPassword").value;
 
-    const emailSah = "nonaswimmingcourse@gmail.com";
-    const hashPasswordSah = "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83"; 
-
-    const hashInputUser = await generateSHA256(password);
-
-    if (email !== emailSah || hashInputUser !== hashPasswordSah) {
-        alert("Akses ditolak! Alamat Gmail atau Password salah.");
+    if (email !== "nonaswimmingcourse@gmail.com" || await generateSHA256(password) !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
+        alert("Akses ditolak! Akun atau Password salah.");
         return; 
     }
-
     localStorage.setItem("isLoggedIn", "true");
     document.getElementById("loginSection").classList.add("hidden");
     document.getElementById("mainAppSection").classList.remove("hidden");
@@ -452,38 +405,24 @@ async function handleLogin(event) {
 }
 
 function handleLogout() {
-    if(confirm("Apakah Anda yakin ingin keluar dari sistem?")) {
+    if(confirm("Apakah Anda yakin ingin keluar?")) {
         localStorage.removeItem("isLoggedIn");
         document.getElementById("mainAppSection").classList.add("hidden");
         document.getElementById("loginSection").classList.remove("hidden");
-        
-        document.getElementById("loginEmail").value = "";
-        document.getElementById("loginPassword").value = "";
-        
-        document.getElementById("loginPassword").type = "password";
-        document.getElementById("eyeIcon").className = "fa fa-eye";
     }
 }
 
 function checkLoginSession() {
-    const session = localStorage.getItem("isLoggedIn");
-    if(session === "true") {
+    if(localStorage.getItem("isLoggedIn") === "true") {
         document.getElementById("loginSection").classList.add("hidden");
         document.getElementById("mainAppSection").classList.remove("hidden");
         renderTable();
-    } else {
-        document.getElementById("loginSection").classList.remove("hidden");
-        document.getElementById("mainAppSection").classList.add("hidden");
     }
 }
 
 function getTanggalLaptopRealtime() {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-}
-
-function simpanKeLocalStorage() {
-    localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
 }
 
 function renderTable() {
@@ -495,8 +434,6 @@ function renderTable() {
             let totalTeks = item.hadir === TOTAL_PERTEMUAN 
                 ? `<span class="total-lengkap">LENGKAP</span>` 
                 : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;
-
-            let catatanTeks = item.catatan ? item.catatan : "-";
 
             html += `
             <tr>
@@ -518,8 +455,8 @@ function renderTable() {
                 <td>${totalTeks}</td>
                 <td>
                     <div class="actions-cell">
-                        <button class="btn-action btn-view" title="Detail Catatan" onclick="alert('Catatan untuk ${item.nama}:\\n${catatanTeks}')"><i class="fa fa-file-text"></i></button>
-                        <button class="btn-action btn-download" title="Download Baris Ini" onclick="exportRowToCSV(${index})"><i class="fa fa-download"></i></button>
+                        <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
+                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>
                         <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
                     </div>
                 </td>
@@ -538,21 +475,17 @@ async function updateCounter(index, tipe, value) {
 
     if (value > 0) {
         statusDikirim = (tipe === 'hadir') ? "Hadir" : "Tidak Hadir";
-        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa} (${statusDikirim}) pada tanggal ${tanggalRealtime}:`, `Update manual via counter`);
+        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update manual via counter`);
         if (inputCatatan === null) return; 
         catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
         
         if (tipe === 'hadir') dataRekap[index].hadir += 1;
         else dataRekap[index].tidakHadir += 1;
+        
+        logHarianGlobal.push({ nama: namaSiswa, hadir: (tipe==='hadir'?1:0), tidakHadir: (tipe==='tidakHadir'?1:0), tanggal: tanggalRealtime, catatan: catatanKetik });
     } else {
         if (tipe === 'hadir') {
             if (dataRekap[index].hadir === 0) return;
-            if (dataRekap[index].hadir - 1 === 0) {
-                if (confirm(`Nilai hadir ${namaSiswa} akan menjadi 0. Hapus data siswa ini?`)) {
-                    await deleteRow(index); 
-                    return; 
-                } else return;
-            }
             dataRekap[index].hadir -= 1;
             statusDikirim = "Kurang Hadir";
         } else {
@@ -563,14 +496,19 @@ async function updateCounter(index, tipe, value) {
         catatanKetik = `Pengurangan manual via counter`;
     }
 
+    dataRekap[index].tanggal = tanggalRealtime;
     dataRekap[index].catatan = catatanKetik;
-    simpanKeLocalStorage(); 
+    
+    localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
+    localStorage.setItem("logHarianGlobal", JSON.stringify(logHarianGlobal));
     renderTable();
     sendToCloud(namaSiswa, statusDikirim, tanggalRealtime, catatanKetik);
 }
 
 async function deleteRow(index) {
     const namaSiswa = dataRekap[index].nama;
+    if(!confirm(`Hapus seluruh data siswa ${namaSiswa}?`)) return;
+    
     const btnDelete = document.getElementById(`btnDelete-${index}`);
     if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
 
@@ -581,11 +519,12 @@ async function deleteRow(index) {
     try {
         await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded });
         dataRekap.splice(index, 1);
-        simpanKeLocalStorage(); 
+        logHarianGlobal = logHarianGlobal.filter(item => item.nama !== namaSiswa);
+        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
+        localStorage.setItem("logHarianGlobal", JSON.stringify(logHarianGlobal));
         renderTable();
-        alert(`Data ${namaSiswa} dihapus.`);
     } catch (err) {
-        alert(`Gagal menghapus data di cloud.`);
+        alert(`Gagal koneksi cloud.`);
         renderTable();
     }
 }
@@ -603,18 +542,23 @@ async function simpan() {
     btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
 
     let siswaExist = dataRekap.find(s => s.nama === nama);
-    let catatanTeks = catatan ? catatan : `Absen pada tanggal ${tanggalRealtime}`;
+    let catatanTeks = catatan.trim() ? catatan.trim() : `Absen pada tanggal ${tanggalRealtime}`;
 
     if(siswaExist) {
         if(status === "Hadir") siswaExist.hadir += 1;
         else siswaExist.tidakHadir += 1;
         siswaExist.catatan = catatanTeks; 
+        siswaExist.tanggal = tanggalRealtime;
     } else {
-        dataRekap.push({ nama: nama, hadir: status === "Hadir" ? 1 : 0, tidakHadir: status === "Tidak Hadir" ? 1 : 0, catatan: catatanTeks });
+        dataRekap.push({ nama: nama, hadir: status === "Hadir" ? 1 : 0, tidakHadir: status === "Tidak Hadir" ? 1 : 0, tanggal: tanggalRealtime, catatan: catatanTeks });
     }
     
-    simpanKeLocalStorage(); 
+    logHarianGlobal.push({ nama: nama, hadir: status === "Hadir" ? 1 : 0, tidakHadir: status === "Tidak Hadir" ? 1 : 0, tanggal: tanggalRealtime, catatan: catatanTeks });
+    
+    localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
+    localStorage.setItem("logHarianGlobal", JSON.stringify(logHarianGlobal));
     renderTable();
+    
     await sendToCloud(nama, status, tanggalRealtime, catatanTeks);
     
     document.getElementById("nama").value = "";
@@ -641,7 +585,9 @@ async function resetSemuaData() {
         try {
             await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded });
             dataRekap = [];
-            simpanKeLocalStorage();
+            logHarianGlobal = [];
+            localStorage.removeItem("dataRekap");
+            localStorage.removeItem("logHarianGlobal");
             renderTable();
             alert("Data dikosongkan.");
         } catch (err) { alert("Gagal koneksi cloud."); }
@@ -656,78 +602,96 @@ function showTab(tab, btn) {
     btn.classList.add("active");
 }
 
-function exportToCSV() {
-    let csvContent = "data:text/csv;charset=utf-8,Nama,Hadir,Tidak Hadir,Total,Catatan\n";
+// ==========================================
+// LOGIKA EXPORT EXCEL (.XLSX) MENGGUNAKAN SHEETJS
+// ==========================================
+function exportTotalExcel() {
+    if(dataRekap.length === 0) return alert("Tidak ada data untuk diekspor");
+    const worksheetData = [["Nama", "Hadir", "Tidak Hadir", "Tanggal Terbaru", "Catatan Terakhir"]];
     dataRekap.forEach(item => {
-        let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
-        csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${totalVal},"${item.catatan || '-'}"\n`;
+        worksheetData.push([item.nama, item.hadir, item.tidakHadir, item.tanggal || '-', item.catatan || '-']);
     });
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "Rekap_Kehadiran_NSC.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    XLSX.utils.book_append_sheet(wb, ws, "Rekap Total");
+    XLSX.writeFile(wb, "Rekap_Total_Kehadiran_NSC.xlsx");
 }
 
-function exportRowToCSV(index) {
-    const item = dataRekap[index];
-    let csvContent = "data:text/csv;charset=utf-8,Nama,Hadir,Tidak Hadir,Total,Catatan\n";
-    let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
-    csvContent += `${item.nama},${item.hadir},${item.tidakHadir},${totalVal},"${item.catatan || '-'}"\n`;
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Rekap_${item.nama}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+function exportSiswaExcel(index) {
+    const namaSiswa = dataRekap[index].nama;
+    const filterHarian = logHarianGlobal.filter(item => item.nama === namaSiswa);
+    if(filterHarian.length === 0) return alert("Belum ada log riwayat harian untuk siswa ini.");
+    
+    const worksheetData = [["Nama", "Hadir", "Tidak Hadir", "Tanggal Input", "Catatan"]];
+    filterHarian.sort((a,b) => new Date(a.tanggal) - new Date(b.tanggal)).forEach(item => {
+        worksheetData.push([item.nama, item.hadir, item.tidakHadir, item.tanggal, item.catatan]);
+    });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    XLSX.utils.book_append_sheet(wb, ws, "Log Harian");
+    XLSX.writeFile(wb, `Log_Harian_${namaSiswa}.xlsx`);
 }
 
-function exportToPDF() {
+// ==========================================
+// LOGIKA EXPORT PDF MENGGUNAKAN JSPDF + AUTOTABLE
+// ==========================================
+function exportTotalPDF() {
+    if(dataRekap.length === 0) return alert("Tidak ada data untuk dibuat PDF");
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(16);
-    doc.text("Rekap Kehadiran Siswa", 14, 18);
-    
+    doc.text("Rekap Akumulasi Kehadiran Siswa", 14, 18);
     doc.setFont("Helvetica", "normal");
     doc.setFontSize(11);
     doc.text("Nona Swimming Course (NSC)", 14, 25);
     
-    const img = new Image();
-    img.src = 'Logo percobaan.png';
-    img.onload = function() {
-        doc.addImage(img, 'PNG', 165, 10, 30, 30);
-        
-        const tableRows = [];
-        dataRekap.forEach(item => {
-            let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
-            tableRows.push([item.nama, item.hadir, item.tidakHadir, totalVal, item.catatan || '-']);
-        });
-        
-        doc.autoTable({ 
-            startY: 45, 
-            head: [['Nama', 'Hadir', 'Tidak Hadir', 'Total', 'Catatan']], 
-            body: tableRows,
-            theme: 'striped',
-            headStyles: { fillColor: [35, 74, 132] }
-        });
-        
-        doc.save("Rekap_Kehadiran_NSC.pdf");
-    };
+    const tableRows = [];
+    dataRekap.forEach(item => {
+        let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
+        tableRows.push([item.nama, item.hadir, item.tidakHadir, totalVal, item.catatan || '-']);
+    });
     
-    img.onerror = function() {
-        const tableRows = [];
-        dataRekap.forEach(item => {
-            let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
-            tableRows.push([item.nama, item.hadir, item.tidakHadir, totalVal, item.catatan || '-']);
-        });
-        doc.autoTable({ startY: 35, head: [['Nama', 'Hadir', 'Tidak Hadir', 'Total', 'Catatan']], body: tableRows });
-        doc.save("Rekap_Kehadiran_NSC.pdf");
-    };
+    doc.autoTable({ 
+        startY: 35, 
+        head: [['Nama', 'Hadir', 'Tidak Hadir', 'Total Target', 'Catatan Terakhir']], 
+        body: tableRows,
+        theme: 'striped',
+        headStyles: { fillColor: [35, 74, 132] }
+    });
+    doc.save("Rekap_Total_Kehadiran_NSC.pdf");
+}
+
+function exportSiswaPDF(index) {
+    const namaSiswa = dataRekap[index].nama;
+    const filterHarian = logHarianGlobal.filter(item => item.nama === namaSiswa);
+    if(filterHarian.length === 0) return alert("Belum ada log riwayat harian untuk siswa ini.");
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(`Log Riwayat Absensi Harian`, 14, 18);
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(12);
+    doc.text(`Nama Siswa: ${namaSiswa}`, 14, 25);
+    doc.text("Nona Swimming Course (NSC)", 14, 31);
+    
+    const tableRows = [];
+    filterHarian.sort((a,b) => new Date(a.tanggal) - new Date(b.tanggal)).forEach(item => {
+        tableRows.push([item.tanggal, item.hadir, item.tidakHadir, item.catatan]);
+    });
+    
+    doc.autoTable({ 
+        startY: 38, 
+        head: [['Tanggal Absen', 'Hadir', 'Tidak Hadir', 'Keterangan Sesi']], 
+        body: tableRows,
+        theme: 'striped',
+        headStyles: { fillColor: [249, 115, 22] }
+    });
+    doc.save(`Log_Harian_${namaSiswa}.pdf`);
 }
 
 window.onload = function() {
