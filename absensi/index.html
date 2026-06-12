@@ -539,6 +539,7 @@ async function resetSemuaData() {
     }
 }
 
+/* --- TABS SYSTEM --- */
 function showTab(tab, btn) {
     document.getElementById("input").classList.add("hidden");
     document.getElementById("rekap").classList.add("hidden");
@@ -547,32 +548,58 @@ function showTab(tab, btn) {
     btn.classList.add("active");
 }
 
-/* --- PERBAIKAN & PENAMBAHAN FUNGSI EKSPOR TERINTEGRASI ANDROID --- */
-
-// Helper: Penembus Blokir WebView Android
+/* --- PERBAIKAN KHUSUS UNTUK APK ANDROID AGAR TIDAK FORCE CLOSE --- */
 function prosesUnduhFile(blob, namaFile) {
-    try {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = namaFile;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    } catch(e) {
-        // Fallback jika diblokir WebView: Konversi ke Base64 Data URL dan buka di browser luar
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
         const reader = new FileReader();
         reader.onloadend = function() {
             const dataUrl = reader.result;
+            
             const w = window.open();
-            if(w) {
-                w.document.write(`<p style="font-family:sans-serif; text-align:center; margin-top:50px;">Memproses file harian Android... Jika tidak mengunduh otomatis, <a href="${dataUrl}" download="${namaFile}" style="font-weight:bold; color:#234a84;">KLIK DISINI UNTUK UNDUH FILE</a></p>`);
+            if (w) {
+                w.document.write(`
+                    <html lang="id">
+                    <head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Unduh File NSC</title>
+                        <style>
+                            body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 40px 20px; background: #f4f6f9; color: #1e3a63; }
+                            .box { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+                            .btn-download { display: inline-block; background: #234a84; color: white; padding: 14px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px; box-shadow: 0 4px 6px rgba(35,74,132,0.2); }
+                            .info { color: #64748b; font-size: 14px; margin-top: 15px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="box">
+                            <h3>File Berhasil Disiapkan!</h3>
+                            <p>Silakan klik tombol di bawah untuk menyimpan berkas ke perangkat Anda.</p>
+                            <a href="${dataUrl}" download="${namaFile}" class="btn-download">⬇️ SIMPAN FILE SEKARANG</a>
+                            <p class="info">Nama File: <br><strong>${namaFile}</strong></p>
+                        </div>
+                    </body>
+                    </html>
+                `);
+                w.document.close();
             } else {
-                alert("Mohon izinkan pop-up pada aplikasi Android Anda untuk mengunduh berkas.");
+                alert("Gagal membuka browser luar. Mohon aktifkan izin pop-up / buka link luar di pengaturan aplikasi webview Anda.");
             }
         };
         reader.readAsDataURL(blob);
+    } else {
+        try {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = namaFile;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch(e) {
+            alert("Gagal mengunduh file.");
+        }
     }
 }
 
