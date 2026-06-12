@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Absensi Les Renang NSC</title>
     
-    <!-- Mengubah logo tab browser -->
     <link rel="icon" type="image/png" href="Logo percobaan.png">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <!-- Pustaka Pendukung Pencarian di Dropdown (Tom Select) -->
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     
@@ -18,151 +16,36 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', sans-serif;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: #f4f6f9; min-height: 100vh; }
         
-        /* STYLE HALAMAN LOGIN */
-        .login-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-            background: #eef2f7;
-        }
-        .login-card {
-            background: white;
-            padding: 35px 35px;
-            border-radius: 20px;
-            box-shadow: none;
-            border: none;
-            width: 100%;
-            max-width: 420px;
-            animation: fadeIn 0.5s ease-in-out;
-            text-align: center;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .login-logo-container {
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: center;
-            background: transparent !important; 
-            padding: 0;
-            box-shadow: none !important;
-            border: none !important;
-        }
-        .login-logo {
-            width: 120px;
-            height: auto;
-            object-fit: contain;
-            box-shadow: none !important;
-            border: none !important;
-            background: transparent !important;
-            border-radius: 0; 
-        }
+        .login-wrapper { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: #eef2f7; }
+        .login-card { background: white; padding: 35px; border-radius: 20px; width: 100%; max-width: 420px; text-align: center; }
+        .login-logo-container { margin-bottom: 25px; display: flex; justify-content: center; }
+        .login-logo { width: 120px; height: auto; object-fit: contain; }
         .login-card h2 { color: #1e3a63; font-size: 26px; margin-bottom: 8px; font-weight: 700; }
         .login-card p { color: #64748b; font-size: 14px; margin-bottom: 30px; }
         .login-form-group { margin-bottom: 20px; text-align: left; }
         
-        .password-container {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-        .password-container input {
-            width: 100%;
-            padding-right: 45px;
-        }
-        .toggle-password-btn {
-            position: absolute;
-            right: 15px;
-            background: none;
-            border: none;
-            color: #94a3b8;
-            cursor: pointer;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px;
-            transition: color 0.2s;
-        }
-        .toggle-password-btn:hover { color: #475569; }
+        .password-container { position: relative; display: flex; align-items: center; }
+        .password-container input { width: 100%; padding-right: 45px; }
+        .toggle-password-btn { position: absolute; right: 15px; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; padding: 5px; }
         
-        /* STYLE HEADER UTAMA */
-        .header { 
-            background: #234a84; 
-            color: white; 
-            padding: 20px 30px; 
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        .header-logo {
-            width: 70px;
-            height: auto;
-            object-fit: contain;
-            border-radius: 0;
-            background: transparent;
-        }
+        .header { background: #234a84; color: white; padding: 20px 30px; display: flex; align-items: center; gap: 20px; }
+        .header-logo { width: 70px; height: auto; object-fit: contain; }
         .header-text h1 { font-size: 28px; margin-bottom: 3px; }
         .header-text p { opacity: .8; }
         
         .container { padding: 25px; max-width: 1100px; margin: auto; }
-        
-        .nav-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
+        .nav-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap; }
         .tabs { display: flex; gap: 15px; flex-wrap: wrap; }
-        .tab-btn {
-            padding: 12px 25px; border: none; border-radius: 30px; font-size: 16px;
-            cursor: pointer; background: #dbe3ef; color: #5c6f8a;
-            display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s;
-        }
+        .tab-btn { padding: 12px 25px; border: none; border-radius: 30px; font-size: 16px; cursor: pointer; background: #dbe3ef; color: #5c6f8a; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s; }
         .tab-btn.active { background: #1e3a63; color: white; }
-        
-        .logout-main-btn {
-            padding: 12px 22px;
-            border: 2px solid #ef4444;
-            border-radius: 30px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            background: transparent;
-            color: #ef4444;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s ease-in-out;
-        }
+        .logout-main-btn { padding: 12px 22px; border: 2px solid #ef4444; border-radius: 30px; font-size: 15px; font-weight: 600; cursor: pointer; background: transparent; color: #ef4444; display: inline-flex; align-items: center; gap: 8px; }
         .logout-main-btn:hover { background: #ef4444; color: white; }
 
         .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,.05); border: 1px solid #e2e8f0; }
-        
-        /* REKAP KONTROL PANEL */
-        .rekap-header-wrapper { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 25px; 
-            width: 100%; 
-            gap: 15px; 
-            flex-wrap: wrap; 
-        }
+        .rekap-header-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; width: 100%; gap: 15px; flex-wrap: wrap; }
         .rekap-title-area h2 { color: #1e293b; font-size: 22px; margin-bottom: 4px; }
         .rekap-title-area p { color: #64748b; font-size: 14px; }
         .rekap-controls-area { display: flex; align-items: center; flex-wrap: wrap; }
@@ -174,7 +57,6 @@
         select, input[type="text"], input[type="email"], input[type="password"], textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; background: white; }
         textarea { resize: none; }
         
-        /* Perbaikan Kotak Pencarian Tom Select agar rapi di Android */
         .ts-wrapper.single .ts-control {
             padding: 0 40px 0 14px !important; 
             border-radius: 10px !important;
@@ -191,51 +73,15 @@
         }
         
         .ts-wrapper.single .ts-control .item, 
-        .ts-wrapper.single .ts-control input {
-            display: inline-block !important;
-            vertical-align: middle !important;
-            line-height: 50px !important; 
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-
-        .ts-wrapper.single .ts-control input {
-            height: 50px !important;
-        }
+        .ts-wrapper.single .ts-control input { display: inline-block !important; vertical-align: middle !important; line-height: 50px !important; margin: 0 !important; padding: 0 !important; }
+        .ts-wrapper.single .ts-control input { height: 50px !important; }
+        .ts-wrapper.single.focus .ts-control { box-shadow: 0 0 0 2px rgba(35, 74, 132, 0.2) !important; border-color: #234a84 !important; }
+        .ts-dropdown { border-radius: 10px !important; margin-top: 5px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; font-size: 16px !important; }
+        .ts-dropdown .option { padding: 12px 14px !important; line-height: 1.5 !important; }
         
-        .ts-wrapper.single.focus .ts-control {
-            box-shadow: 0 0 0 2px rgba(35, 74, 132, 0.2) !important;
-            border-color: #234a84 !important;
-        }
-        .ts-dropdown {
-            border-radius: 10px !important;
-            margin-top: 5px !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
-            font-size: 16px !important;
-        }
-        .ts-dropdown .option {
-            padding: 12px 14px !important;
-            line-height: 1.5 !important;
-        }
-        
-        .btn { 
-            color: white; 
-            padding: 12px 18px; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-size: 14px; 
-            font-weight: 500;
-            display: inline-flex; 
-            align-items: center; 
-            gap: 6px; 
-            transition: opacity 0.2s; 
-            white-space: nowrap; 
-        }
-        .btn:hover { opacity: .9; }
+        .btn { color: white; padding: 12px 18px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s; white-space: nowrap; }
         .btn-primary { background: #234a84; padding: 14px 25px; font-size: 16px; border-radius: 10px; margin-top: 20px; }
-        .login-btn { width: 100%; background: #234a84; color: white; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 10px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        .login-btn:hover { background: #1e3a63; }
+        .login-btn { width: 100%; background: #234a84; color: white; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
         
         .table-wrapper { width: 100%; overflow-x: auto; margin-top: 10px; -webkit-overflow-scrolling: touch; }
         .table { width: 100%; border-collapse: collapse; min-width: 600px; }
@@ -248,7 +94,6 @@
         
         .counter-box { display: inline-flex; align-items: center; background: #e2e8f0; border-radius: 6px; padding: 2px; gap: 8px; }
         .counter-btn { background: #cbd5e1; border: none; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-weight: bold; color: #475569; display: flex; align-items: center; justify-content: center; }
-        .counter-btn:hover { background: #94a3b8; }
         .counter-val { font-weight: 600; min-width: 15px; text-align: center; }
         .counter-val.hadir-val { color: #16a34a; }
         .counter-val.tidak-val { color: #dc2626; }
@@ -275,7 +120,7 @@
             .tab-btn { flex: 1; justify-content: center; font-size: 14px; padding: 10px 15px; }
             .logout-main-btn { width: 100%; justify-content: center; }
             .rekap-header-wrapper { flex-direction: column; align-items: flex-start; gap: 15px; }
-            .rekap-controls-area, .export { width: 100%; }
+            .export { width: 100%; }
             .export .btn { flex: 1 1 auto; justify-content: center; font-size: 13px; padding: 10px 12px; }
         }
     </style>
@@ -442,19 +287,23 @@ let dataRekap = [];
 let selectNamaControl;
 
 document.addEventListener("DOMContentLoaded", function() {
+    // PERBAIKAN UTAMA DI SINI UNTUK APPCREATOR24 ANDROID
     selectNamaControl = new TomSelect("#nama", {
         create: false,
         sortField: { field: "text", direction: "asc" },
         placeholder: "Ketik / Pilih Nama Siswa...",
-        allowEmptyOption: true
+        allowEmptyOption: true,
+        onChange: function(value) {
+            if(value) {
+                if(selectNamaControl) { selectNamaControl.blur(); }
+                document.activeElement.blur(); 
+            }
+        }
     });
     checkLoginSession();
-    
-    // Tarik data terbaru dari Cloud saat pertama kali membuka aplikasi di Android
     muatDataDariCloud();
 });
 
-// Fungsi penarik data dari Google Sheets untuk menembus batasan memori Android WebView
 async function muatDataDariCloud() {
     try {
         dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [];
@@ -469,9 +318,7 @@ async function muatDataDariCloud() {
                 renderTable();
             }
         }
-    } catch (e) {
-        console.log("Menggunakan backup data lokal.");
-    }
+    } catch (e) { console.log("Menggunakan backup data lokal."); }
 }
 
 function togglePasswordVisibility() {
@@ -581,7 +428,6 @@ async function updateCounter(index, tipe, value) {
         let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update manual via counter`);
         if (inputCatatan === null) return; 
         catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
-        
         if (tipe === 'hadir') dataRekap[index].hadir += 1;
         else dataRekap[index].tidakHadir += 1;
     } else {
@@ -624,15 +470,8 @@ async function deleteRow(index) {
     }
 }
 
-/* ALUR KHUSUS ANDROID: DATA KIRIM LANGSUNG KE CLOUD, BARU UPDATE INTERFACE */
 async function simpan() {
-    let nama = "";
-    if (selectNamaControl) {
-        nama = selectNamaControl.getValue(); 
-    } else {
-        nama = document.getElementById("nama").value;
-    }
-    
+    let nama = selectNamaControl ? selectNamaControl.getValue() : document.getElementById("nama").value;
     const status = document.getElementById("status").value;
     const catatan = document.getElementById("catatan").value;
     const btnSimpan = document.getElementById("btnSimpan");
@@ -645,27 +484,17 @@ async function simpan() {
 
     btnSimpan.disabled = true;
     btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mengirim ke Cloud...';
-
     let catatanTeks = catatan.trim() ? catatan.trim() : `Absen pada tanggal ${tanggalRealtime}`;
 
-    // 1. Eksekusi Pengiriman Langsung Ke Google Sheets Cloud
     try {
         const urlEncoded = new URLSearchParams();
         urlEncoded.append("nama", nama);
         urlEncoded.append("status", status);
         urlEncoded.append("tanggal", tanggalRealtime);
         urlEncoded.append("catatan", catatanTeks);
+        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded });
+    } catch(e) {}
 
-        await fetch(WEB_APP_URL, { 
-            method: "POST", 
-            mode: "no-cors", 
-            body: urlEncoded 
-        });
-    } catch(e) {
-        console.log("Cloud error, dialihkan ke antrean visual harian.");
-    }
-
-    // 2. Update Komponen Tabel Di Layar HP Android Secara Realtime
     let siswaExist = dataRekap.find(s => s.nama === nama);
     if(siswaExist) {
         if(status === "Hadir") siswaExist.hadir += 1;
@@ -677,14 +506,10 @@ async function simpan() {
     }
     
     renderTable();
-    
     try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
 
-    if(selectNamaControl) {
-        selectNamaControl.clear();
-    }
+    if(selectNamaControl) { selectNamaControl.clear(); }
     document.getElementById("catatan").value = "";
-    
     btnSimpan.disabled = false;
     btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
     
@@ -697,9 +522,7 @@ async function sendToCloud(nama, status, tanggal, catatan) {
     urlEncoded.append("status", status);
     urlEncoded.append("tanggal", tanggal);
     urlEncoded.append("catatan", catatan);
-    try {
-        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded });
-    } catch(e) {}
+    try { await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded }); } catch(e) {}
 }
 
 async function resetSemuaData() {
@@ -727,9 +550,7 @@ function showTab(tab, btn) {
 function exportTotalExcel() {
     if(dataRekap.length === 0) return alert("Tidak ada data untuk diekspor");
     const worksheetData = [["Nama", "Hadir", "Tidak Hadir", "Tanggal Terbaru", "Catatan Terakhir"]];
-    dataRekap.forEach(item => {
-        worksheetData.push([item.nama, item.hadir, item.tidakHadir, item.tanggal || '-', item.catatan || '-']);
-    });
+    dataRekap.forEach(item => { worksheetData.push([item.nama, item.hadir, item.tidakHadir, item.tanggal || '-', item.catatan || '-']); });
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(worksheetData);
     XLSX.utils.book_append_sheet(wb, ws, "Rekap Total");
