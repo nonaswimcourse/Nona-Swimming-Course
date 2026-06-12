@@ -11,6 +11,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     
+    <!-- Pustaka Generator PDF & Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -287,7 +288,6 @@ let dataRekap = [];
 let selectNamaControl;
 
 document.addEventListener("DOMContentLoaded", function() {
-    // PERBAIKAN UTAMA DI SINI UNTUK APPCREATOR24 ANDROID
     selectNamaControl = new TomSelect("#nama", {
         create: false,
         sortField: { field: "text", direction: "asc" },
@@ -547,14 +547,155 @@ function showTab(tab, btn) {
     btn.classList.add("active");
 }
 
+/* --- PERBAIKAN & PENAMBAHAN FUNGSI EKSPOR TERINTEGRASI ANDROID --- */
+
+// Helper: Penembus Blokir WebView Android
+function prosesUnduhFile(blob, namaFile) {
+    try {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = namaFile;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch(e) {
+        // Fallback jika diblokir WebView: Konversi ke Base64 Data URL dan buka di browser luar
+        const reader = new FileReader();
+        reader.onloadend = function() {
+            const dataUrl = reader.result;
+            const w = window.open();
+            if(w) {
+                w.document.write(`<p style="font-family:sans-serif; text-align:center; margin-top:50px;">Memproses file harian Android... Jika tidak mengunduh otomatis, <a href="${dataUrl}" download="${namaFile}" style="font-weight:bold; color:#234a84;">KLIK DISINI UNTUK UNDUH FILE</a></p>`);
+            } else {
+                alert("Mohon izinkan pop-up pada aplikasi Android Anda untuk mengunduh berkas.");
+            }
+        };
+        reader.readAsDataURL(blob);
+    }
+}
+
 function exportTotalExcel() {
     if(dataRekap.length === 0) return alert("Tidak ada data untuk diekspor");
-    const worksheetData = [["Nama", "Hadir", "Tidak Hadir", "Tanggal Terbaru", "Catatan Terakhir"]];
-    dataRekap.forEach(item => { worksheetData.push([item.nama, item.hadir, item.tidakHadir, item.tanggal || '-', item.catatan || '-']); });
+    const worksheetData = [["Nama Siswa", "Hadir", "Tidak Hadir", "Total Pertemuan", "Tanggal Terbaru", "Catatan Terakhir"]];
+    dataRekap.forEach(item => { 
+        worksheetData.push([item.nama, item.hadir, item.tidakHadir, `${item.hadir}/${TOTAL_PERTEMUAN}`, item.tanggal || '-', item.catatan || '-']); 
+    });
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(wb, ws, "Rekap Total");
-    XLSX.writeFile(wb, "Rekap_Total_Kehadiran_NSC.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Rekap Total NSC");
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    prosesUnduhFile(blob, "Rekap_Total_Kehadiran_NSC.xlsx");
+}
+
+function exportTotalPDF() {
+    if(dataRekap.length === 0) return alert("Tidak ada data untuk diekspor PDF");
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(35, 74, 132);
+    doc.text("REKAP TOTAL KEHADIRAN SISWA", 14, 20);
+    doc.setFontSize(12);
+    doc.setFont("Helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text(`Nona Swimming Course (NSC) - Generasi: ${getTanggalLaptopRealtime()}`, 14, 27);
+    
+    const barisPDF = [];
+    dataRekap.forEach(item => {
+        barisPDF.push([item.nama, item.hadir, item.tidakHadir, `${item.hadir}/${TOTAL_PERTEMUAN}`, item.catatan || '-']);
+    });
+    
+    doc.autoTable({
+        startY: 35,
+        head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Catatan Terakhir"]],
+        body: barisPDF,
+        headStyles: { fillHtml: '#234a84', fillColor: [35, 74, 132] }
+    });
+    
+    const blob = doc.output('blob');
+    prosesUnduhFile(blob, "Rekap_Total_Kehadiran_NSC.pdf");
+}
+
+function exportSiswaExcel(index) {
+    const siswa = dataRekap[index];
+    if(!siswa) return alert("Siswa tidak ditemukan");
+    
+    const worksheetData = [
+        ["LAPORAN KEHADIRAN INDIVIDU SISWA NSC"],
+        [],
+        ["Nama Siswa:", siswa.nama],
+        ["Total Kehadiran:", `${siswa.hadir} Hari`],
+        ["Total Tidak Hadir:", `${siswa.tidakHadir} Hari`],
+        ["Status Target Les:", `${siswa.hadir}/${TOTAL_PERTEMUAN} Pertemuan`],
+        ["Tanggal Pembaruan:", siswa.tanggal || '-'],
+        ["Catatan Instruktur:", siswa.catatan || '-']
+    ];
+    
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    XLSX.utils.book_append_sheet(wb, ws, "Profil Siswa");
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    prosesUnduhFile(blob, `Rekap_Excel_${siswa.nama}.xlsx`);
+}
+
+function exportSiswaPDF(index) {
+    const siswa = dataRekap[index];
+    if(!siswa) return alert("Siswa tidak ditemukan");
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setDrawColor(35, 74, 132);
+    doc.setLineWidth(1.5);
+    doc.line(14, 15, 196, 15);
+    
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(35, 74, 132);
+    doc.text("NONA SWIMMING COURSE", 14, 26);
+    
+    doc.setFontSize(11);
+    doc.setFont("Helvetica", "normal");
+    doc.setTextColor(120);
+    doc.text("Laporan Evaluasi & Rekapitulasi Presensi Bulanan Siswa", 14, 32);
+    
+    doc.setFillColor(245, 248, 252);
+    doc.rect(14, 40, 182, 65, 'F');
+    
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(50);
+    doc.text("DATA PERFORMA PRESENSI SISWA", 20, 49);
+    
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(`Nama Lengkap Siswa :  ${siswa.nama}`, 20, 58);
+    doc.text(`Jumlah Kehadiran   :  ${siswa.hadir} Sesi Pelatihan`, 20, 66);
+    doc.text(`Absen / Alpa       :  ${siswa.tidakHadir} Sesi Pelatihan`, 20, 74);
+    doc.text(`Rasio Kelulusan    :  ${siswa.hadir} dari ${TOTAL_PERTEMUAN} Sesi Wajib`, 20, 82);
+    doc.text(`Tanggal Update     :  ${siswa.tanggal || '-'}`, 20, 90);
+    
+    doc.setFont("Helvetica", "bold");
+    doc.text("Catatan Khusus Instruktur:", 14, 120);
+    doc.setFont("Helvetica", "italic");
+    doc.setFontSize(11);
+    doc.setTextColor(80);
+    
+    const teksCatatanTerbagi = doc.splitTextToSize(siswa.catatan || "Tidak ada catatan evaluasi khusus untuk siswa ini.", 180);
+    doc.text(teksCatatanTerbagi, 14, 128);
+    
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(150);
+    doc.text("Dokumen ini dihasilkan secara sah lewat Aplikasi Absensi Elektronik NSC.", 14, 280);
+    
+    const blob = doc.output('blob');
+    prosesUnduhFile(blob, `Laporan_Presensi_${siswa.nama}.pdf`);
 }
 </script>
 </body>
