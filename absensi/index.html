@@ -45,16 +45,24 @@
         }
         
         .login-logo-container {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             display: flex;
             justify-content: center;
+            /* Mengubah background menjadi transparan total */
+            background: transparent !important; 
+            padding: 0;
+            box-shadow: none !important;
+            border: none !important;
         }
         .login-logo {
-            width: 110px;
+            width: 120px; /* Ukuran sedikit disesuaikan agar logo terlihat proporsional */
             height: auto;
             object-fit: contain;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            box-shadow: none !important;
+            border: none !important;
+            background: transparent !important;
+            /* Memastikan tidak ada sisa border-radius yang memotong gambar hitamnya */
+            border-radius: 0; 
         }
 
         .login-card h2 { color: #1e3a63; font-size: 26px; margin-bottom: 8px; font-weight: 700; }
