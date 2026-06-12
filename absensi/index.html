@@ -6,6 +6,10 @@
     <title>Absensi Les Renang NSC</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- Pustaka Pendukung Pencarian di Dropdown (Tom Select) -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -32,8 +36,8 @@
             background: white;
             padding: 35px 35px;
             border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,.08);
-            border: 1px solid #e2e8f0;
+            box-shadow: none;
+            border: none;
             width: 100%;
             max-width: 420px;
             animation: fadeIn 0.5s ease-in-out;
@@ -48,23 +52,20 @@
             margin-bottom: 25px;
             display: flex;
             justify-content: center;
-            /* Mengubah background menjadi transparan total */
             background: transparent !important; 
             padding: 0;
             box-shadow: none !important;
             border: none !important;
         }
         .login-logo {
-            width: 120px; /* Ukuran sedikit disesuaikan agar logo terlihat proporsional */
+            width: 120px;
             height: auto;
             object-fit: contain;
             box-shadow: none !important;
             border: none !important;
             background: transparent !important;
-            /* Memastikan tidak ada sisa border-radius yang memotong gambar hitamnya */
             border-radius: 0; 
         }
-
         .login-card h2 { color: #1e3a63; font-size: 26px; margin-bottom: 8px; font-weight: 700; }
         .login-card p { color: #64748b; font-size: 14px; margin-bottom: 30px; }
         .login-form-group { margin-bottom: 20px; text-align: left; }
@@ -107,7 +108,7 @@
             width: 70px;
             height: auto;
             object-fit: contain;
-            border-radius: 8px;
+            border-radius: 0;
             background: transparent;
         }
         .header-text h1 { font-size: 28px; margin-bottom: 3px; }
@@ -166,8 +167,70 @@
         
         .row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #4d5c75; }
+        
         select, input[type="text"], input[type="email"], input[type="password"], textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; background: white; }
         textarea { resize: none; }
+        
+        /* FIXED: Perbaikan Terpotongnya Huruf y, g, j (image_764d3d.png) & Mengatasi Gambar Berulang */
+        .ts-wrapper.single .ts-control {
+            padding: 12px 40px 12px 14px !important; /* Menyesuaikan ruang kanan untuk ikon panah */
+            border-radius: 10px !important;
+            border: 1px solid #d7dde7 !important;
+            font-size: 16px !important;
+            line-height: 1.5 !important; /* Memberikan ruang vertikal agar huruf y tidak terpotong */
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 15px center !important;
+            background-size: 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            min-height: 50px !important; /* Memastikan tinggi kotak proporsional */
+        }
+        
+        /* FIXED OPTIMAL: Mengatasi terpotong, panah berulang, dan space enter ke bawah */
+        .ts-wrapper.single .ts-control {
+            padding: 0 40px 0 14px !important; /* Batasi padding vertikal agar tidak berlebih */
+            border-radius: 10px !important;
+            border: 1px solid #d7dde7 !important;
+            font-size: 16px !important;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 15px center !important;
+            background-size: 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            height: 50px !important; /* Kunci tinggi kotak mutlak 50px agar sejajar sempurna */
+            overflow: hidden !important;
+        }
+        
+        /* Memaksa item nama terpilih dan input pencarian berada di satu baris lurus (NO ENTER SPACE) */
+        .ts-wrapper.single .ts-control .item, 
+        .ts-wrapper.single .ts-control input {
+            display: inline-block !important;
+            vertical-align: middle !important;
+            line-height: 50px !important; /* Menyelaraskan teks tepat di tengah vertikal */
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .ts-wrapper.single .ts-control input {
+            height: 50px !important;
+        }
+        
+        .ts-wrapper.single.focus .ts-control {
+            box-shadow: 0 0 0 2px rgba(35, 74, 132, 0.2) !important;
+            border-color: #234a84 !important;
+        }
+        .ts-dropdown {
+            border-radius: 10px !important;
+            margin-top: 5px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+            font-size: 16px !important;
+        }
+        .ts-dropdown .option {
+            padding: 12px 14px !important;
+            line-height: 1.5 !important;
+        }
         
         .btn { 
             color: white; 
@@ -295,25 +358,40 @@
             <div class="row">
                 <div>
                     <label for="nama">Nama Siswa</label>
-                    <input type="text" id="nama" list="list-nama" placeholder="Ketik atau pilih nama..." autocomplete="off">
-                    <datalist id="list-nama">
-                        <option value="KALINGGA"></option><option value="ZIDNI"></option>
-                        <option value="KALA"></option><option value="EGA"></option>
-                        <option value="ARGHYA"></option><option value="AIRA"></option>
-                        <option value="ALDEBARAN"></option><option value="ASHIMA"></option>
-                        <option value="BINTANG"></option><option value="BRANDEN"></option>
-                        <option value="CECIL"></option><option value="DHIFA"></option>
-                        <option value="FAISAL"></option><option value="HAFIZ"></option>
-                        <option value="ICHA"></option><option value="KAMIL"></option>
-                        <option value="KECIL"></option><option value="KHSAN"></option>
-                        <option value="KEANO"></option><option value="ALFA"></option>
-                        <option value="RISKI"></option><option value="KIRAN"></option>
-                        <option value="NAJMA"></option><option value="NAURA"></option>
-                        <option value="NAZLA"></option><option value="RISYA"></option>
-                        <option value="IRUL"></option><option value="UMMA"></option>
-                        <option value="YUMNA"></option><option value="RAFFA"></option>
-                        <option value="ZULFA"></option>
-                    </datalist>
+                    <select id="nama" placeholder="Ketik atau pilih nama siswa...">
+                        <option value=""></option>
+                        <option value="AIRA">AIRA</option>
+                        <option value="ALDEBARAN">ALDEBARAN</option>
+                        <option value="ALFA">ALFA</option>
+                        <option value="ARGHYA">ARGHYA</option>
+                        <option value="ASHIMA">ASHIMA</option>
+                        <option value="BINTANG">BINTANG</option>
+                        <option value="BRANDEN">BRANDEN</option>
+                        <option value="CECIL">CECIL</option>
+                        <option value="DHIFA">DHIFA</option>
+                        <option value="EGA">EGA</option>
+                        <option value="FAISAL">FAISAL</option>
+                        <option value="HAFIZ">HAFIZ</option>
+                        <option value="ICHA">ICHA</option>
+                        <option value="IRUL">IRUL</option>
+                        <option value="KALA">KALA</option>
+                        <option value="KALINGGA">KALINGGA</option>
+                        <option value="KAMIL">KAMIL</option>
+                        <option value="KEANO">KEANO</option>
+                        <option value="KECIL">KECIL</option>
+                        <option value="KHSAN">KHSAN</option>
+                        <option value="KIRAN">KIRAN</option>
+                        <option value="NAJMA">NAJMA</option>
+                        <option value="NAURA">NAURA</option>
+                        <option value="NAZLA">NAZLA</option>
+                        <option value="RAFFA">RAFFA</option>
+                        <option value="RISKI">RISKI</option>
+                        <option value="RISYA">RISYA</option>
+                        <option value="UMMA">UMMA</option>
+                        <option value="YUMNA">YUMNA</option>
+                        <option value="ZIDNI">ZIDNI</option>
+                        <option value="ZULFA">ZULFA</option>
+                    </select>
                 </div>
                 <div>
                     <label for="status">Status</label>
@@ -372,12 +450,21 @@
 
 <script>
 const TOTAL_PERTEMUAN = 12;
-// URL Web Apps Script Google Anda
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwu4Lk0gwUWvVWIeKNUIyqzUIcl4VM_5QEC_S9SPVZAIZt7w0tFZfR1rgMREHyqVL_j7g/exec";
 
-// Cache penampung data rekap lokal
 let dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [];
 let logHarianGlobal = JSON.parse(localStorage.getItem("logHarianGlobal")) || [];
+let selectNamaControl;
+
+document.addEventListener("DOMContentLoaded", function() {
+    selectNamaControl = new TomSelect("#nama", {
+        create: false,
+        sortField: { field: "text", direction: "asc" },
+        placeholder: "Ketik / Pilih Nama Siswa...",
+        allowEmptyOption: true
+    });
+    checkLoginSession();
+});
 
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById("loginPassword");
@@ -538,13 +625,16 @@ async function deleteRow(index) {
 }
 
 async function simpan() {
-    const nama = document.getElementById("nama").value.trim().toUpperCase();
+    const nama = document.getElementById("nama").value;
     const status = document.getElementById("status").value;
     const catatan = document.getElementById("catatan").value;
     const btnSimpan = document.getElementById("btnSimpan");
     const tanggalRealtime = getTanggalLaptopRealtime();
 
-    if (!nama) { alert("Pilih nama siswa!"); return; }
+    if (!nama || nama === "") { 
+        alert("Silakan pilih atau ketik nama siswa terlebih dahulu!"); 
+        return; 
+    }
 
     btnSimpan.disabled = true;
     btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
@@ -569,7 +659,9 @@ async function simpan() {
     
     await sendToCloud(nama, status, tanggalRealtime, catatanTeks);
     
-    document.getElementById("nama").value = "";
+    if(selectNamaControl) {
+        selectNamaControl.clear();
+    }
     document.getElementById("catatan").value = "";
     btnSimpan.disabled = false;
     btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
@@ -641,7 +733,7 @@ function exportSiswaExcel(index) {
 }
 
 // ==========================================
-// LOGIKA EXPORT PDF MENGGUNAKAN JSPDF + AUTOTABLE
+// LOGIKA EXPORT PDF MENGGUNAKAN PDF + AUTOTABLE
 // ==========================================
 function exportTotalPDF() {
     if(dataRekap.length === 0) return alert("Tidak ada data untuk dibuat PDF");
@@ -701,10 +793,6 @@ function exportSiswaPDF(index) {
     });
     doc.save(`Log_Harian_${namaSiswa}.pdf`);
 }
-
-window.onload = function() {
-    checkLoginSession();
-};
 </script>
 </body>
 </html>
