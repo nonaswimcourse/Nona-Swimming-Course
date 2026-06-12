@@ -43,19 +43,18 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Kontainer Logo Halaman Login */
+        /* Kontainer Logo Halaman Login - Diubah agar Kotak/Asli */
         .login-logo-container {
             margin-bottom: 20px;
             display: flex;
             justify-content: center;
         }
         .login-logo {
-            width: 90px;
-            height: 90px;
-            object-fit: cover;
-            border-radius: 50%;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            border: 2px solid #234a84;
+            width: 110px;
+            height: auto;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
 
         .login-card h2 { color: #1e3a63; font-size: 26px; margin-bottom: 8px; font-weight: 700; }
@@ -88,7 +87,7 @@
         }
         .toggle-password-btn:hover { color: #475569; }
         
-        /* STYLE UTAMA HEADER APLIKASI (Ditambah Tata Letak Logo) */
+        /* STYLE UTAMA HEADER APLIKASI - Lingkaran Dihapus agar Logo Terlihat Utuh */
         .header { 
             background: #234a84; 
             color: white; 
@@ -98,12 +97,11 @@
             gap: 20px;
         }
         .header-logo {
-            width: 65px;
-            height: 65px;
-            object-fit: cover;
-            border-radius: 50%;
-            border: 2px solid white;
-            background: white;
+            width: 70px;
+            height: auto;
+            object-fit: contain;
+            border-radius: 8px;
+            background: transparent;
         }
         .header-text h1 { font-size: 28px; margin-bottom: 3px; }
         .header-text p { opacity: .8; }
@@ -217,7 +215,7 @@
         /* CSS KHUSUS LAYAR HP */
         @media (max-width: 600px) {
             .header { padding: 15px; gap: 12px; }
-            .header-logo { width: 50px; height: 50px; }
+            .header-logo { width: 55px; }
             .header-text h1 { font-size: 22px; }
             .container { padding: 15px; }
             .row { grid-template-columns: 1fr; gap: 15px; }
@@ -240,9 +238,9 @@
 <!-- 1. SEKSI HALAMAN LOGIN -->
 <div id="loginSection" class="login-wrapper">
     <div class="login-card">
-        <!-- Logo Percobaan di Halaman Login -->
+        <!-- Logo Asli Tanpa Potongan Lingkaran -->
         <div class="login-logo-container">
-            <img src="Logo percobaan.jpg" alt="Logo NSC" class="login-logo">
+            <img src="Logo percobaan.png" alt="Logo NSC" class="login-logo">
         </div>
         
         <h2>Sistem Absensi NSC</h2>
@@ -275,11 +273,11 @@
     </div>
 </div>
 
-<!-- 2. SEKSI UTAMA APLIKASI (Terintegrasi Logo di Header) -->
+<!-- 2. SEKSI UTAMA APLIKASI -->
 <div id="mainAppSection" class="hidden">
     <div class="header">
-        <!-- Logo Percobaan di Header Aplikasi -->
-        <img src="Logo percobaan.jpg" alt="Logo NSC" class="header-logo">
+        <!-- Logo Asli Tanpa Potongan Lingkaran -->
+        <img src="Logo percobaan.png" alt="Logo NSC" class="header-logo">
         <div class="header-text">
             <h1>Absensi Les Renang</h1>
             <p>Nona Swimming Course</p>
@@ -687,12 +685,10 @@ function exportRowToCSV(index) {
     document.body.removeChild(link);
 }
 
-// LOGO TERINTEGRASI DI HASIL CETAK PDF REKAP DATA
 function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Judul Dokumen Utama
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(16);
     doc.text("Rekap Kehadiran Siswa", 14, 18);
@@ -701,12 +697,10 @@ function exportToPDF() {
     doc.setFontSize(11);
     doc.text("Nona Swimming Course (NSC)", 14, 25);
     
-    // Menambahkan Logo Percobaan ke dalam PDF di pojok kanan atas secara asinkronus
     const img = new Image();
-    img.src = 'Logo percobaan.jpg';
+    img.src = 'Logo percobaan.png';
     img.onload = function() {
-        // Parameter: gambar, x, y, lebar, tinggi
-        doc.addImage(img, 'JPEG', 165, 10, 30, 30);
+        doc.addImage(img, 'PNG', 165, 10, 30, 30);
         
         const tableRows = [];
         dataRekap.forEach(item => {
@@ -726,7 +720,6 @@ function exportToPDF() {
     };
     
     img.onerror = function() {
-        // Jika file gambar gagal di-load, PDF tetap dicetak tanpa logo agar sistem tidak crash
         const tableRows = [];
         dataRekap.forEach(item => {
             let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
