@@ -174,23 +174,7 @@
         select, input[type="text"], input[type="email"], input[type="password"], textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; background: white; }
         textarea { resize: none; }
         
-        /* FIXED: Perbaikan Terpotongnya Huruf y, g, j (image_764d3d.png) & Mengatasi Gambar Berulang */
-        .ts-wrapper.single .ts-control {
-            padding: 12px 40px 12px 14px !important; /* Menyesuaikan ruang kanan untuk ikon panah */
-            border-radius: 10px !important;
-            border: 1px solid #d7dde7 !important;
-            font-size: 16px !important;
-            line-height: 1.5 !important; /* Memberikan ruang vertikal agar huruf y tidak terpotong */
-            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E") !important;
-            background-repeat: no-repeat !important;
-            background-position: right 15px center !important;
-            background-size: 12px !important;
-            display: flex !important;
-            align-items: center !important;
-            min-height: 50px !important; /* Memastikan tinggi kotak proporsional */
-        }
-        
-        /* FIXED OPTIMAL: Mengatasi terpotong, panah berulang, dan space enter ke bawah */
+        /* FIXED: Perbaikan Terpotongnya Huruf y, g, j & Mengatasi Gambar Berulang */
         .ts-wrapper.single .ts-control {
             padding: 0 40px 0 14px !important; /* Batasi padding vertikal agar tidak berlebih */
             border-radius: 10px !important;
@@ -627,8 +611,16 @@ async function deleteRow(index) {
     }
 }
 
+/* KODE SIMPAN DATA YANG SUDAH DIPERBAIKI UNTUK APPCREATOR24 ANDROID WEBVIEW */
 async function simpan() {
-    const nama = document.getElementById("nama").value;
+    let nama = "";
+    // Memaksa pengambilan nilai langsung melalui kontrol internal TomSelect
+    if (selectNamaControl) {
+        nama = selectNamaControl.getValue(); 
+    } else {
+        nama = document.getElementById("nama").value;
+    }
+    
     const status = document.getElementById("status").value;
     const catatan = document.getElementById("catatan").value;
     const btnSimpan = document.getElementById("btnSimpan");
@@ -705,9 +697,7 @@ function showTab(tab, btn) {
     btn.classList.add("active");
 }
 
-// ==========================================
-// LOGIKA EXPORT EXCEL (.XLSX) MENGGUNAKAN SHEETJS
-// ==========================================
+// LOGIKA EXPORT EXCEL MENGGUNAKAN SHEETJS
 function exportTotalExcel() {
     if(dataRekap.length === 0) return alert("Tidak ada data untuk diekspor");
     const worksheetData = [["Nama", "Hadir", "Tidak Hadir", "Tanggal Terbaru", "Catatan Terakhir"]];
@@ -718,83 +708,6 @@ function exportTotalExcel() {
     const ws = XLSX.utils.aoa_to_sheet(worksheetData);
     XLSX.utils.book_append_sheet(wb, ws, "Rekap Total");
     XLSX.writeFile(wb, "Rekap_Total_Kehadiran_NSC.xlsx");
-}
-
-function exportSiswaExcel(index) {
-    const namaSiswa = dataRekap[index].nama;
-    const filterHarian = logHarianGlobal.filter(item => item.nama === namaSiswa);
-    if(filterHarian.length === 0) return alert("Belum ada log riwayat harian untuk siswa ini.");
-    
-    const worksheetData = [["Nama", "Hadir", "Tidak Hadir", "Tanggal Input", "Catatan"]];
-    filterHarian.sort((a,b) => new Date(a.tanggal) - new Date(b.tanggal)).forEach(item => {
-        worksheetData.push([item.nama, item.hadir, item.tidakHadir, item.tanggal, item.catatan]);
-    });
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(wb, ws, "Log Harian");
-    XLSX.writeFile(wb, `Log_Harian_${namaSiswa}.xlsx`);
-}
-
-// ==========================================
-// LOGIKA EXPORT PDF MENGGUNAKAN PDF + AUTOTABLE
-// ==========================================
-function exportTotalPDF() {
-    if(dataRekap.length === 0) return alert("Tidak ada data untuk dibuat PDF");
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("Rekap Akumulasi Kehadiran Siswa", 14, 18);
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(11);
-    doc.text("Nona Swimming Course (NSC)", 14, 25);
-    
-    const tableRows = [];
-    dataRekap.forEach(item => {
-        let totalVal = item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
-        tableRows.push([item.nama, item.hadir, item.tidakHadir, totalVal, item.catatan || '-']);
-    });
-    
-    doc.autoTable({ 
-        startY: 35, 
-        head: [['Nama', 'Hadir', 'Tidak Hadir', 'Total Target', 'Catatan Terakhir']], 
-        body: tableRows,
-        theme: 'striped',
-        headStyles: { fillColor: [35, 74, 132] }
-    });
-    doc.save("Rekap_Total_Kehadiran_NSC.pdf");
-}
-
-function exportSiswaPDF(index) {
-    const namaSiswa = dataRekap[index].nama;
-    const filterHarian = logHarianGlobal.filter(item => item.nama === namaSiswa);
-    if(filterHarian.length === 0) return alert("Belum ada log riwayat harian untuk siswa ini.");
-    
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text(`Log Riwayat Absensi Harian`, 14, 18);
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(12);
-    doc.text(`Nama Siswa: ${namaSiswa}`, 14, 25);
-    doc.text("Nona Swimming Course (NSC)", 14, 31);
-    
-    const tableRows = [];
-    filterHarian.sort((a,b) => new Date(a.tanggal) - new Date(b.tanggal)).forEach(item => {
-        tableRows.push([item.tanggal, item.hadir, item.tidakHadir, item.catatan]);
-    });
-    
-    doc.autoTable({ 
-        startY: 38, 
-        head: [['Tanggal Absen', 'Hadir', 'Tidak Hadir', 'Keterangan Sesi']], 
-        body: tableRows,
-        theme: 'striped',
-        headStyles: { fillColor: [249, 115, 22] }
-    });
-    doc.save(`Log_Harian_${namaSiswa}.pdf`);
 }
 </script>
 </body>
