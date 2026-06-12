@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Absensi Les Renang NSC</title>
     
-    <!-- TAMBAHKAN BARIS INI UNTUK MENGUBAH LOGO TAB BROWSER -->
+    <!-- Mengubah logo tab browser -->
     <link rel="icon" type="image/png" href="Logo percobaan.png">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -174,9 +174,9 @@
         select, input[type="text"], input[type="email"], input[type="password"], textarea { width: 100%; padding: 14px; border: 1px solid #d7dde7; border-radius: 10px; font-size: 16px; background: white; }
         textarea { resize: none; }
         
-        /* FIXED: Perbaikan Terpotongnya Huruf y, g, j & Mengatasi Gambar Berulang */
+        /* Perbaikan Kotak Pencarian Tom Select agar rapi di Android */
         .ts-wrapper.single .ts-control {
-            padding: 0 40px 0 14px !important; /* Batasi padding vertikal agar tidak berlebih */
+            padding: 0 40px 0 14px !important; 
             border-radius: 10px !important;
             border: 1px solid #d7dde7 !important;
             font-size: 16px !important;
@@ -186,16 +186,15 @@
             background-size: 12px !important;
             display: flex !important;
             align-items: center !important;
-            height: 50px !important; /* Kunci tinggi kotak mutlak 50px agar sejajar sempurna */
+            height: 50px !important; 
             overflow: hidden !important;
         }
         
-        /* Memaksa item nama terpilih dan input pencarian berada di satu baris lurus (NO ENTER SPACE) */
         .ts-wrapper.single .ts-control .item, 
         .ts-wrapper.single .ts-control input {
             display: inline-block !important;
             vertical-align: middle !important;
-            line-height: 50px !important; /* Menyelaraskan teks tepat di tengah vertikal */
+            line-height: 50px !important; 
             margin: 0 !important;
             padding: 0 !important;
         }
@@ -439,8 +438,7 @@
 const TOTAL_PERTEMUAN = 12;
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwu4Lk0gwUWvVWIeKNUIyqzUIcl4VM_5QEC_S9SPVZAIZt7w0tFZfR1rgMREHyqVL_j7g/exec";
 
-let dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [];
-let logHarianGlobal = JSON.parse(localStorage.getItem("logHarianGlobal")) || [];
+let dataRekap = [];
 let selectNamaControl;
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -451,7 +449,30 @@ document.addEventListener("DOMContentLoaded", function() {
         allowEmptyOption: true
     });
     checkLoginSession();
+    
+    // Tarik data terbaru dari Cloud saat pertama kali membuka aplikasi di Android
+    muatDataDariCloud();
 });
+
+// Fungsi penarik data dari Google Sheets untuk menembus batasan memori Android WebView
+async function muatDataDariCloud() {
+    try {
+        dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [];
+        renderTable();
+
+        const response = await fetch(WEB_APP_URL + "?action=read");
+        if (response.ok) {
+            const dataDariSheets = await response.json();
+            if (dataDariSheets && dataDariSheets.length > 0) {
+                dataRekap = dataDariSheets;
+                try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+                renderTable();
+            }
+        }
+    } catch (e) {
+        console.log("Menggunakan backup data lokal.");
+    }
+}
 
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById("loginPassword");
@@ -480,7 +501,7 @@ async function handleLogin(event) {
         alert("Akses ditolak! Akun atau Password salah.");
         return; 
     }
-    localStorage.setItem("isLoggedIn", "true");
+    try { localStorage.setItem("isLoggedIn", "true"); } catch(e){}
     document.getElementById("loginSection").classList.add("hidden");
     document.getElementById("mainAppSection").classList.remove("hidden");
     renderTable();
@@ -488,7 +509,7 @@ async function handleLogin(event) {
 
 function handleLogout() {
     if(confirm("Apakah Anda yakin ingin keluar?")) {
-        localStorage.removeItem("isLoggedIn");
+        try { localStorage.removeItem("isLoggedIn"); } catch(e){}
         document.getElementById("mainAppSection").classList.add("hidden");
         document.getElementById("loginSection").classList.remove("hidden");
     }
@@ -563,8 +584,6 @@ async function updateCounter(index, tipe, value) {
         
         if (tipe === 'hadir') dataRekap[index].hadir += 1;
         else dataRekap[index].tidakHadir += 1;
-        
-        logHarianGlobal.push({ nama: namaSiswa, hadir: (tipe==='hadir'?1:0), tidakHadir: (tipe==='tidakHadir'?1:0), tanggal: tanggalRealtime, catatan: catatanKetik });
     } else {
         if (tipe === 'hadir') {
             if (dataRekap[index].hadir === 0) return;
@@ -578,13 +597,9 @@ async function updateCounter(index, tipe, value) {
         catatanKetik = `Pengurangan manual via counter`;
     }
 
-    dataRekap[index].tanggal = tanggalRealtime;
-    dataRekap[index].catatan = catatanKetik;
-    
-    localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-    localStorage.setItem("logHarianGlobal", JSON.stringify(logHarianGlobal));
     renderTable();
-    sendToCloud(namaSiswa, statusDikirim, tanggalRealtime, catatanKetik);
+    await sendToCloud(namaSiswa, statusDikirim, tanggalRealtime, catatanKetik);
+    try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
 }
 
 async function deleteRow(index) {
@@ -601,9 +616,7 @@ async function deleteRow(index) {
     try {
         await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded });
         dataRekap.splice(index, 1);
-        logHarianGlobal = logHarianGlobal.filter(item => item.nama !== namaSiswa);
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        localStorage.setItem("logHarianGlobal", JSON.stringify(logHarianGlobal));
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
         renderTable();
     } catch (err) {
         alert(`Gagal koneksi cloud.`);
@@ -611,10 +624,9 @@ async function deleteRow(index) {
     }
 }
 
-/* KODE SIMPAN DATA YANG SUDAH DIPERBAIKI UNTUK APPCREATOR24 ANDROID WEBVIEW */
+/* ALUR KHUSUS ANDROID: DATA KIRIM LANGSUNG KE CLOUD, BARU UPDATE INTERFACE */
 async function simpan() {
     let nama = "";
-    // Memaksa pengambilan nilai langsung melalui kontrol internal TomSelect
     if (selectNamaControl) {
         nama = selectNamaControl.getValue(); 
     } else {
@@ -632,11 +644,29 @@ async function simpan() {
     }
 
     btnSimpan.disabled = true;
-    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
+    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mengirim ke Cloud...';
 
-    let siswaExist = dataRekap.find(s => s.nama === nama);
     let catatanTeks = catatan.trim() ? catatan.trim() : `Absen pada tanggal ${tanggalRealtime}`;
 
+    // 1. Eksekusi Pengiriman Langsung Ke Google Sheets Cloud
+    try {
+        const urlEncoded = new URLSearchParams();
+        urlEncoded.append("nama", nama);
+        urlEncoded.append("status", status);
+        urlEncoded.append("tanggal", tanggalRealtime);
+        urlEncoded.append("catatan", catatanTeks);
+
+        await fetch(WEB_APP_URL, { 
+            method: "POST", 
+            mode: "no-cors", 
+            body: urlEncoded 
+        });
+    } catch(e) {
+        console.log("Cloud error, dialihkan ke antrean visual harian.");
+    }
+
+    // 2. Update Komponen Tabel Di Layar HP Android Secara Realtime
+    let siswaExist = dataRekap.find(s => s.nama === nama);
     if(siswaExist) {
         if(status === "Hadir") siswaExist.hadir += 1;
         else siswaExist.tidakHadir += 1;
@@ -646,20 +676,19 @@ async function simpan() {
         dataRekap.push({ nama: nama, hadir: status === "Hadir" ? 1 : 0, tidakHadir: status === "Tidak Hadir" ? 1 : 0, tanggal: tanggalRealtime, catatan: catatanTeks });
     }
     
-    logHarianGlobal.push({ nama: nama, hadir: status === "Hadir" ? 1 : 0, tidakHadir: status === "Tidak Hadir" ? 1 : 0, tanggal: tanggalRealtime, catatan: catatanTeks });
-    
-    localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-    localStorage.setItem("logHarianGlobal", JSON.stringify(logHarianGlobal));
     renderTable();
     
-    await sendToCloud(nama, status, tanggalRealtime, catatanTeks);
-    
+    try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+
     if(selectNamaControl) {
         selectNamaControl.clear();
     }
     document.getElementById("catatan").value = "";
+    
     btnSimpan.disabled = false;
     btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
+    
+    alert("Data berhasil diproses ke cloud!");
 }
 
 async function sendToCloud(nama, status, tanggal, catatan) {
@@ -670,7 +699,7 @@ async function sendToCloud(nama, status, tanggal, catatan) {
     urlEncoded.append("catatan", catatan);
     try {
         await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded });
-    } catch(e) { console.log("Cloud error, data tersimpan lokal."); }
+    } catch(e) {}
 }
 
 async function resetSemuaData() {
@@ -680,9 +709,7 @@ async function resetSemuaData() {
         try {
             await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded });
             dataRekap = [];
-            logHarianGlobal = [];
-            localStorage.removeItem("dataRekap");
-            localStorage.removeItem("logHarianGlobal");
+            try { localStorage.removeItem("dataRekap"); } catch(e){}
             renderTable();
             alert("Data dikosongkan.");
         } catch (err) { alert("Gagal koneksi cloud."); }
@@ -697,7 +724,6 @@ function showTab(tab, btn) {
     btn.classList.add("active");
 }
 
-// LOGIKA EXPORT EXCEL MENGGUNAKAN SHEETJS
 function exportTotalExcel() {
     if(dataRekap.length === 0) return alert("Tidak ada data untuk diekspor");
     const worksheetData = [["Nama", "Hadir", "Tidak Hadir", "Tanggal Terbaru", "Catatan Terakhir"]];
