@@ -285,7 +285,7 @@
 <script>
 const TOTAL_PERTEMUAN = 12;
 
-// Inisialisasi Supabase Client
+// Inisialisasi Supabase Client (Menuju tabel 'absensinsc' sesuai gambar)
 const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndnbWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -310,7 +310,7 @@ document.addEventListener("DOMContentLoaded", function() {
     muatDataDariCloud();
 });
 
-// MEMUAT DATA DARI SUPABASE
+// MEMUAT DATA DARI SUPABASE (Target tabel: absensinsc)
 async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
     try {
@@ -318,16 +318,21 @@ async function muatDataDariCloud() {
             tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
         }
 
-        // Mengambil semua data dari tabel 'absensi' diurutkan berdasarkan nama
         const { data, error } = await supabaseClient
-            .from('absensi')
+            .from('absensinsc')
             .select('*')
-            .order('nama', { ascending: true });
+            .order('absensi', { ascending: true }); // Mengurutkan berdasarkan kolom 'absensi' sesuai gambar
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-            dataRekap = data;
+            // Memetakan struktur database ke struktur lokal agar kompatibel dan aman dari text-handling
+            dataRekap = data.map(item => ({
+                nama: item.absensi,
+                hadir: parseInt(item.Hadir) || 0,
+                tidakHadir: parseInt(item.status || item["Tidak Hadir"]) || 0, // Mengamankan konversi text ke int
+                catatan: item.Catatan || ""
+            }));
         } else {
             dataRekap = [];
         }
@@ -389,14 +394,9 @@ function checkLoginSession() {
     }
 }
 
-function getTanggalLaptopRealtime() {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-}
-
 function renderTable() {
     let html = "";
-    if(dataRekap.length === 0) {
+    if(!dataRekap || dataRekap.length === 0) {
         html = "<tr><td colspan='5' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
     } else {
         dataRekap.forEach((item, index) => {
@@ -436,11 +436,10 @@ function renderTable() {
     document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
 }
 
-// UPDATE COUNTER DI SUPABASE
+// UPDATE COUNTER DI SUPABASE (Menyesuaikan skema kolom gambar)
 async function updateCounter(index, tipe, value) {
     const targetSiswa = dataRekap[index];
     const namaSiswa = targetSiswa.nama;
-    const tanggalRealtime = getTanggalLaptopRealtime();
     let catatanKetik = "";
     
     let baruHadir = targetSiswa.hadir;
@@ -471,23 +470,19 @@ async function updateCounter(index, tipe, value) {
     }
 
     try {
-        // Melakukan update baris data di Supabase berdasarkan pencocokan nama siswa
         const { error } = await supabaseClient
-            .from('absensi')
+            .from('absensinsc')
             .update({ 
-                hadir: baruHadir, 
-                tidakHadir: baruTidakHadir, 
-                tanggal: tanggalRealtime, 
-                catatan: catatanKetik 
+                Hadir: baruHadir, 
+                "Tidak Hadir": baruTidakHadir.toString(), // Menyesuaikan tipe data 'text' di gambar
+                Catatan: catatanKetik 
             })
-            .eq('nama', namaSiswa);
+            .eq('absensi', namaSiswa); // Mencocokkan berdasarkan kolom 'absensi'
 
         if (error) throw error;
         
-        // Perbarui state lokal jika di awan sukses
         dataRekap[index].hadir = baruHadir;
         dataRekap[index].tidakHadir = baruTidakHadir;
-        dataRekap[index].tanggal = tanggalRealtime;
         dataRekap[index].catatan = catatanKetik;
         
         renderTable();
@@ -507,9 +502,9 @@ async function deleteRow(index) {
 
     try {
         const { error } = await supabaseClient
-            .from('absensi')
+            .from('absensinsc')
             .delete()
-            .eq('nama', namaSiswa);
+            .eq('absensi', namaSiswa);
 
         if (error) throw error;
 
@@ -522,13 +517,12 @@ async function deleteRow(index) {
     }
 }
 
-// SIMPAN / UPSERT DATA BARU KE SUPABASE
+// SIMPAN / UPSERT DATA BARU KE SUPABASE (Menyesuaikan skema kolom gambar)
 async function simpan() {
     let nama = selectNamaControl ? selectNamaControl.getValue() : document.getElementById("nama").value;
     const status = document.getElementById("status").value;
     const catatan = document.getElementById("catatan").value;
     const btnSimpan = document.getElementById("btnSimpan");
-    const tanggalRealtime = getTanggalLaptopRealtime();
 
     if (!nama || nama === "") { 
         alert("Silakan pilih atau ketik nama siswa terlebih dahulu!"); 
@@ -537,39 +531,39 @@ async function simpan() {
 
     btnSimpan.disabled = true;
     btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan ke Supabase...';
-    let catatanTeks = catatan.trim() ? catatan.trim() : `Absen pada tanggal ${tanggalRealtime}`;
+    let catatanTeks = catatan.trim() ? catatan.trim() : `Absen diperbarui`;
 
-    let siswaExist = dataRekap.find(s => s.nama === nama);
+    if (!Array.isArray(dataRekap)) { dataRekap = []; }
+
+    let siswaExist = dataRekap.find(s => s && s.nama === nama);
     let nHadir = status === "Hadir" ? 1 : 0;
     let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
 
     if (siswaExist) {
-        nHadir = siswaExist.hadir + (status === "Hadir" ? 1 : 0);
-        nTidakHadir = siswaExist.tidakHadir + (status === "Tidak Hadir" ? 1 : 0);
+        nHadir = (siswaExist.hadir || 0) + (status === "Hadir" ? 1 : 0);
+        nTidakHadir = (siswaExist.tidakHadir || 0) + (status === "Tidak Hadir" ? 1 : 0);
     }
 
     try {
-        // Menggunakan upsert (update jika ada, insert jika belum ada) dengan constraint key kolom 'nama'
+        // PERHATIKAN: Objek data disesuaikan persis dengan nama kolom di image_09c6e6.png
+        // Menggunakan properti string "Tidak Hadir" karena ada spasi pada penamaan kolom Supabase Anda
         const { error } = await supabaseClient
-            .from('absensi')
+            .from('absensinsc')
             .upsert({ 
-                nama: nama, 
-                hadir: nHadir, 
-                tidakHadir: nTidakHadir, 
-                tanggal: tanggalRealtime, 
-                catatan: catatanTeks 
-            }, { onConflict: 'nama' });
+                absensi: nama, 
+                Hadir: nHadir, 
+                "Tidak Hadir": nTidakHadir.toString(), // Diubah ke string karena kolom Anda bertipe text
+                Catatan: catatanTeks 
+            }, { onConflict: 'absensi' });
 
         if (error) throw error;
 
-        // Sync visual client side
         if(siswaExist) {
             siswaExist.hadir = nHadir;
             siswaExist.tidakHadir = nTidakHadir;
             siswaExist.catatan = catatanTeks; 
-            siswaExist.tanggal = tanggalRealtime;
         } else {
-            dataRekap.push({ nama: nama, hadir: nHadir, tidakHadir: nTidakHadir, tanggal: tanggalRealtime, catatan: catatanTeks });
+            dataRekap.push({ nama: nama, hadir: nHadir, tidakHadir: nTidakHadir, catatan: catatanTeks });
         }
         
         renderTable();
@@ -579,7 +573,8 @@ async function simpan() {
         document.getElementById("catatan").value = "";
         alert("Data berhasil diproses ke Cloud Supabase!");
     } catch (err) {
-        alert("Gagal memproses data ke Supabase: " + err.message);
+        console.error("Detail Error Supabase:", err);
+        alert("Gagal memproses data ke Supabase: " + (err.message || "Pastikan setingan Primary Key di Supabase Anda hanya berada di kolom 'absensi' saja."));
     } finally {
         btnSimpan.disabled = false;
         btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
@@ -590,11 +585,10 @@ async function simpan() {
 async function resetSemuaData() {
     if (confirm("Hapus seluruh data di aplikasi dan database Supabase secara permanen?")) {
         try {
-            // Melakukan trik filter .neq() atau .gt() untuk menghapus seluruh baris data di database
             const { error } = await supabaseClient
-                .from('absensi')
+                .from('absensinsc')
                 .delete()
-                .neq('nama', ''); 
+                .neq('absensi', ''); 
 
             if (error) throw error;
 
@@ -678,7 +672,6 @@ function exportSiswaExcel(index) {
         ["Jumlah Kehadiran (Hadir)", item.hadir],
         ["Jumlah Tidak Hadir", item.tidakHadir],
         ["Total Pertemuan Saat Ini", `${item.hadir}/${TOTAL_PERTEMUAN}`],
-        ["Tanggal Pembaharuan Terakhir", item.tanggal || '-'],
         ["Catatan Terakhir", item.catatan || '-']
     ];
     const wb = XLSX.utils.book_new();
@@ -712,7 +705,6 @@ function exportSiswaPDF(index) {
         ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
         ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
         ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir} / ${TOTAL_PERTEMUAN}`],
-        ["Pembaruan Terakhir", item.tanggal || "-"],
         ["Catatan Khusus", item.catatan || "-"]
     ];
     
@@ -734,7 +726,7 @@ function exportTotalExcel() {
     const worksheetData = [
         ["REKAP TOTAL ABSENSI - NONA SWIMMING COURSE"],
         [],
-        ["Nama Siswa", "Hadir", "Tidak Hadir", "Total", "Tanggal Terakhir", "Catatan"]
+        ["Nama Siswa", "Hadir", "Tidak Hadir", "Total", "Catatan"]
     ];
     dataRekap.forEach(item => {
         worksheetData.push([
@@ -742,7 +734,6 @@ function exportTotalExcel() {
             item.hadir,
             item.tidakHadir,
             `${item.hadir}/${TOTAL_PERTEMUAN}`,
-            item.tanggal || '-',
             item.catatan || '-'
         ]);
     });
