@@ -537,104 +537,160 @@ async function deleteRow(index) {
     }
 }
 
-// SIMPAN / UPSERT DATA BARU KE SUPABASE
 async function simpan() {
-    let nama = "";
-    if (selectNamaControl) {
-        nama = selectNamaControl.getValue();
-    }
-    if (!nama) {
-        nama = document.getElementById("nama").value;
-    }
-    
-    const status = document.getElementById("status").value;
-    const catatan = document.getElementById("catatan").value;
-    const btnSimpan = document.getElementById("btnSimpan");
 
-    if (!nama || nama.trim() === "") { 
-        alert("Silakan pilih atau ketik nama siswa terlebih dahulu!"); 
-        return; 
-    }
+```
+let nama = "";
 
-    nama = nama.trim().toUpperCase();
+if (selectNamaControl) {
+    nama = selectNamaControl.getValue();
+}
 
-    btnSimpan.disabled = true;
-    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan ke Supabase...';
-    let catatanTeks = catatan.trim() ? catatan.trim() : `Absen diperbarui`;
+if (!nama) {
+    nama = document.getElementById("nama").value;
+}
 
-    if (!Array.isArray(dataRekap)) { dataRekap = []; }
+const status = document.getElementById("status").value;
+const catatan = document.getElementById("catatan").value;
+const btnSimpan = document.getElementById("btnSimpan");
 
-    let siswaExist = dataRekap.find(s => s && s.nama === nama);
-    let nHadir = status === "Hadir" ? 1 : 0;
-    let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
+if (!nama || nama.trim() === "") {
+    alert("Silakan pilih nama siswa terlebih dahulu!");
+    return;
+}
+
+nama = nama.trim().toUpperCase();
+
+btnSimpan.disabled = true;
+btnSimpan.innerHTML =
+    '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
+
+const catatanTeks =
+    catatan.trim() !== ""
+        ? catatan.trim()
+        : "Absensi tercatat";
+
+if (!Array.isArray(dataRekap)) {
+    dataRekap = [];
+}
+
+let siswaExist = dataRekap.find(
+    s => s && s.nama === nama
+);
+
+let nHadir = status === "Hadir" ? 1 : 0;
+let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
+
+if (siswaExist) {
+    nHadir =
+        (siswaExist.hadir || 0) +
+        (status === "Hadir" ? 1 : 0);
+
+    nTidakHadir =
+        (siswaExist.tidakHadir || 0) +
+        (status === "Tidak Hadir" ? 1 : 0);
+}
+
+try {
+
+    // ==========================
+    // UPDATE REKAP TOTAL
+    // ==========================
+    const { error: errorRekap } = await supabaseClient
+        .from("absensinsc")
+        .upsert(
+            {
+                absensi: nama,
+                Hadir: nHadir,
+                "Tidak Hadir": nTidakHadir.toString(),
+                Catatan: catatanTeks
+            },
+            {
+                onConflict: "absensi"
+            }
+        );
+
+    if (errorRekap) throw errorRekap;
+
+    // ==========================
+    // SIMPAN RIWAYAT HARIAN
+    // ==========================
+    const { error: errorLog } = await supabaseClient
+        .from("log_harian")
+        .insert({
+            nama: nama,
+            status: status,
+            catatan: catatanTeks
+        });
+
+    if (errorLog) throw errorLog;
+
+    const realtimeSekarang =
+        formatTanggalIndonesia(
+            new Date().toISOString()
+        );
 
     if (siswaExist) {
-        nHadir = (siswaExist.hadir || 0) + (status === "Hadir" ? 1 : 0);
-        nTidakHadir = (siswaExist.tidakHadir || 0) + (status === "Tidak Hadir" ? 1 : 0);
+
+        siswaExist.hadir = nHadir;
+        siswaExist.tidakHadir = nTidakHadir;
+        siswaExist.catatan = catatanTeks;
+        siswaExist.tanggalRealtime =
+            realtimeSekarang;
+
+    } else {
+
+        dataRekap.push({
+            nama: nama,
+            hadir: nHadir,
+            tidakHadir: nTidakHadir,
+            catatan: catatanTeks,
+            tanggalRealtime: realtimeSekarang
+        });
+
     }
+
+    renderTable();
 
     try {
-        // PERBAIKAN STRUKTUR JSON: Dialirkan ke properti 'absensi' agar tidak salah kamar ke kolom 'nama' yang kosong
-        const { error } = await supabaseClient
-            .from('absensinsc')
-            .upsert({ 
-                absensi: nama, // 🛠️ Menembak kolom absensi sebagai penampung nama siswa
-                Hadir: nHadir, 
-                "Tidak Hadir": nTidakHadir.toString(), 
-                Catatan: catatanTeks 
-            }, { onConflict: 'absensi' });
+        localStorage.setItem(
+            "dataRekap",
+            JSON.stringify(dataRekap)
+        );
+    } catch (e) {}
 
-        if (error) throw error;
-
-        const realtimeSekarang = formatTanggalIndonesia(new Date().toISOString());
-
-        if(siswaExist) {
-            siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTidakHadir;
-            siswaExist.catatan = catatanTeks; 
-            siswaExist.tanggalRealtime = realtimeSekarang;
-        } else {
-            dataRekap.push({ nama: nama, hadir: nHadir, tidakHadir: nTidakHadir, catatan: catatanTeks, tanggalRealtime: realtimeSekarang });
-        }
-        
-        renderTable();
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-
-        if(selectNamaControl) { 
-            selectNamaControl.clear(true); 
-        } else {
-            document.getElementById("nama").value = "";
-        }
-        document.getElementById("catatan").value = "";
-        alert("Data berhasil diproses ke Cloud Supabase!");
-    } catch (err) {
-        console.error("Detail Error Supabase:", err);
-        alert("Gagal memproses data ke Supabase: " + (err.message || "Pastikan setingan Primary Key di Supabase Anda berada di kolom 'absensi'."));
-    } finally {
-        btnSimpan.disabled = false;
-        btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
+    if (selectNamaControl) {
+        selectNamaControl.clear(true);
+    } else {
+        document.getElementById("nama").value = "";
     }
+
+    document.getElementById("catatan").value = "";
+
+    alert(
+        "Data berhasil disimpan ke Rekap dan Log Harian!"
+    );
+
+} catch (err) {
+
+    console.error(err);
+
+    alert(
+        "Gagal menyimpan ke Supabase: " +
+        err.message
+    );
+
+} finally {
+
+    btnSimpan.disabled = false;
+
+    btnSimpan.innerHTML =
+        '<i class="fa fa-plus-circle"></i> Simpan Data';
+}
+```
+
 }
 
-async function resetSemuaData() {
-    if (confirm("Hapus seluruh data di aplikasi dan database Supabase secara permanen?")) {
-        try {
-            const { error } = await supabaseClient
-                .from('absensinsc')
-                .delete()
-                .neq('absensi', ''); 
-
-            if (error) throw error;
-
-            dataRekap = [];
-            try { localStorage.removeItem("dataRekap"); } catch(e){}
-            renderTable();
-            alert("Seluruh data berhasil dikosongkan dari database Supabase.");
-        } catch (err) { 
-            alert("Gagal mengosongkan database cloud: " + err.message); 
-        }
-    }
-}
 
 function showTab(tab, btn) {
     document.getElementById("input").classList.add("hidden");
