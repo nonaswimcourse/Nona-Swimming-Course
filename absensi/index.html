@@ -306,7 +306,6 @@ document.addEventListener("DOMContentLoaded", function() {
 async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
     try {
-        // Tampilkan loading screen sementara data ditarik dari Cloud Google Sheets
         if (tbody) {
             tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud...</td></tr>";
         }
@@ -314,12 +313,15 @@ async function muatDataDariCloud() {
         const response = await fetch(WEB_APP_URL + "?action=read");
         if (response.ok) {
             const dataDariSheets = await response.json();
+            // PERBAIKAN 1: Jika database spreadsheet kosong, kosongkan data lokal rekap
             if (dataDariSheets && dataDariSheets.length > 0) {
                 dataRekap = dataDariSheets;
-                try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-                renderTable();
-                return;
+            } else {
+                dataRekap = [];
             }
+            try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+            renderTable();
+            return;
         }
         throw new Error("Data kosong atau respon gagal");
     } catch (e) { 
@@ -359,7 +361,7 @@ async function handleLogin(event) {
     try { localStorage.setItem("isLoggedIn", "true"); } catch(e){}
     document.getElementById("loginSection").classList.add("hidden");
     document.getElementById("mainAppSection").classList.remove("hidden");
-    muatDataDariCloud(); // Paksa sync ulang saat login berhasil
+    muatDataDariCloud();
 }
 
 function handleLogout() {
@@ -445,9 +447,17 @@ async function updateCounter(index, tipe, value) {
         } else {
             if (dataRekap[index].tidakHadir === 0) return;
             dataRekap[index].tidakHadir -= 1;
+            dataRekap[index].tidakHadir -= 1;
             statusDikirim = "Kurang Tidak Hadir";
         }
         catatanKetik = `Pengurangan manual via counter`;
+    }
+
+    // PERBAIKAN 2: Jika hasil pengurangan membuat Rekap data Hadir=0 DAN Tidak Hadir=0, otomatis hapus data di aplikasi & spreadsheet
+    if (dataRekap[index].hadir === 0 && dataRekap[index].tidakHadir === 0) {
+        alert(`Rekap data ${namaSiswa} bernilai 0. Siswa akan otomatis dihapus dari sistem.`);
+        await deleteRow(index);
+        return;
     }
 
     renderTable();
@@ -457,7 +467,6 @@ async function updateCounter(index, tipe, value) {
 
 async function deleteRow(index) {
     const namaSiswa = dataRekap[index].nama;
-    if(!confirm(`Hapus seluruh data siswa ${namaSiswa}?`)) return;
     
     const btnDelete = document.getElementById(`btnDelete-${index}`);
     if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
@@ -555,7 +564,7 @@ function showTab(tab, btn) {
     btn.classList.add("active");
 }
 
-/* --- PERBAIKAN UNDUH FILE --- */
+/* --- PROSES UNDUH FILE --- */
 function prosesUnduhFile(blob, namaFile) {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
@@ -589,7 +598,7 @@ function prosesUnduhFile(blob, namaFile) {
                 `);
                 w.document.close();
             } else {
-                alert("Gagal membuka window baru. Aktifkan izin pop-up / buka link luar di pengaturan aplikasi webview Anda.");
+                alert("Gagal membuka window baru. Aktifkan izin pop-up.");
             }
         };
         reader.readAsDataURL(blob);
@@ -609,6 +618,71 @@ function prosesUnduhFile(blob, namaFile) {
     }
 }
 
+/* --- PERBAIKAN & AKTIVASI DOWNLOAD EKSPOR --- */
+
+// 1. Ekspor Excel Satu Per Siswa (Aktif)
+function exportSiswaExcel(index) {
+    const item = dataRekap[index];
+    const worksheetData = [
+        ["DATA ABSENSI INDIVIDU - NONA SWIMMING COURSE"],
+        [],
+        ["Nama Siswa", item.nama],
+        ["Jumlah Kehadiran (Hadir)", item.hadir],
+        ["Jumlah Tidak Hadir", item.tidakHadir],
+        ["Total Pertemuan Saat Ini", `${item.hadir}/${TOTAL_PERTEMUAN}`],
+        ["Tanggal Pembaharuan Terakhir", item.tanggal || '-'],
+        ["Catatan Terakhir", item.catatan || '-']
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    XLSX.utils.book_append_sheet(wb, ws, "Absensi Siswa");
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    prosesUnduhFile(blob, `Absensi_${item.nama.replace(/\s+/g, '_')}.xlsx`);
+}
+
+// 2. Ekspor PDF Satu Per Siswa (Aktif)
+function exportSiswaPDF(index) {
+    const item = dataRekap[index];
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(35, 74, 132);
+    doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
+    
+    doc.setFontSize(11);
+    doc.setFont("Helvetica", "normal");
+    doc.setTextColor(80);
+    doc.text("Nona Swimming Course (NSC)", 14, 26);
+    
+    doc.line(14, 30, 196, 30); // Garis horizontal
+    
+    const dataTabel = [
+        ["Parameter Absensi", "Keterangan Data"],
+        ["Nama Lengkap Siswa", item.nama],
+        ["Total Kehadiran (Hadir)", `${item.hadir} Kali`],
+        ["Total Absen (Tidak Hadir)", `${item.tidakHadir} Kali`],
+        ["Status Target Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP (12/12)" : `${item.hadir}/${TOTAL_PERTEMUAN} Pertemuan`],
+        ["Tanggal Update Terakhir", item.tanggal || "-"],
+        ["Catatan Khusus", item.catatan || "-"]
+    ];
+    
+    doc.autoTable({
+        startY: 35,
+        head: [dataTabel[0]],
+        body: dataTabel.slice(1),
+        theme: 'striped',
+        headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255] },
+        styles: { fontSize: 11, cellPadding: 5 }
+    });
+    
+    const blob = doc.output('blob');
+    prosesUnduhFile(blob, `Absensi_${item.nama.replace(/\s+/g, '_')}.pdf`);
+}
+
+// 3. Ekspor Excel Total Semua Siswa
 function exportTotalExcel() {
     if(dataRekap.length === 0) return alert("Tidak ada data untuk diekspor");
     const worksheetData = [["Nama Siswa", "Hadir", "Tidak Hadir", "Total Pertemuan", "Tanggal Terbaru", "Catatan Terakhir"]];
@@ -623,6 +697,7 @@ function exportTotalExcel() {
     prosesUnduhFile(blob, "Rekap_Total_Kehadiran_NSC.xlsx");
 }
 
+// 4. Ekspor PDF Total Semua Siswa (Melanjutkan Potongan Kode Lama)
 function exportTotalPDF() {
     if(dataRekap.length === 0) return alert("Tidak ada data untuk diekspor PDF");
     const { jsPDF } = window.jspdf;
@@ -635,82 +710,30 @@ function exportTotalPDF() {
     doc.setFontSize(12);
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(100);
-    doc.text(`Nona Swimming Course (NSC) - Generasi: ${getTanggalLaptopRealtime()}`, 14, 27);
+    doc.text(`Nona Swimming Course (NSC) - Tanggal Cetak: ${getTanggalLaptopRealtime()}`, 14, 27);
     
     const barisPDF = [];
     dataRekap.forEach(item => {
-        barisPDF.push([item.nama, item.hadir, item.tidakHadir, `${item.hadir}/${TOTAL_PERTEMUAN}`, item.catatan || '-']);
+        barisPDF.push([
+            item.nama, 
+            item.hadir, 
+            item.tidakHadir, 
+            item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
+            item.tanggal || '-'
+        ]);
     });
     
     doc.autoTable({
         startY: 35,
-        head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Catatan Terakhir"]],
+        head: [["Nama Siswa", "Hadir", "Tidak Hadir", "Total Rasio", "Tanggal Terakhir"]],
         body: barisPDF,
-        headStyles: { fillColor: [35, 74, 132] }
+        theme: 'grid',
+        headStyles: { fillColor: [35, 74, 132] },
+        styles: { cellPadding: 4, fontSize: 10 }
     });
     
     const blob = doc.output('blob');
     prosesUnduhFile(blob, "Rekap_Total_Kehadiran_NSC.pdf");
-}
-
-/* --- PERBAIKAN POTONGAN KODE INDIVIDUAL SISWA --- */
-function exportSiswaExcel(index) {
-    const siswa = dataRekap[index];
-    if(!siswa) return alert("Siswa tidak ditemukan");
-    
-    const worksheetData = [
-        ["DATA ABSENSI INDIVIDUAL SISWA"],
-        ["Nama Siswa", siswa.nama],
-        ["Total Hadir", siswa.hadir],
-        ["Total Tidak Hadir", siswa.tidakHadir],
-        ["Rasio Pertemuan", `${siswa.hadir}/${TOTAL_PERTEMUAN}`],
-        ["Tanggal Update", siswa.tanggal || "-"],
-        ["Catatan Terakhir", siswa.catatan || "-"]
-    ];
-    
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(wb, ws, `Absen_${siswa.nama}`);
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
-    prosesUnduhFile(blob, `Absen_Individual_${siswa.nama}.xlsx`);
-}
-
-function exportSiswaPDF(index) {
-    const siswa = dataRekap[index];
-    if(!siswa) return alert("Siswa tidak ditemukan");
-    
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(35, 74, 132);
-    doc.text(`LAPORAN ABSENSI DIGITAL: ${siswa.nama}`, 14, 20);
-    
-    doc.setFontSize(11);
-    doc.setFont("Helvetica", "normal");
-    doc.setTextColor(80);
-    doc.text("Nona Swimming Course", 14, 26);
-    
-    const detailSiswa = [
-        ["Nama Komplit", siswa.nama],
-        ["Kehadiran (Hadir)", `${siswa.hadir} Kali`],
-        ["Ketidakhadiran (Absen)", `${siswa.tidakHadir} Kali`],
-        ["Status Kontrak", `${siswa.hadir}/${TOTAL_PERTEMUAN} Pertemuan`],
-        ["Sinkronisasi Terakhir", siswa.tanggal || "-"],
-        ["Keterangan Tambahan", siswa.catatan || "-"]
-    ];
-    
-    doc.autoTable({
-        startY: 32,
-        head: [["Komponen Evaluasi", "Keterangan Valid"]],
-        body: detailSiswa,
-        headStyles: { fillColor: [35, 74, 132] }
-    });
-    
-    const blob = doc.output('blob');
-    prosesUnduhFile(blob, `Absen_Individual_${siswa.nama}.pdf`);
 }
 </script>
 </body>
