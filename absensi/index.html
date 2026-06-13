@@ -515,17 +515,30 @@ async function deleteRow(index) {
     }
 }
 
-// PERBAIKAN: Memperbaiki penanganan .value pada TomSelect agar proses simpan tidak macet
+// SIMPAN / UPSERT DATA BARU KE SUPABASE
 async function simpan() {
-    let nama = selectNamaControl ? selectNamaControl.value : document.getElementById("nama").value;
+    // PERBAIKAN TOTAL: Menggunakan .getValue() dengan cadangan (fallback) ke element HTML asli
+    let nama = "";
+    if (selectNamaControl) {
+        nama = selectNamaControl.getValue(); // Cara resmi TomSelect
+    }
+    
+    // Jika masih kosong, ambil langsung dari value elemen select asli
+    if (!nama) {
+        nama = document.getElementById("nama").value;
+    }
+    
     const status = document.getElementById("status").value;
     const catatan = document.getElementById("catatan").value;
     const btnSimpan = document.getElementById("btnSimpan");
 
-    if (!nama || nama === "") { 
+    if (!nama || nama.trim() === "") { 
         alert("Silakan pilih atau ketik nama siswa terlebih dahulu!"); 
         return; 
     }
+
+    // Bersihkan spasi di awal/akhir nama jika ada
+    nama = nama.trim();
 
     btnSimpan.disabled = true;
     btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan ke Supabase...';
@@ -565,7 +578,12 @@ async function simpan() {
         renderTable();
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
 
-        if(selectNamaControl) { selectNamaControl.clear(true); }
+        // Mengosongkan form setelah sukses
+        if(selectNamaControl) { 
+            selectNamaControl.clear(true); 
+        } else {
+            document.getElementById("nama").value = "";
+        }
         document.getElementById("catatan").value = "";
         alert("Data berhasil diproses ke Cloud Supabase!");
     } catch (err) {
