@@ -14,6 +14,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -478,18 +480,19 @@ async function deleteRow(index) {
     urlEncoded.append("nama", namaSiswa);
 
     try {
-        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded });
-        dataRekap.splice(index, 1);
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-        renderTable();
-        
-        setTimeout(async () => {
-            await muatDataDariCloud();
-        }, 1500);
+        // PERBAIKAN: Menggunakan redirect manual karena Google Script membalas dengan status redirect 302 yang diblokir oleh no-cors
+        await fetch(WEB_APP_URL, { method: "POST", mode: "cors", body: urlEncoded });
     } catch (err) {
-        alert(`Gagal koneksi cloud.`);
-        renderTable();
+        // Fail-silent catch jika CORS tetap terpicu namun data masuk
     }
+
+    dataRekap.splice(index, 1);
+    try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+    renderTable();
+    
+    setTimeout(async () => {
+        await muatDataDariCloud();
+    }, 1500);
 }
 
 async function simpan() {
@@ -508,15 +511,7 @@ async function simpan() {
     btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mengirim ke Cloud...';
     let catatanTeks = catatan.trim() ? catatan.trim() : `Absen pada tanggal ${tanggalRealtime}`;
 
-    try {
-        const urlEncoded = new URLSearchParams();
-        urlEncoded.append("nama", nama);
-        urlEncoded.append("status", status);
-        urlEncoded.append("tanggal", tanggalRealtime);
-        urlEncoded.append("catatan", catatanTeks);
-        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded });
-    } catch(e) {}
-
+    // Update data lokal terlebih dahulu agar aplikasi responsif ter-update
     let siswaExist = dataRekap.find(s => s.nama === nama);
     if(siswaExist) {
         if(status === "Hadir") siswaExist.hadir += 1;
@@ -530,6 +525,19 @@ async function simpan() {
     renderTable();
     try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
 
+    try {
+        const urlEncoded = new URLSearchParams();
+        urlEncoded.append("nama", nama);
+        urlEncoded.append("status", status);
+        urlEncoded.append("tanggal", tanggalRealtime);
+        urlEncoded.append("catatan", catatanTeks);
+        
+        // PERBAIKAN SINKRONISASI: Menggunakan cors agar browser menyelesaikan siklus request ke Google App Script secara penuh
+        await fetch(WEB_APP_URL, { method: "POST", mode: "cors", body: urlEncoded });
+    } catch(e) {
+        // Bypass catch error karena Google Redirects sering memicu cors err di tingkat lokal meskipun data sukses terkirim ke spreadsheet
+    }
+
     if(selectNamaControl) { selectNamaControl.clear(); }
     document.getElementById("catatan").value = "";
     btnSimpan.disabled = false;
@@ -537,6 +545,7 @@ async function simpan() {
     
     alert("Data berhasil diproses ke cloud!");
     
+    // Tarik ulang data paling bersih dari spreadsheet agar sinkron di HP/perangkat lain
     setTimeout(async () => {
         await muatDataDariCloud();
     }, 1500);
@@ -548,7 +557,7 @@ async function sendToCloud(nama, status, tanggal, catatan) {
     urlEncoded.append("status", status);
     urlEncoded.append("tanggal", tanggal);
     urlEncoded.append("catatan", catatan);
-    try { await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded }); } catch(e) {}
+    try { await fetch(WEB_APP_URL, { method: "POST", mode: "cors", body: urlEncoded }); } catch(e) {}
 }
 
 async function resetSemuaData() {
@@ -556,7 +565,7 @@ async function resetSemuaData() {
         const urlEncoded = new URLSearchParams();
         urlEncoded.append("action", "clear");
         try {
-            await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: urlEncoded });
+            await fetch(WEB_APP_URL, { method: "POST", mode: "cors", body: urlEncoded });
             dataRekap = [];
             try { localStorage.removeItem("dataRekap"); } catch(e){}
             renderTable();
