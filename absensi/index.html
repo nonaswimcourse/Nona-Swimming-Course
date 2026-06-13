@@ -15,6 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+    <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -283,7 +284,11 @@
 
 <script>
 const TOTAL_PERTEMUAN = 12;
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwLmKMaQpOryi30VYrBGO5-YSWdhmSJE76k41uTOw3CF0lTTxAfoi_N5oD93b2RNjNQmg/exec";
+
+// Inisialisasi Supabase Client
+const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndnbWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let dataRekap = [];
 let selectNamaControl;
@@ -305,28 +310,32 @@ document.addEventListener("DOMContentLoaded", function() {
     muatDataDariCloud();
 });
 
+// MEMUAT DATA DARI SUPABASE
 async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
     try {
         if (tbody) {
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
         }
 
-        const response = await fetch(WEB_APP_URL + "?action=read");
-        if (response.ok) {
-            const dataDariSheets = await response.json();
-            if (dataDariSheets && dataDariSheets.length > 0) {
-                dataRekap = dataDariSheets;
-            } else {
-                dataRekap = [];
-            }
-            try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-            renderTable();
-            return;
+        // Mengambil semua data dari tabel 'absensi' diurutkan berdasarkan nama
+        const { data, error } = await supabaseClient
+            .from('absensi')
+            .select('*')
+            .order('nama', { ascending: true });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            dataRekap = data;
+        } else {
+            dataRekap = [];
         }
-        throw new Error("Data kosong atau respon gagal");
+        
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        renderTable();
     } catch (e) { 
-        console.log("Gagal memuat dari Cloud, menggunakan backup data lokal.");
+        console.error("Gagal memuat dari Cloud Supabase:", e);
         dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [];
         renderTable();
     }
@@ -427,74 +436,93 @@ function renderTable() {
     document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
 }
 
+// UPDATE COUNTER DI SUPABASE
 async function updateCounter(index, tipe, value) {
-    const namaSiswa = dataRekap[index].nama;
+    const targetSiswa = dataRekap[index];
+    const namaSiswa = targetSiswa.nama;
     const tanggalRealtime = getTanggalLaptopRealtime();
-    let statusDikirim = "";
     let catatanKetik = "";
+    
+    let baruHadir = targetSiswa.hadir;
+    let baruTidakHadir = targetSiswa.tidakHadir;
 
     if (value > 0) {
-        statusDikirim = (tipe === 'hadir') ? "Hadir" : "Tidak Hadir";
         let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update manual via counter`);
         if (inputCatatan === null) return; 
         catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
-        if (tipe === 'hadir') dataRekap[index].hadir += 1;
-        else dataRekap[index].tidakHadir += 1;
+        
+        if (tipe === 'hadir') baruHadir += 1;
+        else baruTidakHadir += 1;
     } else {
         if (tipe === 'hadir') {
-            if (dataRekap[index].hadir === 0) return;
-            dataRekap[index].hadir -= 1;
-            statusDikirim = "Kurang Hadir";
+            if (baruHadir === 0) return;
+            baruHadir -= 1;
         } else {
-            if (dataRekap[index].tidakHadir === 0) return;
-            dataRekap[index].tidakHadir -= 1;
-            statusDikirim = "Kurang Tidak Hadir";
+            if (baruTidakHadir === 0) return;
+            baruTidakHadir -= 1;
         }
         catatanKetik = `Pengurangan manual via counter`;
     }
 
-    if (dataRekap[index].hadir === 0 && dataRekap[index].tidakHadir === 0) {
+    if (baruHadir === 0 && baruTidakHadir === 0) {
         alert(`Rekap data ${namaSiswa} bernilai 0. Siswa akan otomatis dihapus dari sistem.`);
         await deleteRow(index);
         return;
     }
 
-    renderTable();
-    await sendToCloud(namaSiswa, statusDikirim, tanggalRealtime, catatanKetik);
-    try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-    
-    setTimeout(async () => {
-        await muatDataDariCloud();
-    }, 1500);
+    try {
+        // Melakukan update baris data di Supabase berdasarkan pencocokan nama siswa
+        const { error } = await supabaseClient
+            .from('absensi')
+            .update({ 
+                hadir: baruHadir, 
+                tidakHadir: baruTidakHadir, 
+                tanggal: tanggalRealtime, 
+                catatan: catatanKetik 
+            })
+            .eq('nama', namaSiswa);
+
+        if (error) throw error;
+        
+        // Perbarui state lokal jika di awan sukses
+        dataRekap[index].hadir = baruHadir;
+        dataRekap[index].tidakHadir = baruTidakHadir;
+        dataRekap[index].tanggal = tanggalRealtime;
+        dataRekap[index].catatan = catatanKetik;
+        
+        renderTable();
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+    } catch (err) {
+        alert("Gagal memperbarui data ke Supabase: " + err.message);
+    }
 }
 
+// HAPUS DATA DI SUPABASE
 async function deleteRow(index) {
     const namaSiswa = dataRekap[index].nama;
-    if (!confirm(`Hapus data rekap ${namaSiswa} dari sistem?`)) return;
+    if (!confirm(`Hapus data rekap ${namaSiswa} dari sistem Supabase?`)) return;
     
     const btnDelete = document.getElementById(`btnDelete-${index}`);
     if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
 
-    const urlEncoded = new URLSearchParams();
-    urlEncoded.append("action", "deleteSiswa");
-    urlEncoded.append("nama", namaSiswa);
-
     try {
-        // PERBAIKAN: Menggunakan redirect manual karena Google Script membalas dengan status redirect 302 yang diblokir oleh no-cors
-        await fetch(WEB_APP_URL, { method: "POST", mode: "cors", body: urlEncoded });
-    } catch (err) {
-        // Fail-silent catch jika CORS tetap terpicu namun data masuk
-    }
+        const { error } = await supabaseClient
+            .from('absensi')
+            .delete()
+            .eq('nama', namaSiswa);
 
-    dataRekap.splice(index, 1);
-    try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-    renderTable();
-    
-    setTimeout(async () => {
-        await muatDataDariCloud();
-    }, 1500);
+        if (error) throw error;
+
+        dataRekap.splice(index, 1);
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        renderTable();
+    } catch (err) {
+        alert("Gagal menghapus data dari Supabase: " + err.message);
+        if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-trash"></i>';
+    }
 }
 
+// SIMPAN / UPSERT DATA BARU KE SUPABASE
 async function simpan() {
     let nama = selectNamaControl ? selectNamaControl.getValue() : document.getElementById("nama").value;
     const status = document.getElementById("status").value;
@@ -508,73 +536,75 @@ async function simpan() {
     }
 
     btnSimpan.disabled = true;
-    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mengirim ke Cloud...';
+    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan ke Supabase...';
     let catatanTeks = catatan.trim() ? catatan.trim() : `Absen pada tanggal ${tanggalRealtime}`;
 
-    // Update data lokal terlebih dahulu agar aplikasi responsif ter-update
     let siswaExist = dataRekap.find(s => s.nama === nama);
-    if(siswaExist) {
-        if(status === "Hadir") siswaExist.hadir += 1;
-        else siswaExist.tidakHadir += 1;
-        siswaExist.catatan = catatanTeks; 
-        siswaExist.tanggal = tanggalRealtime;
-    } else {
-        dataRekap.push({ nama: nama, hadir: status === "Hadir" ? 1 : 0, tidakHadir: status === "Tidak Hadir" ? 1 : 0, tanggal: tanggalRealtime, catatan: catatanTeks });
+    let nHadir = status === "Hadir" ? 1 : 0;
+    let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
+
+    if (siswaExist) {
+        nHadir = siswaExist.hadir + (status === "Hadir" ? 1 : 0);
+        nTidakHadir = siswaExist.tidakHadir + (status === "Tidak Hadir" ? 1 : 0);
     }
-    
-    renderTable();
-    try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
 
     try {
-        const urlEncoded = new URLSearchParams();
-        urlEncoded.append("nama", nama);
-        urlEncoded.append("status", status);
-        urlEncoded.append("tanggal", tanggalRealtime);
-        urlEncoded.append("catatan", catatanTeks);
+        // Menggunakan upsert (update jika ada, insert jika belum ada) dengan constraint key kolom 'nama'
+        const { error } = await supabaseClient
+            .from('absensi')
+            .upsert({ 
+                nama: nama, 
+                hadir: nHadir, 
+                tidakHadir: nTidakHadir, 
+                tanggal: tanggalRealtime, 
+                catatan: catatanTeks 
+            }, { onConflict: 'nama' });
+
+        if (error) throw error;
+
+        // Sync visual client side
+        if(siswaExist) {
+            siswaExist.hadir = nHadir;
+            siswaExist.tidakHadir = nTidakHadir;
+            siswaExist.catatan = catatanTeks; 
+            siswaExist.tanggal = tanggalRealtime;
+        } else {
+            dataRekap.push({ nama: nama, hadir: nHadir, tidakHadir: nTidakHadir, tanggal: tanggalRealtime, catatan: catatanTeks });
+        }
         
-        // PERBAIKAN SINKRONISASI: Menggunakan cors agar browser menyelesaikan siklus request ke Google App Script secara penuh
-        await fetch(WEB_APP_URL, { method: "POST", mode: "cors", body: urlEncoded });
-    } catch(e) {
-        // Bypass catch error karena Google Redirects sering memicu cors err di tingkat lokal meskipun data sukses terkirim ke spreadsheet
+        renderTable();
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+
+        if(selectNamaControl) { selectNamaControl.clear(); }
+        document.getElementById("catatan").value = "";
+        alert("Data berhasil diproses ke Cloud Supabase!");
+    } catch (err) {
+        alert("Gagal memproses data ke Supabase: " + err.message);
+    } finally {
+        btnSimpan.disabled = false;
+        btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
     }
-
-    if(selectNamaControl) { selectNamaControl.clear(); }
-    document.getElementById("catatan").value = "";
-    btnSimpan.disabled = false;
-    btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
-    
-    alert("Data berhasil diproses ke cloud!");
-    
-    // Tarik ulang data paling bersih dari spreadsheet agar sinkron di HP/perangkat lain
-    setTimeout(async () => {
-        await muatDataDariCloud();
-    }, 1500);
 }
 
-async function sendToCloud(nama, status, tanggal, catatan) {
-    const urlEncoded = new URLSearchParams();
-    urlEncoded.append("nama", nama);
-    urlEncoded.append("status", status);
-    urlEncoded.append("tanggal", tanggal);
-    urlEncoded.append("catatan", catatan);
-    try { await fetch(WEB_APP_URL, { method: "POST", mode: "cors", body: urlEncoded }); } catch(e) {}
-}
-
+// RESET SELURUH ISI TABEL DI SUPABASE
 async function resetSemuaData() {
-    if (confirm("Hapus seluruh data di aplikasi dan spreadsheet secara permanen?")) {
-        const urlEncoded = new URLSearchParams();
-        urlEncoded.append("action", "clear");
+    if (confirm("Hapus seluruh data di aplikasi dan database Supabase secara permanen?")) {
         try {
-            await fetch(WEB_APP_URL, { method: "POST", mode: "cors", body: urlEncoded });
+            // Melakukan trik filter .neq() atau .gt() untuk menghapus seluruh baris data di database
+            const { error } = await supabaseClient
+                .from('absensi')
+                .delete()
+                .neq('nama', ''); 
+
+            if (error) throw error;
+
             dataRekap = [];
             try { localStorage.removeItem("dataRekap"); } catch(e){}
             renderTable();
-            alert("Seluruh data berhasil dikosongkan.");
-            
-            setTimeout(async () => {
-                await muatDataDariCloud();
-            }, 1500);
-        } catch (err) { alert("Gagal koneksi cloud."); }
+            alert("Seluruh data berhasil dikosongkan dari database Supabase.");
+        } catch (err) { 
+            alert("Gagal mengosongkan database cloud: " + err.message); 
+        }
     }
 }
 
