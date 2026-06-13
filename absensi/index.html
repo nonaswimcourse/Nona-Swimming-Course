@@ -125,6 +125,24 @@
             .export { width: 100%; }
             .export .btn { flex: 1 1 auto; justify-content: center; font-size: 13px; padding: 10px 12px; }
         }
+        .jam-realtime{
+    margin-left:auto;
+    text-align:right;
+    color:white;
+    font-size:12px;
+    line-height:1.4;
+    opacity:0.9;
+    font-weight:500;
+}
+
+.jam-realtime .jam{
+    font-size:16px;
+    font-weight:bold;
+}
+
+.jam-realtime .tanggal{
+    font-size:11px;
+}
     </style>
 </head>
 <body>
@@ -168,6 +186,8 @@
         <div class="header-text">
             <h1>Absensi Les Renang</h1>
             <p>Nona Swimming Course</p>
+            
+            <div id="jamRealtime" class="jam-realtime"></div>
         </div>
     </div>
 
@@ -879,6 +899,32 @@ function exportTotalPDF() {
     
     const blob = doc.output("blob");
     prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
+
+    function updateJamRealtime(){
+
+    const sekarang = new Date();
+
+    const jam = sekarang.toLocaleTimeString("id-ID",{
+        hour:"2-digit",
+        minute:"2-digit",
+        second:"2-digit"
+    });
+
+    const tanggal = sekarang.toLocaleDateString("id-ID",{
+        weekday:"long",
+        day:"numeric",
+        month:"long",
+        year:"numeric"
+    });
+
+    document.getElementById("jamRealtime").innerHTML = `
+        <div class="jam">${jam}</div>
+        <div class="tanggal">${tanggal}</div>
+    `;
+}
+
+updateJamRealtime();
+setInterval(updateJamRealtime,1000);
 }
 </script>
 </body>
