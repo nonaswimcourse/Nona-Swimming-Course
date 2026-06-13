@@ -86,7 +86,7 @@
         .login-btn { width: 100%; background: #234a84; color: white; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
         
         .table-wrapper { width: 100%; overflow-x: auto; margin-top: 10px; -webkit-overflow-scrolling: touch; }
-        .table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        .table { width: 100%; border-collapse: collapse; min-width: 750px; }
         .table th { background: #f8fafc; padding: 14px; text-align: left; color: #334155; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
         .table td { padding: 16px 14px; border-bottom: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; }
         
@@ -271,6 +271,7 @@
                             <th>Hadir</th>
                             <th>Tidak Hadir</th>
                             <th>Total</th>
+                            <th>Tanggal Terbaru</th>
                             <th>Aksi File Harian</th>
                         </tr>
                     </thead>
@@ -292,6 +293,24 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let dataRekap = [];
 let selectNamaControl;
 
+// Nama hari dan bulan lokal Indonesia
+const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+// Fungsi pembantu untuk memformat tanggal realtime ke teks Indonesia
+function formatTanggalIndonesia(timestamp) {
+    if (!timestamp) return "Belum Ada Tanggal";
+    const dateObj = new Date(timestamp);
+    if (isNaN(dateObj.getTime())) return timestamp;
+    
+    const hari = namaHari[dateObj.getDay()];
+    const tanggal = dateObj.getDate();
+    const bulan = namaBulan[dateObj.getMonth()];
+    const tahun = dateObj.getFullYear();
+    
+    return `${hari}, ${tanggal} ${bulan} ${tahun}`;
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     selectNamaControl = new TomSelect("#nama", {
         create: false,
@@ -309,12 +328,12 @@ document.addEventListener("DOMContentLoaded", function() {
     muatDataDariCloud();
 });
 
-// MEMUAT DATA DARI SUPABASE
+// MEMUAT DATA DARI SUPABASE (Diperbaiki agar selaras dengan nama kolom asli)
 async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
     try {
         if (tbody) {
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
         }
 
         const { data, error } = await supabaseClient
@@ -326,10 +345,12 @@ async function muatDataDariCloud() {
 
         if (data && data.length > 0) {
             dataRekap = data.map(item => ({
-                nama: item.absensi,
+                nama: item.absensi ? item.absensi.toString().toUpperCase().trim() : "TANPA NAMA", // Menggunakan kolom 'absensi'
                 hadir: parseInt(item.Hadir) || 0,
-                tidakHadir: parseInt(item.status || item["Tidak Hadir"]) || 0,
-                catatan: item.Catatan || ""
+                tidakHadir: parseInt(item["Tidak Hadir"] || item.id_tidak_hadir || item.status) || 0,
+                catatan: item.Catatan || "",
+                tanggalRealtime: formatTanggalIndonesia(item.created_at), // Menggunakan created_at bawaan db
+                rawDate: item.created_at || ""
             }));
         } else {
             dataRekap = [];
@@ -377,7 +398,6 @@ async function handleLogin(event) {
     muatDataDariCloud();
 }
 
-// PERBAIKAN: Fungsi logout dimodifikasi dengan reload halaman penuh agar state bersih
 function handleLogout() {
     if(confirm("Apakah Anda yakin ingin keluar?")) {
         try { 
@@ -397,7 +417,7 @@ function checkLoginSession() {
 function renderTable() {
     let html = "";
     if(!dataRekap || dataRekap.length === 0) {
-        html = "<tr><td colspan='5' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
+        html = "<tr><td colspan='6' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
     } else {
         dataRekap.forEach((item, index) => {
             let totalTeks = item.hadir === TOTAL_PERTEMUAN 
@@ -422,6 +442,7 @@ function renderTable() {
                     </div>
                 </td>
                 <td>${totalTeks}</td>
+                <td style="color: #475569; font-size: 14px;">${item.tanggalRealtime}</td>
                 <td>
                     <div class="actions-cell">
                         <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
@@ -476,13 +497,14 @@ async function updateCounter(index, tipe, value) {
                 "Tidak Hadir": baruTidakHadir.toString(), 
                 Catatan: catatanKetik 
             })
-            .eq('absensi', namaSiswa);
+            .eq('absensi', namaSiswa); // Menghubungkan lewat properti absensi
 
         if (error) throw error;
         
         dataRekap[index].hadir = baruHadir;
         dataRekap[index].tidakHadir = baruTidakHadir;
         dataRekap[index].catatan = catatanKetik;
+        dataRekap[index].tanggalRealtime = formatTanggalIndonesia(new Date().toISOString());
         
         renderTable();
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
@@ -517,13 +539,10 @@ async function deleteRow(index) {
 
 // SIMPAN / UPSERT DATA BARU KE SUPABASE
 async function simpan() {
-    // PERBAIKAN TOTAL: Menggunakan .getValue() dengan cadangan (fallback) ke element HTML asli
     let nama = "";
     if (selectNamaControl) {
-        nama = selectNamaControl.getValue(); // Cara resmi TomSelect
+        nama = selectNamaControl.getValue();
     }
-    
-    // Jika masih kosong, ambil langsung dari value elemen select asli
     if (!nama) {
         nama = document.getElementById("nama").value;
     }
@@ -537,8 +556,7 @@ async function simpan() {
         return; 
     }
 
-    // Bersihkan spasi di awal/akhir nama jika ada
-    nama = nama.trim();
+    nama = nama.trim().toUpperCase();
 
     btnSimpan.disabled = true;
     btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan ke Supabase...';
@@ -556,10 +574,11 @@ async function simpan() {
     }
 
     try {
+        // PERBAIKAN STRUKTUR JSON: Dialirkan ke properti 'absensi' agar tidak salah kamar ke kolom 'nama' yang kosong
         const { error } = await supabaseClient
             .from('absensinsc')
             .upsert({ 
-                absensi: nama, 
+                absensi: nama, // 🛠️ Menembak kolom absensi sebagai penampung nama siswa
                 Hadir: nHadir, 
                 "Tidak Hadir": nTidakHadir.toString(), 
                 Catatan: catatanTeks 
@@ -567,18 +586,20 @@ async function simpan() {
 
         if (error) throw error;
 
+        const realtimeSekarang = formatTanggalIndonesia(new Date().toISOString());
+
         if(siswaExist) {
             siswaExist.hadir = nHadir;
             siswaExist.tidakHadir = nTidakHadir;
             siswaExist.catatan = catatanTeks; 
+            siswaExist.tanggalRealtime = realtimeSekarang;
         } else {
-            dataRekap.push({ nama: nama, hadir: nHadir, tidakHadir: nTidakHadir, catatan: catatanTeks });
+            dataRekap.push({ nama: nama, hadir: nHadir, tidakHadir: nTidakHadir, catatan: catatanTeks, tanggalRealtime: realtimeSekarang });
         }
         
         renderTable();
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
 
-        // Mengosongkan form setelah sukses
         if(selectNamaControl) { 
             selectNamaControl.clear(true); 
         } else {
@@ -685,6 +706,7 @@ function exportSiswaExcel(index) {
         ["Jumlah Kehadiran (Hadir)", item.hadir],
         ["Jumlah Tidak Hadir", item.tidakHadir],
         ["Total Pertemuan Saat Ini", `${item.hadir}/${TOTAL_PERTEMUAN}`],
+        ["Tanggal Pengisian Terbaru", item.tanggalRealtime],
         ["Catatan Terakhir", item.catatan || '-']
     ];
     const wb = XLSX.utils.book_new();
@@ -718,6 +740,7 @@ function exportSiswaPDF(index) {
         ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
         ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
         ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir} / ${TOTAL_PERTEMUAN}`],
+        ["Tanggal Terakhir Diinput", item.tanggalRealtime],
         ["Catatan Khusus", item.catatan || "-"]
     ];
     
@@ -739,7 +762,7 @@ function exportTotalExcel() {
     const worksheetData = [
         ["REKAP TOTAL ABSENSI - NONA SWIMMING COURSE"],
         [],
-        ["Nama Siswa", "Hadir", "Tidak Hadir", "Total", "Catatan"]
+        ["Nama Siswa", "Hadir", "Tidak Hadir", "Total fraction", "Tanggal Input Terbaru", "Catatan"]
     ];
     dataRekap.forEach(item => {
         worksheetData.push([
@@ -747,6 +770,7 @@ function exportTotalExcel() {
             item.hadir,
             item.tidakHadir,
             `${item.hadir}/${TOTAL_PERTEMUAN}`,
+            item.tanggalRealtime,
             item.catatan || '-'
         ]);
     });
@@ -783,17 +807,18 @@ function exportTotalPDF() {
             item.hadir,
             item.tidakHadir,
             item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
+            item.tanggalRealtime,
             item.catatan || '-'
         ]);
     });
     
     doc.autoTable({
         startY: 38,
-        head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Catatan Terakhir"]],
+        head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
         body: tableRows,
         theme: "striped",
         headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255] },
-        styles: { fontSize: 10, padding: 4 }
+        styles: { fontSize: 9, padding: 4 }
     });
     
     const blob = doc.output("blob");
