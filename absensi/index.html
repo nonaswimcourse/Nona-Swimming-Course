@@ -538,7 +538,6 @@ async function deleteRow(index) {
 }
 
 // SIMPAN / UPSERT DATA BARU KE SUPABASE
-// SIMPAN DATA SEBAGAI RIWAYAT BARU (REALTIME)
 async function simpan() {
     let nama = "";
     if (selectNamaControl) {
@@ -560,44 +559,43 @@ async function simpan() {
     nama = nama.trim().toUpperCase();
 
     btnSimpan.disabled = true;
-    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
-    
-    let catatanTeks = catatan.trim() ? catatan.trim() : "Absen baru";
+    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan ke Supabase...';
+    let catatanTeks = catatan.trim() ? catatan.trim() : `Absen diperbarui`;
+
+    if (!Array.isArray(dataRekap)) { dataRekap = []; }
+
+    let siswaExist = dataRekap.find(s => s && s.nama === nama);
     let nHadir = status === "Hadir" ? 1 : 0;
     let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
 
+    if (siswaExist) {
+        nHadir = (siswaExist.hadir || 0) + (status === "Hadir" ? 1 : 0);
+        nTidakHadir = (siswaExist.tidakHadir || 0) + (status === "Tidak Hadir" ? 1 : 0);
+    }
+
     try {
-        // PERUBAHAN UTAMA: 
-        // 1. Menggunakan .insert() agar selalu membuat baris baru
-        // 2. Tidak ada pengecekan siswaExist agar data tidak dijumlahkan
+        // PERBAIKAN STRUKTUR JSON: Dialirkan ke properti 'absensi' agar tidak salah kamar ke kolom 'nama' yang kosong
         const { error } = await supabaseClient
             .from('absensinsc')
-            .insert({ 
-                absensi: nama, 
+            .upsert({ 
+                absensi: nama, // 🛠️ Menembak kolom absensi sebagai penampung nama siswa
                 Hadir: nHadir, 
                 "Tidak Hadir": nTidakHadir.toString(), 
                 Catatan: catatanTeks 
-            });
+            }, { onConflict: 'absensi' });
 
         if (error) throw error;
 
-        alert("Data riwayat berhasil ditambahkan!");
-        
-        // Reset form
-        if(selectNamaControl) { selectNamaControl.clear(true); } 
-        else { document.getElementById("nama").value = ""; }
-        document.getElementById("catatan").value = "";
-        
-        // Refresh tabel agar data baru muncul
-        muatDataDariCloud();
-    } catch (err) {
-        console.error("Error:", err);
-        alert("Gagal memproses data: " + err.message);
-    } finally {
-        btnSimpan.disabled = false;
-        btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
-    }
-}
+        const realtimeSekarang = formatTanggalIndonesia(new Date().toISOString());
+
+        if(siswaExist) {
+            siswaExist.hadir = nHadir;
+            siswaExist.tidakHadir = nTidakHadir;
+            siswaExist.catatan = catatanTeks; 
+            siswaExist.tanggalRealtime = realtimeSekarang;
+        } else {
+            dataRekap.push({ nama: nama, hadir: nHadir, tidakHadir: nTidakHadir, catatan: catatanTeks, tanggalRealtime: realtimeSekarang });
+        }
         
         renderTable();
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
