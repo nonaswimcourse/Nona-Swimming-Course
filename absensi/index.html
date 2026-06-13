@@ -15,7 +15,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-    <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -285,7 +284,7 @@
 <script>
 const TOTAL_PERTEMUAN = 12;
 
-// Inisialisasi Supabase Client (Menuju tabel 'absensinsc' sesuai gambar)
+// Inisialisasi Supabase Client
 const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndnbWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -310,7 +309,7 @@ document.addEventListener("DOMContentLoaded", function() {
     muatDataDariCloud();
 });
 
-// MEMUAT DATA DARI SUPABASE (Target tabel: absensinsc)
+// MEMUAT DATA DARI SUPABASE
 async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
     try {
@@ -321,16 +320,15 @@ async function muatDataDariCloud() {
         const { data, error } = await supabaseClient
             .from('absensinsc')
             .select('*')
-            .order('absensi', { ascending: true }); // Mengurutkan berdasarkan kolom 'absensi' sesuai gambar
+            .order('absensi', { ascending: true });
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-            // Memetakan struktur database ke struktur lokal agar kompatibel dan aman dari text-handling
             dataRekap = data.map(item => ({
                 nama: item.absensi,
                 hadir: parseInt(item.Hadir) || 0,
-                tidakHadir: parseInt(item.status || item["Tidak Hadir"]) || 0, // Mengamankan konversi text ke int
+                tidakHadir: parseInt(item.status || item["Tidak Hadir"]) || 0,
                 catatan: item.Catatan || ""
             }));
         } else {
@@ -379,11 +377,13 @@ async function handleLogin(event) {
     muatDataDariCloud();
 }
 
+// PERBAIKAN: Fungsi logout dimodifikasi dengan reload halaman penuh agar state bersih
 function handleLogout() {
     if(confirm("Apakah Anda yakin ingin keluar?")) {
-        try { localStorage.removeItem("isLoggedIn"); } catch(e){}
-        document.getElementById("mainAppSection").classList.add("hidden");
-        document.getElementById("loginSection").classList.remove("hidden");
+        try { 
+            localStorage.removeItem("isLoggedIn"); 
+        } catch(e){}
+        window.location.reload();
     }
 }
 
@@ -436,7 +436,6 @@ function renderTable() {
     document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
 }
 
-// UPDATE COUNTER DI SUPABASE (Menyesuaikan skema kolom gambar)
 async function updateCounter(index, tipe, value) {
     const targetSiswa = dataRekap[index];
     const namaSiswa = targetSiswa.nama;
@@ -474,10 +473,10 @@ async function updateCounter(index, tipe, value) {
             .from('absensinsc')
             .update({ 
                 Hadir: baruHadir, 
-                "Tidak Hadir": baruTidakHadir.toString(), // Menyesuaikan tipe data 'text' di gambar
+                "Tidak Hadir": baruTidakHadir.toString(), 
                 Catatan: catatanKetik 
             })
-            .eq('absensi', namaSiswa); // Mencocokkan berdasarkan kolom 'absensi'
+            .eq('absensi', namaSiswa);
 
         if (error) throw error;
         
@@ -492,7 +491,6 @@ async function updateCounter(index, tipe, value) {
     }
 }
 
-// HAPUS DATA DI SUPABASE
 async function deleteRow(index) {
     const namaSiswa = dataRekap[index].nama;
     if (!confirm(`Hapus data rekap ${namaSiswa} dari sistem Supabase?`)) return;
@@ -517,9 +515,9 @@ async function deleteRow(index) {
     }
 }
 
-// SIMPAN / UPSERT DATA BARU KE SUPABASE (Menyesuaikan skema kolom gambar)
+// PERBAIKAN: Memperbaiki penanganan .value pada TomSelect agar proses simpan tidak macet
 async function simpan() {
-    let nama = selectNamaControl ? selectNamaControl.getValue() : document.getElementById("nama").value;
+    let nama = selectNamaControl ? selectNamaControl.value : document.getElementById("nama").value;
     const status = document.getElementById("status").value;
     const catatan = document.getElementById("catatan").value;
     const btnSimpan = document.getElementById("btnSimpan");
@@ -545,14 +543,12 @@ async function simpan() {
     }
 
     try {
-        // PERHATIKAN: Objek data disesuaikan persis dengan nama kolom di image_09c6e6.png
-        // Menggunakan properti string "Tidak Hadir" karena ada spasi pada penamaan kolom Supabase Anda
         const { error } = await supabaseClient
             .from('absensinsc')
             .upsert({ 
                 absensi: nama, 
                 Hadir: nHadir, 
-                "Tidak Hadir": nTidakHadir.toString(), // Diubah ke string karena kolom Anda bertipe text
+                "Tidak Hadir": nTidakHadir.toString(), 
                 Catatan: catatanTeks 
             }, { onConflict: 'absensi' });
 
@@ -569,19 +565,18 @@ async function simpan() {
         renderTable();
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
 
-        if(selectNamaControl) { selectNamaControl.clear(); }
+        if(selectNamaControl) { selectNamaControl.clear(true); }
         document.getElementById("catatan").value = "";
         alert("Data berhasil diproses ke Cloud Supabase!");
     } catch (err) {
         console.error("Detail Error Supabase:", err);
-        alert("Gagal memproses data ke Supabase: " + (err.message || "Pastikan setingan Primary Key di Supabase Anda hanya berada di kolom 'absensi' saja."));
+        alert("Gagal memproses data ke Supabase: " + (err.message || "Pastikan setingan Primary Key di Supabase Anda berada di kolom 'absensi'."));
     } finally {
         btnSimpan.disabled = false;
         btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
     }
 }
 
-// RESET SELURUH ISI TABEL DI SUPABASE
 async function resetSemuaData() {
     if (confirm("Hapus seluruh data di aplikasi dan database Supabase secara permanen?")) {
         try {
