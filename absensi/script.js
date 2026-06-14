@@ -13,7 +13,7 @@ const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 // Base64 Data URI Resmi Logo Nona Swimming Course (NSC) yang Valid & Utuh
-const LOGO_NSC_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAcHJlZmVycmVkUkdCAAB4nH2RPUscURSGn30mIisbXUasbBAsZIsgZreIsbKyf6wMZp07w0wyyYwzM66gYGFpYWFpYalYWIjYpLAQLCwEizT+gIWFpYVlYmEhIisbXebOnYVAsN093Pc95z3vOfe8A6w6llXNqwEon9Yy0pGInZscG7X+BAXowAAnwK6VldMRKeofgAnvbtvqt9Z9R9V1b/tr9bdaXU0rIBAEDgB7WlsFwZfAcaxVqgBwGPgu1bIAnAG+f/M6gO8D3zvZCvA9YF8t+wT4GLAnlV6gV2b/Nzk6mhgYgLId+EZKpxw4Arxn66pWbID3gTfX2wPArwHwbePzIeAY8LmlYxbwLeAnS8cC4D0rvbA06gDft9W3M7P0N2a7ZvtE0pC067b7tr/Ympp2ZunbHwYmxsbHBqN2XNLR8Y8fH4zaO/ZlXWp3bfeM6K8Z+0pSOpaR+f+7Y/8bHwBwB8BtABgAsBMANgBwGMD6Lz0SAtbI4BcA6wDsAbDxt45VwAYZ/A7Am9+6b5HhV8gGv0P277v3WzN8Ctk9ALf/wL1fUuBzyA4BuAMA7v2Q6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLwfX6W6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLw9vms868X963I7mQicmR0Is/6KhpbLWeOZaWylrXS0epv6b+w1U6fAAAAAElFTkSuQmCC";
+const LOGO_NSC_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAcHJlZmVycmVkUkdCAAB4nH2RPUscURSGn30mIisbXUasbBAsZIsgZreIsbKyf6wMZp07w0wyyYwzM66gYGFpYWFpYalYWIjYpLAQLCwEizT+gIWFpYVlYmEhIisbXebOnYVAsN093Pc95z3vOfe8A6w6llXNqwEon9Yy0pGInZscG7X+BAXowAAnwK6VldMRKeofgAnvbtvqt9Z9R9V1b/tr9bdaXU0rIBAEDgB7WlsFwZfAcaxVqgBwGPgu1bIAnAG+f/M6gO8D3zvZCvA9YF8t+wT4GLAnlV6gV2b/Nzk6mhgYgLId+EZKpxw4Arxn66pWbID3gTfX2wPArwHwbePzIeAY8LmlYxbwLeAnS8cC4D0rvbA06gDft9W3M7P0N2a7ZvtE0pC067b7tr/Ympp2ZunbHwYmxsbHBqN2XNLR8Y8fH4zaO/ZlXWp3bfeM6K8Z+0pSOpaR+f+7Y/8bHwBwB8BtABgAsBMANgBwGMD6Lz0SAtbI4BcA6wDsAbDxt45VwAYZ/A7Am9+6b5HhV8gGv0P277v3WzN8Ctk9ALf/wL1fUuBzyA4BuAMA7v2Q6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLw9vms868X963I7mQicmR0Is/6KhpbLWeOZaWylrXO0epv6b+w1U6fAAAAAElFTkSuQmCC";
 
 // Fungsi pembantu untuk memformat tanggal realtime ke teks Indonesia
 function formatTanggalIndonesia(timestamp) {
@@ -35,6 +35,31 @@ function dapatkanTanggalSekarangPendek() {
     return sekarang.toLocaleDateString("id-ID", opsi);
 }
 
+// Fungsi untuk memperbarui komponen Jam dan Tanggal di Header agar Realtime
+function updateJamRealtime() {
+    const sekarang = new Date();
+    
+    // Format Jam (HH.MM.SS)
+    const jam = String(sekarang.getHours()).padStart(2, '0');
+    const menit = String(sekarang.getMinutes()).padStart(2, '0');
+    const detik = String(sekarang.getSeconds()).padStart(2, '0');
+    const jamTeks = `${jam}.${menit}.${detik}`;
+    
+    // Format Hari & Tanggal Lengkap
+    const hariTeks = formatTanggalIndonesia(sekarang);
+    
+    // Masukkan ke elemen HTML masing-masing
+    const jamEl = document.getElementById("jamRealtime");
+    if (jamEl) {
+        jamEl.innerText = jamTeks;
+    }
+    
+    const tanggalEl = document.getElementById("tanggalRealtime");
+    if (tanggalEl) {
+        tanggalEl.innerText = hariTeks;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     selectNamaControl = new TomSelect("#nama", {
         create: false,
@@ -49,18 +74,17 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // === TAMBAHKAN BARIS INI UNTUK MENGAKTIFKAN TOMBOL LOGIN ===
     const loginForm = document.getElementById("loginForm");
     if (loginForm) {
         loginForm.addEventListener("submit", handleLogin);
     }
-    // ========================================================
 
     checkLoginSession();
     muatDataDariCloud();
     updateJamRealtime();
     setInterval(updateJamRealtime, 1000);
 });
+
 // MEMUAT DATA DARI SUPABASE
 async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
@@ -428,29 +452,21 @@ function exportSiswaPDF(index) {
     logo.src = "Logo percobaan.png";
 
     logo.onload = function () {
-        // LOGO: Ukuran dinaikkan ke 24x24 mm agar detail perisai terlihat jelas
-        doc.addImage(
-            logo,
-            "PNG",
-            14, // Tetap di kiri
-            10, // Posisi atas
-            18, // Lebar baru
-            24  // Tinggi baru
-        );
+        // LOGO: Ukuran proporsional bentuk perisai 18x24 mm (X: 14, Y: 10)
+        doc.addImage(logo, "PNG", 14, 10, 18, 24);
 
-        // JUDUL: Koordinat X digeser ke 43 (memberi space setelah logo 24mm)
-        // Koordinat Y disesuaikan agar teks sejajar vertikal dengan logo
+        // JUDUL: Koordinat X digeser ke 38 (menyisakan space aman di sebelah logo)
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(16);
         doc.setTextColor(35, 74, 132);
-        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 43, 19); 
+        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 19); 
 
-        // SUBJUDUL: Koordinat X digeser ke 43, Y ke 26
+        // SUBJUDUL: Koordinat X digeser ke 38, Y ke 26
         doc.setFontSize(11);
         doc.setFont("Helvetica", "normal");
-        doc.text("Nona Swimming Course (NSC)", 43, 26);
+        doc.text("Nona Swimming Course (NSC)", 38, 26);
 
-        // GARIS PEMBATAS: Diturunkan ke Y=39 agar pas di bawah logo yang berukuran 24mm
+        // GARIS PEMBATAS: Diturunkan ke Y=39 agar pas di bawah logo
         doc.line(14, 39, 196, 39);
 
         const rows = [
@@ -513,20 +529,20 @@ function exportTotalPDF() {
     logo.src = "Logo percobaan.png";
 
     logo.onload = function () {
-        // LOGO: Disamakan 24x24 mm posisi kiri
+        // LOGO: Ukuran proporsional bentuk perisai 18x24 mm (X: 14, Y: 10)
         doc.addImage(logo, "PNG", 14, 10, 18, 24);
 
-        // JUDUL: Digeser ke X: 43, Y: 19 agar sejajar tengah secara visual
+        // JUDUL: Digeser ke X: 38, Y: 19 agar sejajar tengah secara visual
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(18);
         doc.setTextColor(35, 74, 132);
-        doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 43, 19);
+        doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 19);
         
-        // SUBJUDUL: Digeser ke X: 43, Y: 26
+        // SUBJUDUL: Digeser ke X: 38, Y: 26
         doc.setFontSize(11);
         doc.setFont("Helvetica", "normal");
         doc.setTextColor(100, 116, 139);
-        doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 43, 26);
+        doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 26);
         
         // GARIS PEMBATAS: Diturunkan ke Y=39
         doc.setDrawColor(226, 232, 240);
@@ -561,7 +577,6 @@ function exportTotalPDF() {
 
     logo.onerror = function () {
         console.log("Logo gagal dibaca");
-        // ... (Logika fallback jika logo eror tetap di koordinat x=14)
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(18);
         doc.setTextColor(35, 74, 132);
@@ -575,7 +590,6 @@ function exportTotalPDF() {
         doc.setDrawColor(226, 232, 240);
         doc.line(14, 34, 196, 34);
         
-        // ... sisa kode tabel standar ...
         const blob = doc.output("blob");
         prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
     };
