@@ -110,26 +110,30 @@ function togglePasswordVisibility() {
     }
 }
 
-// KEMBALI KE VERSI AMAN & STABIL: Login menggunakan pencocokan teks biasa (Plain Text) tanpa enkripsi SHA yang merusak sesi
-async function handleLogin(event) {
+// PERBAIKAN TOTAL: Menggunakan fungsi standar tanpa async/await agar tidak memicu error promise di browser
+function handleLogin(event) {
     if (event) event.preventDefault(); 
+    
     const emailEl = document.getElementById("loginEmail");
     const passwordEl = document.getElementById("loginPassword");
-    if (!emailEl || !passwordEl) return;
+    
+    if (!emailEl || !passwordEl) {
+        alert("Elemen login HTML tidak ditemukan! Periksa kembali ID input Anda.");
+        return;
+    }
 
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
 
-    // Silakan sesuaikan password teks biasa di bawah ini jika berbeda
-    if (email !== "nonaswimmingcourse@gmail.com" || password !== "adminnsc123") {
+    // Silakan sesuaikan email & password di bawah ini jika ada perubahan
+    if (email === "nonaswimmingcourse@gmail.com" && password === "adminnsc123") {
+        localStorage.setItem("isLoggedIn", "true");
+        document.getElementById("loginSection").classList.add("hidden");
+        document.getElementById("mainAppSection").classList.remove("hidden");
+        muatDataDariCloud();
+    } else {
         alert("Akses ditolak! Akun atau Password salah.");
-        return; 
     }
-    
-    localStorage.setItem("isLoggedIn", "true");
-    document.getElementById("loginSection").classList.add("hidden");
-    document.getElementById("mainAppSection").classList.remove("hidden");
-    muatDataDariCloud();
 }
 
 function handleLogout() {
@@ -161,7 +165,6 @@ function renderTable() {
                 nomorWA = '62' + nomorWA.toString().slice(1);
             }
 
-            // Pesan WA Standar (Teks Saja)
             let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
 
 Total Hadir: *${item.hadir}* Pertemuan
@@ -222,7 +225,6 @@ Terima kasih.`;
     document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
 }
 
-// Fungsi Dialog Pilihan Menu PDF
 function bukaMenuOpsiPDF(index) {
     const item = dataRekap[index];
     const nomorHPValid = item.no_hp || "Belum Terinput";
