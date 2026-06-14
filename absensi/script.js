@@ -58,7 +58,6 @@ document.addEventListener("DOMContentLoaded", function() {
     setInterval(updateJamRealtime, 1000);
 });
 
-// MEMUAT DATA DARI SUPABASE (Disinkronkan dengan Gambar Tabel Database)
 async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
     try {
@@ -117,27 +116,25 @@ async function generateSHA256(string) {
     return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-
 async function handleLogin(event) {
-    if (event) event.preventDefault();
+    if (event) event.preventDefault(); 
+    const emailEl = document.getElementById("loginEmail");
+    const passwordEl = document.getElementById("loginPassword");
+    if (!emailEl || !passwordEl) return;
 
-    const email = document.getElementById("loginEmail").value.trim().toLowerCase();
-    const password = document.getElementById("loginPassword").value.trim();
+    const email = emailEl.value.trim().toLowerCase();
+    const password = passwordEl.value;
 
-    if (
-        email === "nonaswimmingcourse@gmail.com" &&
-        password === "Rombel007@"
-    ) {
-        localStorage.setItem("isLoggedIn", "true");
-        document.getElementById("loginSection").classList.add("hidden");
-        document.getElementById("mainAppSection").classList.remove("hidden");
-        muatDataDariCloud();
-        alert("Login berhasil");
-    } else {
-        alert("Akses ditolak! Email atau Password salah.");
+    if (email !== "nonaswimmingcourse@gmail.com" || await generateSHA256(password) !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
+        alert("Akses ditolak! Akun atau Password salah.");
+        return; 
     }
+    
+    localStorage.setItem("isLoggedIn", "true");
+    document.getElementById("loginSection").classList.add("hidden");
+    document.getElementById("mainAppSection").classList.remove("hidden");
+    muatDataDariCloud();
 }
-
 
 function handleLogout() {
     if(confirm("Apakah Anda yakin ingin keluar?")) {
@@ -168,6 +165,7 @@ function renderTable() {
                 nomorWA = '62' + nomorWA.slice(1);
             }
 
+            // Pesan WA Standar
             let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
 
 Total Hadir: *${item.hadir}* Pertemuan
@@ -177,6 +175,16 @@ Catatan: _${item.catatan || '-'}_
 
 Terima kasih.`;
             let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`;
+
+            // Pesan Notifikasi Terbit Dokumen PDF Resmi
+            let pesanWAPDF = `Halo Bapak/Ibu, pemberitahuan resmi mengenai Laporan Dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.
+
+Dokumen resmi telah dicetak dan diterbitkan secara digital dengan status kehadiran akhir: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}* pertemuan.
+
+Catatan Evaluasi: _${item.catatan || '-'}_
+
+Silakan download langsung salinan dokumen Anda melalui Admin atau simpan pesan konfirmasi ini. Terima kasih.`;
+            let linkWAPDF = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWAPDF)}`;
 
             html += `
             <tr>
@@ -199,13 +207,24 @@ Terima kasih.`;
                 <td style="color: #475569; font-size: 14px;">${item.tanggalRealtime}</td>
                 <td>
                     <div class="actions-cell">
-                        <a href="${linkWA}" target="_blank" class="btn-action btn-wa" title="Kirim Laporan ke WhatsApp Orang Tua">
+                        <a href="${linkWA}" target="_blank" class="btn-action btn-wa" title="Kirim Laporan Teks via WhatsApp">
                             <i class="fab fa-whatsapp"></i>
                         </a>
-                        <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
-                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>
-                        <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
-                        <button class="btn-action btn-kick" title="Keluarkan Siswa" onclick="keluarkanSiswa('${item.nama}')"><i class="fa fa-user-minus"></i></button>
+                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})">
+                            <i class="fa fa-file-pdf"></i>
+                        </button>
+                        <a href="${linkWAPDF}" target="_blank" class="btn-action btn-wa-pdf" title="Kirim Notifikasi Dokumen PDF ke WA Orang Tua">
+                            <i class="fa fa-share-nodes"></i> Kirim PDF ke WA
+                        </a>
+                        <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})">
+                            <i class="fa fa-file-excel"></i>
+                        </button>
+                        <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                        <button class="btn-action btn-kick" title="Keluarkan Siswa" onclick="keluarkanSiswa('${item.nama}')">
+                            <i class="fa fa-user-minus"></i>
+                        </button>
                     </div>
                 </td>
             </tr>`;
@@ -254,8 +273,8 @@ async function updateCounter(index, tipe, value) {
             .from("absensinsc")
             .upsert({
                 absensi: namaSiswa,
-                nama: namaSiswa, // Menjamin kolom 'nama' ikut terisi aman
-                Hadir: baruHadir.toString(), // Diubah ke String sesuai struktur DB Anda
+                nama: namaSiswa,
+                Hadir: baruHadir.toString(),
                 "Tidak Hadir": baruTidakHadir.toString(),
                 Catatan: catatanKetik,
                 "Tanggal Terbaru": waktuSekarangISO,
@@ -339,7 +358,7 @@ async function simpan() {
             .upsert({
                 absensi: nama,
                 nama: nama,
-                Hadir: nHadir.toString(), // Diubah ke String agar sesuai dengan tipe text di DB
+                Hadir: nHadir.toString(),
                 "Tidak Hadir": nTidakHadir.toString(),
                 Catatan: catatanTeks,
                 "Tanggal Terbaru": waktuSekarangISO,
@@ -443,12 +462,9 @@ function exportTotalExcel() {
     
     dataRekap.forEach(item => {
         worksheetData.push([
-            item.nama,
-            item.hadir,
-            item.tidakHadir,
+            item.nama, item.hadir, item.tidakHadir,
             item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-            item.tanggalRealtime,
-            item.catatan || "-"
+            item.tanggalRealtime, item.catatan || "-"
         ]);
     });
 
@@ -569,7 +585,6 @@ async function resetSemuaData() {
 
 function keluarkanSiswa(nama) {
     if(!confirm("Keluarkan siswa " + nama + " dari les renang?\n\nData absensi tetap tersimpan.")) return;
-
     dataRekap = dataRekap.filter(x => x.nama !== nama);
     localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
     renderTable();

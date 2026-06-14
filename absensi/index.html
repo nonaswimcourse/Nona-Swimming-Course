@@ -14,7 +14,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <link rel="stylesheet" href="style.css">
@@ -29,8 +28,7 @@
         <h2>Sistem Absensi NSC</h2>
         <p>Silakan masuk menggunakan akun Gmail Anda</p>
         
-        <!-- Form login dengan handle submit yang benar -->
-        <form id="loginForm" onsubmit="event.preventDefault(); handleLogin(); return false;">
+        <form id="loginForm" onsubmit="handleLogin(event)">
             <div class="login-form-group">
                 <label for="loginEmail">Alamat Gmail</label>
                 <input type="email" id="loginEmail" required placeholder="namaanda@gmail.com" autocomplete="username">
@@ -45,8 +43,7 @@
                     </button>
                 </div>
             </div>
-            
-            <button type="button" class="login-btn" onclick="handleLogin()">
+            <button type="submit" class="login-btn">
                 <i class="fa fa-right-to-bracket"></i> Masuk Aplikasi
             </button>
         </form>
@@ -56,7 +53,7 @@
     </div>
 </div>
 
-<div id="mainAppSection" class="hidden" style="display: none;">
+<div id="mainAppSection" class="hidden">
     <div class="header">
         <div class="header-left">
             <img src="Logo percobaan.png" alt="Logo NSC" class="header-logo">
