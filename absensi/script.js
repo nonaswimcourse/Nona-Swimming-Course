@@ -122,7 +122,15 @@ function togglePasswordVisibility() {
     }
 }
 
-// LOGIN AKUN PERBAIKAN: Menggunakan password baru sesuai keinginan Anda
+// FUNGSI PERLINDUNGAN KODE GENERATE SHA-256
+async function generateSHA256(string) {
+    const utf8 = new TextEncoder().encode(string);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// LOGIN AKUN DENGAN PERLINDUNGAN KODE SHA-256 (PASSWORD: Rombel007@)
 async function handleLogin(event) {
     if (event) event.preventDefault(); 
     
@@ -134,8 +142,11 @@ async function handleLogin(event) {
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
 
-    // PASSWORD SUDAH DIUBAH MENJADI Rombel007@ SESUAI DENGAN INPUT ANDA
-    if (email === "nonaswimmingcourse@gmail.com" && password === "Rombel007@") {
+    // Enkripsi password input ke SHA-256 terlebih dahulu sebelum dicocokkan
+    const passwordHashed = await generateSHA256(password);
+
+    // Proteksi Kode Terenkripsi untuk email nonaswimmingcourse@gmail.com dan password Rombel007@
+    if (email === "nonaswimmingcourse@gmail.com" && passwordHashed === "8ca7d3d753239e25d2cbf790696eb6782dbf2d5930e38676d6540026a2675661") {
         try { localStorage.setItem("isLoggedIn", "true"); } catch(e){}
         
         const loginSection = document.getElementById("loginSection");
