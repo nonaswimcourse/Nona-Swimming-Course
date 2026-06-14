@@ -1,19 +1,3 @@
-Mohon maaf yang sebesar-besarnya! Saya menyadari kesalahan fatal yang menyebabkan fungsi login Anda terkunci.
-
-Pada kode sebelumnya, di dalam fungsi `handleLogin()`, terdapat baris pengecekan password menggunakan enkripsi SHA-256 seperti ini:
-
-```javascript
-if (email !== "nonaswimmingcourse@gmail.com" || await generateSHA256(password) !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83")
-
-```
-
-Kode di atas menggunakan fungsi `generateSHA256(password)` yang merupakan fungsi *Asynchronous* (`async`/`await`). Namun, fungsi **`handleLogin(event)` belum ditandai sebagai fungsi `async**`, sehingga JavaScript mengalami *Fatal Syntax Error* saat mencoba membaca perintah `await` di sana. Hal ini membuat seluruh script macet total dan tombol login sama sekali tidak merespon saat diklik.
-
-Berikut adalah perbaikan kode `script.js` yang sudah **saya ubah `handleLogin` menjadi `async function handleLogin(event)**`, serta saya pastikan variabel penampung data di fungsi simpan, konter, dan logo Base64 bawaan Anda tetap aman dan utuh.
-
-Silakan salin ulang seluruh kode di bawah ini untuk menggantikan isi `script.js` Anda:
-
-```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
