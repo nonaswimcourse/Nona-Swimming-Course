@@ -207,13 +207,17 @@ async function updateCounter(index, tipe, value) {
     }
 
     try {
-        const { error } = await supabaseClient
-            .from('absensinsc')
-            .update({ 
-                Hadir: baruHadir, 
-                "Tidak Hadir": baruTidakHadir.toString(), 
-                Catatan: catatanKetik 
-            })
+        // ISI PROSES UPSERT YANG BENAR PADA SCRIPT.JS (Cari bagian ini lalu sesuaikan)
+const { error: errorRekap } = await supabaseClient
+    .from("absensinsc")
+    .upsert({
+        absensi: nama,
+        Hadir: nHadir,
+        "Tidak Hadir": nTidakHadir.toString(), // HAPUS TULISAN nTarget = KARENA ERROR
+        Catatan: catatanTeks
+    }, {
+        onConflict: "absensi"
+    });
             .eq('absensi', namaSiswa);
 
         if (error) throw error;
