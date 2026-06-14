@@ -26,11 +26,6 @@
         <div class="login-logo-container">
             <img src="Logo percobaan.png" alt="Logo NSC" class="login-logo">
         </div>
-        div class="header-right">
-        <div id="jamRealtime" class="jam-realtime">00.00.00</div>
-        <div id="tanggalRealtime" class="tanggal-realtime">Memuat tanggal...</div>
-    </div>
-</div>
         <h2>Sistem Absensi NSC</h2>
         <p>Silakan masuk menggunakan akun Gmail Anda</p>
         
@@ -46,7 +41,7 @@
                     <input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password">
                     <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility()">
                         <i id="eyeIcon" class="fa fa-eye"></i>
-                    </button>
+                    </</button>
                 </div>
             </div>
             <button type="submit" class="login-btn">
@@ -61,12 +56,16 @@
 
 <div id="mainAppSection" class="hidden">
     <div class="header">
-        <img src="Logo percobaan.png" alt="Logo NSC" class="header-logo">
-        <div class="header-text">
-            <h1>Absensi Les Renang</h1>
-            <p>Nona Swimming Course</p>
-            
-            <div id="jamRealtime" class="jam-realtime"></div>
+        <div class="header-left">
+            <img src="Logo percobaan.png" alt="Logo NSC" class="header-logo">
+            <div class="header-text">
+                <h1>Absensi Les Renang</h1>
+                <p>Nona Swimming Course</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div id="jamRealtime" class="jam">00.00.00</div>
+            <div id="tanggalRealtime" class="tanggal">Memuat tanggal...</div>
         </div>
     </div>
 
@@ -142,28 +141,27 @@
         </div>
 
         <div id="rekap" class="card hidden">
-    <div class="rekap-header-wrapper">
-        <div class="rekap-title-area" style="display: flex; align-items: center; gap: 15px;">
-            
-            <div>
-                <h2 style="margin: 0;">Rekap Kehadiran</h2>
-                <p id="totalPertemuanText" style="margin: 5px 0 0 0;">Total 12 Pertemuan Les Renang</p>
+            <div class="rekap-header-wrapper">
+                <div class="rekap-title-area" style="display: flex; align-items: center; gap: 15px;">
+                    <div>
+                        <h2 style="margin: 0;">Rekap Kehadiran</h2>
+                        <p id="totalPertemuanText" style="margin: 5px 0 0 0;">Total 12 Pertemuan Les Renang</p>
+                    </div>
+                </div>
+                <div class="rekap-controls-area">
+                    <div class="export">
+                        <button class="btn reset" id="btnResetAll" onclick="resetSemuaData()">
+                            <i class="fa fa-trash-can"></i> Reset
+                        </button>
+                        <button class="btn excel-btn" onclick="exportTotalExcel()">
+                            <i class="fa fa-file-excel"></i> Excel Total
+                        </button>
+                        <button class="btn pdf-btn" onclick="exportTotalPDF()">
+                            <i class="fa fa-file-pdf"></i> PDF Total
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="rekap-controls-area">
-            <div class="export">
-                <button class="btn reset" id="btnResetAll" onclick="resetSemuaData()">
-                    <i class="fa fa-trash-can"></i> Reset
-                </button>
-                <button class="btn excel-btn" onclick="exportTotalExcel()">
-                    <i class="fa fa-file-excel"></i> Excel Total
-                </button>
-                <button class="btn pdf-btn" onclick="exportTotalPDF()">
-                    <i class="fa fa-file-pdf"></i> PDF Total
-                </button>
-            </div>
-        </div>
-    </div>
             
             <div class="table-wrapper">
                 <table class="table">
