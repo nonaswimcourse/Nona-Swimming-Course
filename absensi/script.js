@@ -443,48 +443,59 @@ function exportSiswaPDF(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    
-    const logo = new Image();
-logo.src = "Logo percobaan.png";
 
-logo.onload = function () {
-    doc.addImage(logo, "PNG", 170, 10, 25, 25);
-    doc.save("Data-Siswa.pdf");
-};
-    
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(35, 74, 132);
-    doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
-    
-    doc.setFontSize(11);
-    doc.setFont("Helvetica", "normal");
-    doc.setTextColor(100, 116, 139);
-    doc.text("Nona Swimming Course (NSC)", 14, 27);
-    
-    doc.setDrawColor(226, 232, 240);
-    doc.line(14, 34, 196, 34);
-    
-    const rows = [
-        ["Nama Siswa", item.nama],
-        ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-        ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-        ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir} / ${TOTAL_PERTEMUAN}`],
-        ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-        ["Catatan Khusus", item.catatan || "-"]
-    ];
-    
-    doc.autoTable({
-        startY: 40,
-        head: [["Komponen Data", "Detail Keterangan"]],
-        body: rows,
-        theme: "striped",
-        headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
-        styles: { fontSize: 11, padding: 6 }
-    });
-    
-    const blob = doc.output("blob");
-    prosesUnduhFile(blob, `Absensi_${item.nama.replace(/\s+/g, '_')}.pdf`);
+    const logo = new Image();
+    logo.src = "Logo percobaan.png";
+
+    logo.onload = function () {
+
+        // LOGO
+        doc.addImage(
+            logo,
+            "PNG",
+            170,
+            10,
+            25,
+            25
+        );
+
+        // JUDUL
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(16);
+        doc.setTextColor(35, 74, 132);
+        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
+
+        doc.setFontSize(11);
+        doc.setFont("Helvetica", "normal");
+        doc.text("Nona Swimming Course (NSC)", 14, 27);
+
+        doc.line(14,34,196,34);
+
+        const rows = [
+            ["Nama Siswa", item.nama],
+            ["Jumlah Kehadiran", `${item.hadir} Pertemuan`],
+            ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
+            ["Status", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+            ["Tanggal", item.tanggalRealtime],
+            ["Catatan", item.catatan || "-"]
+        ];
+
+        doc.autoTable({
+            startY: 40,
+            head: [["Komponen", "Keterangan"]],
+            body: rows,
+            theme:"striped"
+        });
+
+
+        // SIMPAN PALING AKHIR
+        doc.save(`Absensi_${item.nama}.pdf`);
+    };
+
+    logo.onerror = function(){
+        console.log("Logo gagal dibaca");
+        doc.save(`Absensi_${item.nama}.pdf`);
+    };
 }
 
 function exportTotalExcel() {
