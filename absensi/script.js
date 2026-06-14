@@ -94,6 +94,7 @@ async function muatDataDariCloud() {
                     hadir: parseInt(item.Hadir) || 0,
                     tidakHadir: parseInt(item["Tidak Hadir"] || item.id_tidak_hadir || item.status) || 0,
                     catatan: item.Catatan || "",
+                    no_hp: item.no_hp || "",
                     tanggalRealtime: formatTanggalIndonesia(rawDateSource),
                     rawDate: rawDateSource
                 };
@@ -185,6 +186,14 @@ function renderTable() {
                 ? `<span class="total-lengkap">LENGKAP</span>` 
                 : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;
 
+            let nomorWA = item.no_hp || ""; 
+            if (nomorWA.startsWith('0')) {
+                nomorWA = '62' + nomorWA.slice(1);
+            }
+
+            let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nTotal Hadir: *${item.hadir}* Pertemuan\nTidak Hadir: *${item.tidakHadir}* Pertemuan\nStatus Target: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan: _${item.catatan || '-'}_\n\nTerima kasih.`;
+            let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`;
+
             html += `
             <tr>
                 <td style="font-weight: 500;">${item.nama}</td>
@@ -206,6 +215,9 @@ function renderTable() {
                 <td style="color: #475569; font-size: 14px;">${item.tanggalRealtime}</td>
                 <td>
                     <div class="actions-cell">
+                        <a href="${linkWA}" target="_blank" class="btn-action btn-wa" title="Kirim Laporan ke WhatsApp Orang Tua">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
                         <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
                         <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>
                         <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
