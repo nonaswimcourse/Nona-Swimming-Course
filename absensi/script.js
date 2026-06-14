@@ -52,11 +52,12 @@ function updateJamRealtime() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-    selectNamaControl = new TomSelect("#nama", {
-        create: false,
-        sortField: { field: "text", direction: "asc" },
-        placeholder: "Ketik / Pilih Nama Siswa...",
+// Cari bagian ini di script.js Anda dan ubah menjadi true:
+selectNamaControl = new TomSelect("#nama", {
+    create: true, // <--- UBAH DARI false MENJADI true
+    sortField: { field: "text", direction: "asc" },
+    placeholder: "Ketik / Pilih Nama Siswa...",
+    // ... sisa kode di bawahnya biarkan sama ...
         allowEmptyOption: true,
         onChange: function(value) {
             if(value) {
