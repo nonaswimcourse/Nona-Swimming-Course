@@ -1,8 +1,3 @@
-Berikut adalah kode lengkap untuk file `script.js` yang sudah diperbarui. Saya telah menyatukan fungsi unggah otomatis ke **Supabase Storage** (dengan nama bucket `pdf-laporan`) dan mengubah tombol **Kirim PDF ke WA** agar langsung memproses dokumen ke cloud lalu membuka WhatsApp.
-
-Silakan salin seluruh kode di bawah ini dan timpa (*replace*) isi file `script.js` Anda yang lama:
-
-```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -30,16 +25,16 @@ function formatTanggalIndonesia(timestamp) {
 }
 
 function updateJamRealtime() {
-    const sekarang = new Date();
-    const jam = String(sekarang.getHours()).padStart(2, '0');
-    const menit = String(sekarang.getMinutes()).padStart(2, '0');
-    const detik = String(sekarang.getSeconds()).padStart(2, '0');
+    const Clinical = new Date();
+    const jam = String(Clinical.getHours()).padStart(2, '0');
+    const menit = String(Clinical.getMinutes()).padStart(2, '0');
+    const detik = String(Clinical.getSeconds()).padStart(2, '0');
     
     const jamEl = document.getElementById("jamRealtime");
     if (jamEl) jamEl.innerText = `${jam}.${menit}.${detik}`;
     
     const tanggalEl = document.getElementById("tanggalRealtime");
-    if (tanggalEl) tanggalEl.innerText = formatTanggalIndonesia(sekarang);
+    if (tanggalEl) tanggalEl.innerText = formatTanggalIndonesia(Clinical);
 }
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -85,7 +80,7 @@ async function muatDataDariCloud() {
                     hadir: parseInt(item.Hadir) || 0,
                     tidakHadir: parseInt(item["Tidak Hadir"]) || 0,
                     catatan: item.Catatan || "",
-                    no_hp: item.no_hp || "",
+                    no_hp: item.no_hp || item.No_HP || "",
                     tanggalRealtime: formatTanggalIndonesia(rawDateSource),
                     rawDate: rawDateSource
                 };
@@ -166,8 +161,8 @@ function renderTable() {
                 : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;
 
             let nomorWA = item.no_hp || ""; 
-            if (nomorWA.startsWith('0')) {
-                nomorWA = '62' + nomorWA.slice(1);
+            if (nomorWA.toString().startsWith('0')) {
+                nomorWA = '62' + nomorWA.toString().slice(1);
             }
 
             // Pesan WA Standar (Teks Saja)
@@ -208,9 +203,12 @@ Terima kasih.`;
                         <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index}, true)">
                             <i class="fa fa-file-pdf"></i>
                         </button>
-                        <button class="btn-action btn-wa-pdf" title="Unggah PDF ke Cloud & Kirim Tautan ke WA Orang Tua" onclick="shareSiswaPDF(${index})">
-                            <i class="fa fa-share-nodes"></i> Kirim PDF ke WA
+                        
+                        <!-- MODIFIKASI: Tombol Pilihan Menu PDF Interaktif -->
+                        <button class="btn-action btn-wa-pdf" title="Menu Opsi Dokumen PDF Siswa" onclick="bukaMenuOpsiPDF(${index})">
+                            <i class="fa fa-share-nodes"></i> Opsi PDF
                         </button>
+
                         <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})">
                             <i class="fa fa-file-excel"></i>
                         </button>
@@ -227,6 +225,27 @@ Terima kasih.`;
     }
     document.getElementById("tbody").innerHTML = html;
     document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
+}
+
+// BARU: Fungsi Menu Dialog Pilihan antara Download PDF atau Kirim ke WhatsApp
+function bukaMenuOpsiPDF(index) {
+    const item = dataRekap[index];
+    const nomorHPValid = item.no_hp || "Belum Terinput";
+
+    const pesanPilihan = `Pilih aksi dokumen PDF untuk siswa: ${item.nama}\n(No HP Terdaftar: ${nomorHPValid})\n\nKetik ANGKA pilihannya:\n1 = Download PDF Saja ke Perangkat\n2 = Kirim Link PDF ke WhatsApp Orang Tua\n\nTekan 'Batal' untuk keluar.`;
+    const pilihanUser = prompt(pesanPilihan, "1");
+
+    if (pilihanUser === null) return; // Jika admin klik batal
+
+    if (pilihanUser.trim() === "1") {
+        // Pilihan 1: Murni download saja
+        exportSiswaPDF(index, true);
+    } else if (pilihanUser.trim() === "2") {
+        // Pilihan 2: Upload cloud lalu bagikan ke nomor WA siswa bersangkutan
+        shareSiswaPDF(index);
+    } else {
+        alert("Pilihan tidak valid! Masukkan angka 1 atau 2 saja.");
+    }
 }
 
 async function updateCounter(index, tipe, value) {
@@ -542,7 +561,7 @@ function exportTotalPDF() {
     doc.save("Rekap_Total_Absensi_NSC.pdf");
 }
 
-// FUNGSI BARU: Unggah PDF otomatis ke Supabase Storage & Bagikan Link-nya ke WhatsApp
+// Fungsi Unggah PDF ke Supabase Storage & Bagikan Link-nya ke WhatsApp Terdaftar milik Siswa
 async function shareSiswaPDF(index) {
     const item = dataRekap[index];
     const btnShare = document.querySelectorAll(".btn-wa-pdf")[index];
@@ -550,10 +569,10 @@ async function shareSiswaPDF(index) {
 
     const originalHTML = btnShare.innerHTML;
     btnShare.disabled = true;
-    btnShare.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Memproses...';
+    btnShare.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mengunggah...';
 
     try {
-        // 1. Generate dokumen PDF (false agar tidak memicu download di perangkat admin)
+        // 1. Generate dokumen PDF (false agar tidak download di browser)
         const doc = exportSiswaPDF(index, false);
         const pdfBlob = doc.output('blob');
         
@@ -571,7 +590,7 @@ async function shareSiswaPDF(index) {
             
         if (error) throw error;
         
-        // 4. Ambil URL Publik dari file yang berhasil disimpan
+        // 4. Ambil URL Publik dari file
         const { data: urlData } = supabaseClient
             .storage
             .from('pdf-laporan')
@@ -581,8 +600,12 @@ async function shareSiswaPDF(index) {
 
         // 5. Konversi format nomor telepon tujuan ke kode internasional (62)
         let nomorWA = item.no_hp || ""; 
-        if (nomorWA.startsWith('0')) {
-            nomorWA = '62' + nomorWA.slice(1);
+        if (!nomorWA) {
+            alert("Siswa tidak memiliki nomor HP terdaftar. Proses WhatsApp dibatalkan.");
+            return;
+        }
+        if (nomorWA.toString().startsWith('0')) {
+            nomorWA = '62' + nomorWA.toString().slice(1);
         }
 
         // 6. Siapkan kalimat pengantar pesan otomatis WhatsApp
@@ -596,7 +619,7 @@ Catatan Evaluasi: _${item.catatan || '-'}_
 
 Terima kasih.`;
 
-        // 7. Buka tautan kirim pesan WhatsApp API
+        // 7. Buka tautan kirim pesan WhatsApp API sesuai nomor HP terinput siswa
         let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWAPDF)}`;
         window.open(linkWA, '_blank');
 
@@ -656,5 +679,3 @@ function keluarkanSiswa(nama) {
     renderTable();
     alert(nama + " sudah dikeluarkan dari daftar siswa aktif.");
 }
-
-```
