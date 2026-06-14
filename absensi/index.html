@@ -86,7 +86,7 @@
 
         <div id="input" class="card">
             <h2>Tambah Absensi</h2>
-            <div class="row">
+            <div class="row" style="grid-template-columns: 2fr 1fr 1fr; gap: 20px;">
                 <div>
                     <label for="nama">Nama Siswa</label>
                     <select id="nama" placeholder="Ketik atau pilih nama siswa...">
@@ -123,6 +123,10 @@
                         <option value="ZIDNI">ZIDNI</option>
                         <option value="ZULFA">ZULFA</option>
                     </select>
+                </div>
+                <div>
+                    <label for="no_hp">No. HP Orang Tua</label>
+                    <input type="text" id="no_hp" placeholder="Contoh: 0812345678" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:15px;">
                 </div>
                 <div>
                     <label for="status">Status</label>
