@@ -29,7 +29,8 @@
         <h2>Sistem Absensi NSC</h2>
         <p>Silakan masuk menggunakan akun Gmail Anda</p>
         
-        <form id="loginForm" onsubmit="event.preventDefault(); eksekusiLoginBypass(); return false;">
+        <!-- Form login dengan handle submit yang benar -->
+        <form id="loginForm" onsubmit="event.preventDefault(); handleLogin(); return false;">
             <div class="login-form-group">
                 <label for="loginEmail">Alamat Gmail</label>
                 <input type="email" id="loginEmail" required placeholder="namaanda@gmail.com" autocomplete="username">
@@ -45,7 +46,7 @@
                 </div>
             </div>
             
-            <button type="button" class="login-btn" onclick="eksekusiLoginBypass()">
+            <button type="button" class="login-btn" onclick="handleLogin()">
                 <i class="fa fa-right-to-bracket"></i> Masuk Aplikasi
             </button>
         </form>
