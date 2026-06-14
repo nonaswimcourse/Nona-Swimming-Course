@@ -39,27 +39,27 @@ function dapatkanTanggalSekarangPendek() {
 function updateJamRealtime() {
     const sekarang = new Date();
     
-    // Format Jam (HH.MM.SS)
+    // 1. Format Jam (HH.MM.SS)
     const jam = String(sekarang.getHours()).padStart(2, '0');
     const menit = String(sekarang.getMinutes()).padStart(2, '0');
     const detik = String(sekarang.getSeconds()).padStart(2, '0');
     const jamTeks = `${jam}.${menit}.${detik}`;
     
-    // Format Hari & Tanggal Lengkap
+    // 2. Format Hari & Tanggal Lengkap Indonesia
     const hariTeks = formatTanggalIndonesia(sekarang);
     
-    // Masukkan ke elemen HTML masing-masing
+    // Masukkan ke elemen ID jamRealtime
     const jamEl = document.getElementById("jamRealtime");
     if (jamEl) {
         jamEl.innerText = jamTeks;
     }
     
+    // Masukkan ke elemen ID tanggalRealtime
     const tanggalEl = document.getElementById("tanggalRealtime");
     if (tanggalEl) {
         tanggalEl.innerText = hariTeks;
     }
 }
-
 document.addEventListener("DOMContentLoaded", function() {
     selectNamaControl = new TomSelect("#nama", {
         create: false,
