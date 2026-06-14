@@ -438,45 +438,101 @@ function exportSiswaExcel(index) {
 function exportSiswaPDF(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    
+    // 1. Buat objek gambar HTML untuk memuat file gambar eksternal/lokal
+    const img = new Image();
+    img.src = 'Logo percobaan.png'; // Menggunakan file gambar langsung sesuai permintaan Anda
 
-    try {
-        // Tampilkan logo di sebelah kiri (karena sejajar judul)
-        doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 10, 18, 24);
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(16);
-        doc.setTextColor(35, 74, 132);
-        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 43, 19); // Digeser ke kanan agar ada ruang untuk logo
+    // 2. Tunggu hingga gambar selesai dimuat sempurna oleh browser
+    img.onload = function() {
+        const doc = new jsPDF();
 
-        doc.setFontSize(11);
-        doc.setFont("Helvetica", "normal");
-        // Gunakan setTextColor dengan array RGB yang sama untuk konsistensi
-        doc.setTextColor(35, 74, 132);
-        doc.text("Nona Swimming Course (NSC)", 43, 26);
-        doc.line(14, 34, 196, 34);
+        try {
+            // Tampilkan logo di sebelah kiri atas sejajar judul (Lebar: 18, Tinggi: 18)
+            doc.addImage(img, "PNG", 14, 10, 18, 18);
+            
+            // Judul Utama (LAPORAN ABSENSI INDIVIDU SISWA)
+            doc.setFont("Helvetica", "bold");
+            doc.setFontSize(14);
+            doc.setTextColor(35, 74, 132); // Warna Biru NSC
+            doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 17); 
 
-        const rows = [
+            // Sub-Judul (Nona Swimming Course (NSC))
+            doc.setFontSize(10);
+            doc.setFont("Helvetica", "normal");
+            doc.setTextColor(148, 163, 184); // Warna Abu-abu tipis sesuai foto
+            doc.text("Nona Swimming Course (NSC)", 38, 23);
+            
+            // Garis Pembatas Horisontal
+            doc.setDrawColor(241, 245, 249); // Garis abu sangat halus
+            doc.line(14, 32, 196, 32);
+
+            // Data Susunan Baris Tabel
+            const rows = [
+                ["Nama Siswa", item.nama],
+                ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
+                ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
+                ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+                ["Tanggal Terakhir Diinput", item.tanggalRealtime],
+                ["Catatan Khusus", item.catatan || "-"]
+            ];
+
+            // Membuat Tabel dengan Style Bersih & Elegan Sesuai Foto tampilan Anda
+            doc.autoTable({ 
+                startY: 38, 
+                head: [["Komponen Data", "Detail Keterangan"]], 
+                body: rows, 
+                theme: "striped",
+                headStyles: { 
+                    fillColor: [35, 74, 132], // Background Header Biru Navy
+                    textColor: [255, 255, 255], // Teks Header Putih
+                    fontStyle: "bold",
+                    fontSize: 10
+                },
+                styles: {
+                    textColor: [71, 85, 105], // Teks isi tabel abu-abu gelap halus
+                    fontSize: 10,
+                    cellPadding: 4
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 250, 252] // Warna selang-seling abu transparan super soft
+                },
+                columnStyles: {
+                    0: { cellWidth: 60 }, 
+                    1: { cellWidth: "auto" }
+                }
+            });
+
+            // Unduh File PDF
+            doc.save(`Absensi_${item.nama}.pdf`);
+        } catch(e) {
+            console.error("Gagal memproses pembuatan PDF:", e);
+            alert("Terjadi kesalahan saat menyusun layout PDF.");
+        }
+    };
+
+    // 3. Penanganan darurat jika file 'Logo percobaan.png' tidak ditemukan di folder / gagal load
+    img.onerror = function() {
+        console.warn("File 'Logo percobaan.png' tidak ditemukan atau gagal dimuat. Mencetak tanpa logo...");
+        const docBiasa = new jsPDF();
+        
+        docBiasa.setFont("Helvetica", "bold");
+        docBiasa.setFontSize(14);
+        docBiasa.setTextColor(35, 74, 132);
+        docBiasa.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 17);
+        
+        const rowsFallback = [
             ["Nama Siswa", item.nama],
-            ["Jumlah Kehadiran", `${item.hadir} Pertemuan`],
-            ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-            ["Status", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-            ["Tanggal", item.tanggalRealtime],
-            ["Catatan", item.catatan || "-"]
+            ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
+            ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
+            ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+            ["Tanggal Terakhir Diinput", item.tanggalRealtime],
+            ["Catatan Khusus", item.catatan || "-"]
         ];
 
-        doc.autoTable({ 
-            startY: 40, 
-            head: [["Komponen", "Keterangan"]], 
-            body: rows, 
-            theme: "striped",
-            // Gunakan warna NSC untuk header tabel
-            headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255] }
-        });
-        doc.save(`Absensi_${item.nama}.pdf`);
-    } catch(e) {
-        // Fallback jika terjadi error
-        doc.save(`Absensi_${item.nama}.pdf`);
-    }
+        docBiasa.autoTable({ startY: 25, head: [["Komponen Data", "Detail Keterangan"]], body: rowsFallback });
+        docBiasa.save(`Absensi_${item.nama}.pdf`);
+    };
 }
 function exportTotalExcel() {
     if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
