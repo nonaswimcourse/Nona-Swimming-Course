@@ -14,7 +14,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <link rel="stylesheet" href="style.css">
@@ -27,12 +26,12 @@
             <img src="Logo percobaan.png" alt="Logo NSC" class="login-logo">
         </div>
         <h2>Sistem Absensi NSC</h2>
-        <p>Silakan masuk menggunakan akun Gmail Anda</p>
+        <p>Silakan masuk menggunakan akun resmi NSC Anda</p>
         
-        <form id="loginForm" onsubmit="handleLogin(event)">
+        <form id="loginForm">
             <div class="login-form-group">
-                <label for="loginEmail">Alamat Gmail</label>
-                <input type="email" id="loginEmail" required placeholder="namaanda@gmail.com" autocomplete="username">
+                <label for="loginEmail">Alamat Email</label>
+                <input type="email" id="loginEmail" required placeholder="nonaswimmingcourse@gmail.com" autocomplete="username">
             </div>
             
             <div class="login-form-group">
@@ -86,7 +85,7 @@
 
         <div id="input" class="card">
             <h2>Tambah Absensi</h2>
-            <div class="row" style="grid-template-columns: 2fr 1fr 1fr; gap: 20px;">
+            <div class="row">
                 <div>
                     <label for="nama">Nama Siswa</label>
                     <select id="nama" placeholder="Ketik atau pilih nama siswa...">
@@ -126,10 +125,10 @@
                 </div>
                 <div>
                     <label for="no_hp">No. HP Orang Tua</label>
-                    <input type="text" id="no_hp" placeholder="Contoh: 0812345678" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:15px;">
+                    <input type="text" id="no_hp" placeholder="Contoh: 0812345678">
                 </div>
                 <div>
-                    <label for="status">Status</label>
+                    <label for="status">Status Kehadiran</label>
                     <select id="status">
                         <option value="Hadir">Hadir</option>
                         <option value="Tidak Hadir">Tidak Hadir</option>
@@ -137,31 +136,29 @@
                 </div>
             </div>
             <br>
-            <label for="catatan">Catatan</label>
-            <textarea rows="3" id="catatan" placeholder="Tambahkan catatan khusus di sini..."></textarea>
+            <label for="catatan">Catatan Khusus</label>
+            <textarea rows="3" id="catatan" placeholder="Tambahkan catatan detail progres atau keterangan absensi siswa di sini..."></textarea>
             <button class="btn btn-primary" id="btnSimpan" onclick="simpan()">
-                <i class="fa fa-plus-circle"></i> Simpan Data
+                <i class="fa fa-plus-circle"></i> Simpan Data Absensi
             </button>
         </div>
 
         <div id="rekap" class="card hidden">
             <div class="rekap-header-wrapper">
-                <div class="rekap-title-area" style="display: flex; align-items: center; gap: 15px;">
-                    <div>
-                        <h2 style="margin: 0;">Rekap Kehadiran</h2>
-                        <p id="totalPertemuanText" style="margin: 5px 0 0 0;">Total 12 Pertemuan Les Renang</p>
-                    </div>
+                <div class="rekap-title-area">
+                    <h2 style="margin: 0;">Rekap Kehadiran Siswa</h2>
+                    <p id="totalPertemuanText">Total 12 Pertemuan Les Renang</p>
                 </div>
                 <div class="rekap-controls-area">
                     <div class="export">
                         <button class="btn reset" id="btnResetAll" onclick="resetSemuaData()">
-                            <i class="fa fa-trash-can"></i> Reset
+                            <i class="fa fa-trash-can"></i> Reset Database
                         </button>
                         <button class="btn excel-btn" onclick="exportTotalExcel()">
-                            <i class="fa fa-file-excel"></i> Excel Total
+                            <i class="fa fa-file-excel"></i> Ekspor Excel Total
                         </button>
                         <button class="btn pdf-btn" onclick="exportTotalPDF()">
-                            <i class="fa fa-file-pdf"></i> PDF Total
+                            <i class="fa fa-file-pdf"></i> Cetak PDF Total
                         </button>
                     </div>
                 </div>
@@ -171,12 +168,12 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Nama</th>
+                            <th>Nama Siswa</th>
                             <th>Hadir</th>
                             <th>Tidak Hadir</th>
-                            <th>Total</th>
+                            <th>Rasio Target</th>
                             <th>Tanggal Terbaru</th>
-                            <th>Aksi</th>
+                            <th style="text-align: center;">Aksi & Kontrol Laporan</th>
                         </tr>
                     </thead>
                     <tbody id="tbody"></tbody>
