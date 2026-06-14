@@ -449,7 +449,7 @@ function exportSiswaPDF(index) {
 
         try {
             // Tampilkan logo di sebelah kiri atas sejajar judul (Lebar: 18, Tinggi: 18)
-            doc.addImage(img, "PNG", 14, 10, 18, 20);
+            doc.addImage(img, "PNG", 14, 10, 18, 25);
             
             // Judul Utama (LAPORAN ABSENSI INDIVIDU SISWA)
             doc.setFont("Helvetica", "bold");
@@ -575,7 +575,7 @@ async function exportTotalPDF() {
         logo.onload = function () {
 
             // Header
-            doc.addImage(logo, "PNG", 14, 8, 18, 20);
+            doc.addImage(logo, "PNG", 14, 8, 18, 25);
 
             doc.setFontSize(18);
             doc.setFont(undefined, "bold");
