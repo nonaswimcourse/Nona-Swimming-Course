@@ -476,19 +476,31 @@ function exportTotalExcel() {
     prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.xlsx");
 }
 
+// Data Base64 Logo Nona Swimming Course (Dimensi Kotak/Presisi untuk Header PDF)
+const LOGO_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABw4GUFAAAAAXNSR0IArs4c6QAAAAGfU0VSHkNDY0NDAFRleHQAAHjaY2BgYmSgYmBhYGB4c87bkWGguICRkYmR6f8vBgaGfwwMDO9//Gf6//YfA8P8X0DzGZgYGZgYwIIMDIwMLMxgChmYwIJMDIwMDAn5RclFJUWleSVAWpGBgS0zLz0fSMMwMDCwK7gWpZfmpSgE+wVb6hsYGhkY6BsaGgIAnbMbK3V/NmsAAAAQTFRFEXO5EXO5EXO5EXO5EXO5EXO5fO4vYAAAAGF0Uk5TAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKTERFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYQAAAXVJREFUaN7tmMlywjAMRAnGgG0wZAn//8/WeIuTDmCSpkrNveShm9S8ViI6nU6n0+l0Xp6B62MAnisS4oA9y/o+4vTShN6HNDF3gO8N4HNB6F00Oas9OAF87m6C6wLw6YreZZOTb/g6fC8w0wHfK/p6F/sCHwFmK9Dby6aYOfgeMB0w67V+D3xvmBaA6wY8nO67G9MEnOkwTcCZLtMEvAbgNQDvAfgv6O0XFv9B6f3U8T+ofZha+w9qn2bW6XQ6nU6n0+l8P0vjLdf8mks6zX7E7NfN8X3jGz13I+TfP8M912O4p76FvE+X4Z7re7gXvE/30R7m3tA89Ew6r4738N26/0fCHeFpBw7yXGfW7bX8p3vWeR/ivfFbyHsH4m0b4m0Z8p8D8baAeVsnvG3H6R/jDHgZ8DoE6mUhgZcoWvBao/Y99uC1mPz6N9p0Op3Oy/MDAn0asXW9P9IAAAAASUVORK5CYII=";
+
 function exportSiswaPDF(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
+    // 1. Tambahkan Logo di sebelah kiri atas (X: 14, Y: 12, Lebar: 15, Tinggi: 15)
+    try {
+        doc.addImage(LOGO_BASE64, 'PNG', 14, 12, 15, 24);
+    } catch (e) {
+        console.error("Gagal memuat gambar logo ke PDF:", e);
+    }
+
+    // 2. Teks Header Digeser ke kanan setelah Logo (X dimulai dari 34)
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(14);
     doc.setTextColor(35, 74, 132);
-    doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
+    doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 34, 18);
     
     doc.setFontSize(10);
     doc.setFont("Helvetica", "normal");
-    doc.text("Nona Swimming Course (NSC)", 14, 26);
+    doc.setTextColor(71, 85, 105);
+    doc.text("Nona Swimming Course (NSC)", 34, 24);
 
     const rows = [
         ["Nama Siswa", item.nama],
@@ -499,8 +511,9 @@ function exportSiswaPDF(index) {
         ["Catatan Khusus", item.catatan || "-"]
     ];
 
+    // Jarak tabel dimulai agak ke bawah (startY: 35) agar tidak menempel ke area header logo
     doc.autoTable({ 
-        startY: 32, 
+        startY: 35, 
         head: [["Komponen Data", "Detail Keterangan"]], 
         body: rows, 
         theme: "striped",
@@ -514,14 +527,23 @@ function exportTotalPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
+    // 1. Tambahkan Logo di sebelah kiri atas (X: 14, Y: 12, Lebar: 15, Tinggi: 15)
+    try {
+        doc.addImage(LOGO_BASE64, 'PNG', 14, 12, 15, 15);
+    } catch (e) {
+        console.error("Gagal memuat gambar logo ke PDF:", e);
+    }
+
+    // 2. Teks Header Digeser ke kanan setelah Logo (X dimulai dari 34)
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(14); 
     doc.setTextColor(35, 74, 132);
-    doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
+    doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 34, 18);
     
     doc.setFontSize(10);
     doc.setFont("Helvetica", "normal");
-    doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 14, 26);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 34, 24);
     
     const tableRows = [];
     dataRekap.forEach(item => {
@@ -532,8 +554,9 @@ function exportTotalPDF() {
         ]);
     });
     
+    // Jarak tabel dimulai dari startY: 35
     doc.autoTable({
-        startY: 32,
+        startY: 35,
         head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
         body: tableRows,
         theme: "striped",
