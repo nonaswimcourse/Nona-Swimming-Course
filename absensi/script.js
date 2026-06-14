@@ -8,14 +8,9 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let dataRekap = [];
 let selectNamaControl;
 
-// Nama hari dan bulan lokal Indonesia
 const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-// Base64 Data URI Resmi Logo Nona Swimming Course (NSC) yang Valid & Utuh
-const LOGO_NSC_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAcHJlZmVycmVkUkdCAAB4nH2RPUscURSGn30mIisbXUasbBAsZIsgZreIsbKyf6wMZp07w0wyyYwzM66gYGFpYWFpYalYWIjYpLAQLCwEizT+gIWFpYVlYmEhIisbXebOnYVAsN093Pc95z3vOfe8A6w6llXNqwEon9Yy0pGInZscG7X+BAXowAAnwK6VldMRKeofgAnvbtvqt9Z9R9V1b/tr9bdaXU0rIBAEDgB7WlsFwZfAcaxVqgBwGPgu1bIAnAG+f/M6gO8D3zvZCvA9YF8t+wT4GLAnlV6gV2b/Nzk6mhgYgLId+EZKpxw4Arxn66pWbID3gTfX2wPArwHwbePzIeAY8LmlYxbwLeAnS8cC4D0rvbA06gDft9W3M7P0N2a7ZvtE0pC067b7tr/Ympp2ZunbHwYmxsbHBqN2XNLR8Y8fH4zaO/ZlXWp3bfeM6K8Z+0pSOpaR+f+7Y/8bHwBwB8BtABgAsBMANgBwGMD6Lz0SAtbI4BcA6wDsAbDxt45VwAYZ/A7Am9+6b5HhV8gGv0P277v3WzN8Ctk9ALf/wL1fUuBzyA4BuAMA7v2Q6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLw9vms868X963I7mQicmR0Is/6KhpbLWeOZaWylrXS0epv6b+w1U6fAAAAAElFTkSuQmCC";
-
-// Fungsi pembantu untuk memformat tanggal realtime ke teks Indonesia
 function formatTanggalIndonesia(timestamp) {
     if (!timestamp) return "Belum Ada Tanggal";
     const dateObj = new Date(timestamp);
@@ -29,10 +24,8 @@ function formatTanggalIndonesia(timestamp) {
     return `${hari}, ${tanggal} ${bulan} ${tahun}`;
 }
 
-// Fungsi untuk Jam dan Tanggal Realtime di Pojok Atas Aplikasi Utama
 function updateJamRealtime() {
     const sekarang = new Date();
-    
     const jam = String(sekarang.getHours()).padStart(2, '0');
     const menit = String(sekarang.getMinutes()).padStart(2, '0');
     const detik = String(sekarang.getSeconds()).padStart(2, '0');
@@ -45,7 +38,6 @@ function updateJamRealtime() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    // Inisialisasi Pilihan TomSelect ( create: true agar bisa input manual nama baru )
     selectNamaControl = new TomSelect("#nama", {
         create: true, 
         sortField: { field: "text", direction: "asc" },
@@ -55,26 +47,9 @@ document.addEventListener("DOMContentLoaded", function() {
             if(value) {
                 if(selectNamaControl) { selectNamaControl.blur(); }
                 document.activeElement.blur(); 
-                
-                // Fitur Auto-Fill Nomor HP jika nama siswa sudah terdaftar sebelumnya
-                const namaTerpilih = value.trim().toUpperCase();
-                const siswaExist = dataRekap.find(s => s && s.nama === namaTerpilih);
-                const inputNoHp = document.getElementById("no_hp");
-                if (inputNoHp) {
-                    if (siswaExist && siswaExist.no_hp) {
-                        inputNoHp.value = siswaExist.no_hp;
-                    } else {
-                        inputNoHp.value = "";
-                    }
-                }
             }
         }
     });
-
-    const loginForm = document.getElementById("loginForm");
-    if (loginForm) {
-        loginForm.addEventListener("submit", handleLogin);
-    }
 
     checkLoginSession();
     muatDataDariCloud();
@@ -83,12 +58,11 @@ document.addEventListener("DOMContentLoaded", function() {
     setInterval(updateJamRealtime, 1000);
 });
 
-// MEMUAT DATA DARI SUPABASE
 async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
     try {
         if (tbody) {
-            tbody.innerHTML = "<tr><td colspan='7' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
         }
 
         const { data, error } = await supabaseClient
@@ -104,7 +78,7 @@ async function muatDataDariCloud() {
                 return {
                     nama: item.absensi ? item.absensi.toString().toUpperCase().trim() : "TANPA NAMA",
                     hadir: parseInt(item.Hadir) || 0,
-                    tidakHadir: parseInt(item["Tidak Hadir"] || item.id_tidak_hadir || item.status) || 0,
+                    tidakHadir: parseInt(item["Tidak Hadir"]) || 0,
                     catatan: item.Catatan || "",
                     no_hp: item.no_hp || "",
                     tanggalRealtime: formatTanggalIndonesia(rawDateSource),
@@ -115,7 +89,7 @@ async function muatDataDariCloud() {
             dataRekap = [];
         }
         
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
         renderTable();
     } catch (e) { 
         console.error("Gagal memuat dari Cloud Supabase:", e);
@@ -142,13 +116,10 @@ async function generateSHA256(string) {
     return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// FUNGSI LOGIN UTAMA (Telah Diperbaiki Total Jalur Pemanggilannya)
 async function handleLogin(event) {
     if (event) event.preventDefault(); 
-    
     const emailEl = document.getElementById("loginEmail");
     const passwordEl = document.getElementById("loginPassword");
-    
     if (!emailEl || !passwordEl) return;
 
     const email = emailEl.value.trim().toLowerCase();
@@ -159,40 +130,30 @@ async function handleLogin(event) {
         return; 
     }
     
-    try { localStorage.setItem("isLoggedIn", "true"); } catch(e){}
-    
-    const loginSection = document.getElementById("loginSection");
-    const mainAppSection = document.getElementById("mainAppSection");
-    
-    if (loginSection) loginSection.classList.add("hidden");
-    if (mainAppSection) mainAppSection.classList.remove("hidden");
-    
+    localStorage.setItem("isLoggedIn", "true");
+    document.getElementById("loginSection").classList.add("hidden");
+    document.getElementById("mainAppSection").classList.remove("hidden");
     muatDataDariCloud();
 }
 
 function handleLogout() {
     if(confirm("Apakah Anda yakin ingin keluar?")) {
-        try { 
-            localStorage.removeItem("isLoggedIn"); 
-        } catch(e){}
+        localStorage.removeItem("isLoggedIn"); 
         window.location.reload();
     }
 }
 
 function checkLoginSession() {
     if(localStorage.getItem("isLoggedIn") === "true") {
-        const loginSec = document.getElementById("loginSection");
-        const mainSec = document.getElementById("mainAppSection");
-        if(loginSec) loginSec.classList.add("hidden");
-        if(mainSec) mainSec.classList.remove("hidden");
+        if(document.getElementById("loginSection")) document.getElementById("loginSection").classList.add("hidden");
+        if(document.getElementById("mainAppSection")) document.getElementById("mainAppSection").classList.remove("hidden");
     }
 }
 
-// PERBAIKAN: Menambahkan kolom No HP dan membetulkan sintaksis template literal
 function renderTable() {
     let html = "";
     if(!dataRekap || dataRekap.length === 0) {
-        html = "<tr><td colspan='7' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
+        html = "<tr><td colspan='6' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
     } else {
         dataRekap.forEach((item, index) => {
             let totalTeks = item.hadir === TOTAL_PERTEMUAN 
@@ -204,13 +165,30 @@ function renderTable() {
                 nomorWA = '62' + nomorWA.slice(1);
             }
 
-            let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nTotal Hadir: *${item.hadir}* Pertemuan\nTidak Hadir: *${item.tidakHadir}* Pertemuan\nStatus Target: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan: _${item.catatan || '-'}_\n\nTerima kasih.`;
+            // Pesan WA Standar
+            let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
+
+Total Hadir: *${item.hadir}* Pertemuan
+Tidak Hadir: *${item.tidakHadir}* Pertemuan
+Status Target: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*
+Catatan: _${item.catatan || '-'}_
+
+Terima kasih.`;
             let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`;
+
+            // Pesan Notifikasi Terbit Dokumen PDF Resmi
+            let pesanWAPDF = `Halo Bapak/Ibu, pemberitahuan resmi mengenai Laporan Dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.
+
+Dokumen resmi telah dicetak dan diterbitkan secara digital dengan status kehadiran akhir: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}* pertemuan.
+
+Catatan Evaluasi: _${item.catatan || '-'}_
+
+Silakan download langsung salinan dokumen Anda melalui Admin atau simpan pesan konfirmasi ini. Terima kasih.`;
+            let linkWAPDF = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWAPDF)}`;
 
             html += `
             <tr>
                 <td style="font-weight: 500;">${item.nama}</td>
-                <td><span style="color: #475569; font-size: 14px;">${item.no_hp || "-"}</span></td>
                 <td>
                     <div class="counter-box">
                         <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', -1)">-</button>
@@ -229,13 +207,24 @@ function renderTable() {
                 <td style="color: #475569; font-size: 14px;">${item.tanggalRealtime}</td>
                 <td>
                     <div class="actions-cell">
-                        <a href="${linkWA}" target="_blank" class="btn-action btn-wa" title="Kirim Laporan ke WhatsApp Orang Tua">
+                        <a href="${linkWA}" target="_blank" class="btn-action btn-wa" title="Kirim Laporan Teks via WhatsApp">
                             <i class="fab fa-whatsapp"></i>
                         </a>
-                        <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
-                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>
-                        <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
-                        <button class="btn-action btn-kick" title="Keluarkan Siswa" onclick="keluarkanSiswa('${item.nama}')"><i class="fa fa-user-minus"></i></button>
+                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})">
+                            <i class="fa fa-file-pdf"></i>
+                        </button>
+                        <a href="${linkWAPDF}" target="_blank" class="btn-action btn-wa-pdf" title="Kirim Notifikasi Dokumen PDF ke WA Orang Tua">
+                            <i class="fa fa-share-nodes"></i> Kirim PDF ke WA
+                        </a>
+                        <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})">
+                            <i class="fa fa-file-excel"></i>
+                        </button>
+                        <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                        <button class="btn-action btn-kick" title="Keluarkan Siswa" onclick="keluarkanSiswa('${item.nama}')">
+                            <i class="fa fa-user-minus"></i>
+                        </button>
                     </div>
                 </td>
             </tr>`;
@@ -284,11 +273,12 @@ async function updateCounter(index, tipe, value) {
             .from("absensinsc")
             .upsert({
                 absensi: namaSiswa,
-                Hadir: baruHadir,
+                nama: namaSiswa,
+                Hadir: baruHadir.toString(),
                 "Tidak Hadir": baruTidakHadir.toString(),
                 Catatan: catatanKetik,
-                no_hp: targetSiswa.no_hp || "",
-                "Tanggal Terbaru": waktuSekarangISO
+                "Tanggal Terbaru": waktuSekarangISO,
+                no_hp: targetSiswa.no_hp
             }, {
                 onConflict: "absensi"
             });
@@ -302,7 +292,7 @@ async function updateCounter(index, tipe, value) {
         dataRekap[index].rawDate = waktuSekarangISO;
         
         renderTable();
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
     } catch (err) {
         alert("Gagal memperbarui data ke Supabase: " + err.message);
     }
@@ -324,7 +314,7 @@ async function deleteRow(index) {
         if (error) throw error;
 
         dataRekap.splice(index, 1);
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
         renderTable();
     } catch (err) {
         alert("Gagal menghapus data dari Supabase: " + err.message);
@@ -340,7 +330,7 @@ async function simpan() {
 
     const status = document.getElementById("status").value;
     const catatan = document.getElementById("catatan").value;
-    const noHpInput = document.getElementById("no_hp") ? document.getElementById("no_hp").value.trim() : "";
+    const nomorHpInput = document.getElementById("no_hp").value.trim();
     const btnSimpan = document.getElementById("btnSimpan");
 
     nama = nama.trim().toUpperCase();
@@ -353,9 +343,7 @@ async function simpan() {
     let siswaExist = dataRekap.find(s => s && s.nama === nama);
     let nHadir = status === "Hadir" ? 1 : 0;
     let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
-
-    // Gunakan input baru, jika kosong pertahankan nomor hp lama (jika ada)
-    let noHpFinal = noHpInput !== "" ? noHpInput : (siswaExist ? (siswaExist.no_hp || "") : "");
+    let noHpFinal = nomorHpInput !== "" ? nomorHpInput : (siswaExist ? siswaExist.no_hp : "");
 
     if (siswaExist) {
         nHadir = (siswaExist.hadir || 0) + (status === "Hadir" ? 1 : 0);
@@ -369,48 +357,43 @@ async function simpan() {
             .from("absensinsc")
             .upsert({
                 absensi: nama,
-                Hadir: nHadir,
+                nama: nama,
+                Hadir: nHadir.toString(),
                 "Tidak Hadir": nTidakHadir.toString(),
                 Catatan: catatanTeks,
-                no_hp: noHpFinal,
-                "Tanggal Terbaru": waktuSekarangISO
+                "Tanggal Terbaru": waktuSekarangISO,
+                no_hp: noHpFinal
             }, {
                 onConflict: "absensi"
             });
 
         if (errorRekap) throw errorRekap;
 
-        const { error: errorLog } = await supabaseClient
-            .from("log_harian")
-            .insert({ nama: nama, status: status, catatan: catatanTeks });
-
-        if (errorLog) throw errorLog;
-
         const realtimeSekarang = formatTanggalIndonesia(waktuSekarangISO);
 
         if (siswaExist) {
             siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTargetHadir;
+            siswaExist.tidakHadir = nTidakHadir;
             siswaExist.catatan = catatanTeks;
-            siswaExist.no_hp = noHpFinal;
             siswaExist.tanggalRealtime = realtimeSekarang;
             siswaExist.rawDate = waktuSekarangISO;
+            siswaExist.no_hp = noHpFinal;
         } else {
             dataRekap.push({
                 nama: nama, hadir: nHadir, tidakHadir: nTidakHadir,
-                catatan: catatanTeks, no_hp: noHpFinal, tanggalRealtime: realtimeSekarang, rawDate: waktuSekarangISO
+                catatan: catatanTeks, tanggalRealtime: realtimeSekarang, rawDate: waktuSekarangISO, no_hp: noHpFinal
             });
         }
 
         renderTable();
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e) {}
+        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
 
         if (selectNamaControl) { selectNamaControl.clear(true); } 
         else { document.getElementById("nama").value = ""; }
 
         document.getElementById("catatan").value = "";
-        if(document.getElementById("no_hp")) document.getElementById("no_hp").value = "";
-        alert("Data berhasil disimpan ke Rekap dan Log Harian!");
+        document.getElementById("no_hp").value = "";
+        alert("Data berhasil disimpan ke Rekap Cloud!");
     } catch (err) {
         console.error(err);
         alert("Gagal menyimpan ke Supabase: " + err.message);
@@ -454,7 +437,6 @@ function exportSiswaExcel(index) {
         [],
         ["Komponen", "Keterangan"],
         ["Nama Siswa", item.nama],
-        ["Nomor HP/WA", item.no_hp || "-"],
         ["Jumlah Kehadiran", `${item.hadir} Pertemuan`],
         ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
         ["Status Target", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
@@ -469,184 +451,101 @@ function exportSiswaExcel(index) {
     prosesUnduhFile(blob, `Absensi_${item.nama}.xlsx`);
 }
 
+function exportTotalExcel() {
+    if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+    const worksheetData = [
+        ["LAPORAN REKAP TOTAL KEHADIRAN SISWA"],
+        ["Nona Swimming Course (NSC)"],
+        [],
+        ["Nama Siswa", "Hadir", "Tidak Hadir", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]
+    ];
+    
+    dataRekap.forEach(item => {
+        worksheetData.push([
+            item.nama, item.hadir, item.tidakHadir,
+            item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
+            item.tanggalRealtime, item.catatan || "-"
+        ]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    XLSX.utils.book_append_sheet(wb, ws, "Total Absensi");
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.xlsx");
+}
+
 function exportSiswaPDF(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(35, 74, 132);
+    doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
     
-    const img = new Image();
-    img.src = 'Logo percobaan.png'; 
+    doc.setFontSize(10);
+    doc.setFont("Helvetica", "normal");
+    doc.text("Nona Swimming Course (NSC)", 14, 26);
 
-    img.onload = function() {
-        const doc = new jsPDF();
+    const rows = [
+        ["Nama Siswa", item.nama],
+        ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
+        ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
+        ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+        ["Tanggal Terakhir Diinput", item.tanggalRealtime],
+        ["Catatan Khusus", item.catatan || "-"]
+    ];
 
-        try {
-            doc.addImage(img, "PNG", 14, 10, 18, 25);
-            
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(14);
-            doc.setTextColor(35, 74, 132); 
-            doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 23); 
-
-            doc.setFontSize(10);
-            doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184); 
-            doc.text("Nona Swimming Course (NSC)", 38, 30);
-            
-            doc.setDrawColor(241, 245, 249); 
-            doc.line(14, 40, 196, 40);
-
-            const rows = [
-                ["Nama Siswa", item.nama],
-                ["Nomor HP/WA", item.no_hp || "-"],
-                ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-                ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-                ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-                ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-                ["Catatan Khusus", item.catatan || "-"]
-            ];
-
-            doc.autoTable({ 
-                startY: 46, 
-                head: [["Komponen Data", "Detail Keterangan"]], 
-                body: rows, 
-                theme: "striped",
-                headStyles: { 
-                    fillColor: [35, 74, 132], 
-                    textColor: [255, 255, 255], 
-                    fontStyle: "bold",
-                    fontSize: 10
-                },
-                styles: {
-                    textColor: [71, 85, 105], 
-                    fontSize: 10,
-                    cellPadding: 4
-                },
-                alternateRowStyles: {
-                    fillColor: [248, 250, 252] 
-                },
-                columnStyles: {
-                    0: { cellWidth: 60 }, 
-                    1: { cellWidth: "auto" }
-                }
-            });
-
-            doc.save(`Absensi_${item.nama}.pdf`);
-        } catch(e) {
-            console.error("Gagal memproses pembuatan PDF:", e);
-            alert("Terjadi kesalahan saat menyusun layout PDF.");
-        }
-    };
-
-    img.onerror = function() {
-        console.warn("File 'Logo percobaan.png' tidak ditemukan. Mencetak tanpa logo...");
-        const docBiasa = new jsPDF();
-        
-        docBiasa.setFont("Helvetica", "bold");
-        docBiasa.setFontSize(14);
-        docBiasa.setTextColor(35, 74, 132);
-        docBiasa.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
-        
-        const rowsFallback = [
-            ["Nama Siswa", item.nama],
-            ["Nomor HP/WA", item.no_hp || "-"],
-            ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-            ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-            ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-            ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-            ["Catatan Khusus", item.catatan || "-"]
-        ];
-
-        docBiasa.autoTable({ startY: 28, head: [["Komponen Data", "Detail Keterangan"]], body: rowsFallback });
-        docBiasa.save(`Absensi_${item.nama}.pdf`);
-    };
+    doc.autoTable({ 
+        startY: 32, 
+        head: [["Komponen Data", "Detail Keterangan"]], 
+        body: rows, 
+        theme: "striped",
+        headStyles: { fillColor: [35, 74, 132] }
+    });
+    doc.save(`Absensi_${item.nama}.pdf`);
 }
 
 function exportTotalPDF() {
     if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
     const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
     
-    const img = new Image();
-    img.src = 'Logo percobaan.png'; 
-
-    img.onload = function() {
-        const doc = new jsPDF();
-        
-        try {
-            doc.addImage(img, "PNG", 14, 10, 18, 25);
-            
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(14); 
-            doc.setTextColor(35, 74, 132); 
-            doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 23);
-            
-            doc.setFontSize(10);
-            doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184); 
-            doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 30);
-            
-            doc.setDrawColor(241, 245, 249); 
-            doc.line(14, 40, 196, 40);
-            
-            const tableRows = [];
-            dataRekap.forEach(item => {
-                tableRows.push([
-                    item.nama, item.hadir, item.tidakHadir,
-                    item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                    item.tanggalRealtime, item.catatan || '-'
-                ]);
-            });
-            
-            doc.autoTable({
-                startY: 46,
-                head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-                body: tableRows,
-                theme: "striped",
-                headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
-                styles: { fontSize: 9, padding: 5, valign: "middle" },
-                columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
-            });
-            
-            const blob = doc.output("blob");
-            prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
-        } catch(e) {
-            console.error("Gagal memproses pembuatan PDF Total:", e);
-            alert("Terjadi kesalahan saat menyusun layout PDF Total.");
-        }
-    };
-
-    img.onerror = function() {
-        console.warn("File 'Logo percobaan.png' tidak ditemukan. Mencetak tanpa logo...");
-        const docBiasa = new jsPDF();
-        
-        docBiasa.setFont("Helvetica", "bold");
-        docBiasa.setFontSize(14);
-        docBiasa.setTextColor(35, 74, 132);
-        docBiasa.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
-        
-        const tableRowsFallback = [];
-        dataRekap.forEach(item => {
-            tableRowsFallback.push([
-                item.nama, item.hadir, item.tidakHadir,
-                item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                item.tanggalRealtime, item.catatan || '-'
-            ]);
-        });
-        
-        docBiasa.autoTable({
-            startY: 28,
-            head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-            body: tableRowsFallback,
-            theme: "striped"
-        });
-        
-        const blob = docBiasa.output("blob");
-        prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
-    };
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(14); 
+    doc.setTextColor(35, 74, 132);
+    doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setFont("Helvetica", "normal");
+    doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 14, 26);
+    
+    const tableRows = [];
+    dataRekap.forEach(item => {
+        tableRows.push([
+            item.nama, item.hadir, item.tidakHadir,
+            item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
+            item.tanggalRealtime, item.catatan || '-'
+        ]);
+    });
+    
+    doc.autoTable({
+        startY: 32,
+        head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
+        body: tableRows,
+        theme: "striped",
+        headStyles: { fillColor: [35, 74, 132] }
+    });
+    
+    doc.save("Rekap_Total_Absensi_NSC.pdf");
 }
 
 async function resetSemuaData() {
-    if (!confirm("⚠️ PERINGATAN KERAS!\nApakah Anda yakin ingin MENGHAPUS TOTAL semua data absensi siswa dari database cloud Supabase?\n\nData yang dihapus tidak bisa dikembalikan!")) return;
-    if (!confirm("Konfirmasi terakhir: Benar-benar ingin mengosongkan semua rekap data?")) return;
+    if (!confirm("Apakah Anda yakin ingin menghapus total semua data dari database cloud Supabase?")) return;
+    if (!confirm("Konfirmasi terakhir: Data yang dihapus tidak bisa dikembalikan!")) return;
 
     const btnReset = document.getElementById("btnResetAll");
     if (btnReset) {
@@ -671,7 +570,7 @@ async function resetSemuaData() {
         }
 
         dataRekap = [];
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
         renderTable();
         alert("Database Absensi Berhasil Dikosongkan!");
     } catch (err) {
@@ -686,11 +585,6 @@ async function resetSemuaData() {
 
 function keluarkanSiswa(nama) {
     if(!confirm("Keluarkan siswa " + nama + " dari les renang?\n\nData absensi tetap tersimpan.")) return;
-
-    let siswaAktif = JSON.parse(localStorage.getItem("siswaAktif")) || [];
-    siswaAktif = siswaAktif.filter(s => s !== nama);
-    localStorage.setItem("siswaAktif", JSON.stringify(siswaAktif));
-
     dataRekap = dataRekap.filter(x => x.nama !== nama);
     localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
     renderTable();
