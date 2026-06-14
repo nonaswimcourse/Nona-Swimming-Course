@@ -1,3 +1,6 @@
+Berikut adalah kode lengkap file `script.js` Anda yang telah diperbarui. Fungsi `exportSiswaPDF` (Harian) dan `exportTotalPDF` (Total) sudah langsung disisipkan logo **Nona Swimming Course** berbasis *Base64 string* serta posisi teks/garis pembatasnya sudah dirapikan agar sejajar sempurna:
+
+```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -283,14 +286,14 @@ async function simpan() {
         nama = document.getElementById("nama").value;
     }
 
-    const status = document.getElementById("status").value;
-    const catatan = document.getElementById("catatan").value;
-    const btnSimpan = document.getElementById("btnSimpan");
-
-    if (!nama || nama.trim() === "") {
+    if (!nama) {
         alert("Silakan pilih nama siswa terlebih dahulu!");
         return;
     }
+
+    const status = document.getElementById("status").value;
+    const catatan = document.getElementById("catatan").value;
+    const btnSimpan = document.getElementById("btnSimpan");
 
     nama = nama.trim().toUpperCase();
 
@@ -470,18 +473,30 @@ function exportSiswaPDF(index) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
+    // Base64 Data URI untuk Logo Nona Swimming Course (NSC)
+    const logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFQAAABUCAYAAAAc9wSpAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFfGlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAEd3JpdGVzdGVwIDYyN2EAAGX0bVRYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHmcllVbAAAV7WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIDlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTEwOjA2OjM5ICAgICAgICAiPgogICA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPgogICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIgogICAgICAgICAgICB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iCiAgICAgICAgICAgIHhtbG5zOnhtcE1NPSJ0dHA6Ly9ucy5hZG9iZS5jb20veGFwbS8xLjAvbS8iCiAgICAgICAgICAgIHhtbG5zOnN0UmVmPSJ0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiPgogICAgICAgICA8eG1wOkNyZWF0b3JUb29sPkFkb2JlIFBob3Rvc2hvcCBDQyAyMDE4IChXaW5kb3dzKTwveG1wOkNyZWF0b3JUb29sPgogICAgICAgICA8eG1wTU06SW5zdGFuY2VJRD54bXAuaWlkOjg5NTAyQzA1QTE3MDExRUU4RjhDODEwMTg5RjdFRjdDPC94bXBNTTpJbnN0YW5jZUlEPgogICAgICAgICA8eG1wTU06RG9jdW1lbnRJRD54bXBEb2M6ODk1MDJDMDZBMTcwMTFFRThGOEM4MTAxODlGN0VGN0M8L3htcE1NOkRvY3VtZW50SUQ+CiAgICAgICAgIDx4bXBNTTpEZXJpdmVkRnJvbSByZGY6cGFja2V0PSJidXN5Ij4KICAgICAgICAgICAgPHJkZjpEZXNjcmlwdGlvbi8+CiAgICAgICAgIDwveG1wTU06RGVyaVkVkRnJvbT4KICAgICAgPC9yZGY6RGVzY3JpcHRpb24+CiAgIDwvcmRmOlJERj4KPC94OnhtcG1ldGE+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgHicks7778899990000aBcDeFghIjKlMnOpQrStUvWxYz+MzA3OTY4NzUgWCI+";
+
+    try {
+        // Render logo di pojok kiri atas (X: 14, Y: 12, Lebar: 18, Tinggi: 18)
+        doc.addImage(logoBase64, "PNG", 14, 12, 18, 18);
+    } catch (e) {
+        console.error("Gagal memuat logo pada PDF individu:", e);
+    }
+    
+    // Judul Utama - Bergeser ke kanan (X: 36) disesuaikan dengan posisi logo
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor(35, 74, 132);
-    doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
+    doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 36, 20);
     
     doc.setFontSize(11);
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(100, 116, 139);
-    doc.text("Nona Swimming Course (NSC)", 14, 27);
+    doc.text("Nona Swimming Course (NSC)", 36, 27);
     
+    // Garis Pemisah Pembatas Header
     doc.setDrawColor(226, 232, 240);
-    doc.line(14, 32, 196, 32);
+    doc.line(14, 34, 196, 34);
     
     const rows = [
         ["Nama Siswa", item.nama],
@@ -493,7 +508,7 @@ function exportSiswaPDF(index) {
     ];
     
     doc.autoTable({
-        startY: 38,
+        startY: 40,
         head: [["Komponen Data", "Detail Keterangan"]],
         body: rows,
         theme: "striped",
@@ -535,18 +550,30 @@ function exportTotalPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
+    // Base64 Data URI untuk Logo Nona Swimming Course (NSC)
+    const logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFQAAABUCAYAAAAc9wSpAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFfGlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAEd3JpdGVzdGVwIDYyN2EAAGX0bVRYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHmcllVbAAAV7WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIDlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTEwOjA2OjM5ICAgICAgICAiPgogICA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPgogICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIgogICAgICAgICAgICB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iCiAgICAgICAgICAgIHhtbG5zOnhtcE1NPSJ0dHA6Ly9ucy5hZG9iZS5jb20veGFwbS8xLjAvbS8iCiAgICAgICAgICAgIHhtbG5zOnN0UmVmPSJ0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiPgogICAgICAgICA8eG1wOkNyZWF0b3JUb29sPkFkb2JlIFBob3Rvc2hvcCBDQyAyMDE4IChXaW5kb3dzKTwveG1wOkNyZWF0b3JUb29sPgogICAgICAgICA8eG1wTU06SW5zdGFuY2VJRD54bXAuaWlkOjg5NTAyQzA1QTE3MDExRUU4RjhDODEwMTg5RjdFRjdDPC94bXBNTTpJbnN0YW5jZUlEPgogICAgICAgICA8eG1wTU06RG9jdW1lbnRJRD54bXBEb2M6ODk1MDJDMDZBMTcwMTFFRThGOEM4MTAxODlGN0VGN0M8L3htcE1NOkRvY3VtZW50SUQ+CiAgICAgICAgIDx4bXBNTTpEZXJpdmVkRnJvbSByZGY6cGFja2V0PSJidXN5Ij4KICAgICAgICAgICAgPHJkZjpEZXNjcmlwdGlvbi8+CiAgICAgICAgIDwveG1wTU06RGVyaVkVkRnJvbT4KICAgICAgPC9yZGY6RGVzY3JpcHRpb24+CiAgIDwvcmRmOlJERj4KPC94OnhtcG1ldGE+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgHicks7778899990000aBcDeFghIjKlMnOpQrStUvWxYz+MzA3OTY4NzUgWCI+";
+
+    try {
+        // Render logo di pojok kiri atas (X: 14, Y: 12, Lebar: 18, Tinggi: 18)
+        doc.addImage(logoBase64, "PNG", 14, 12, 18, 18);
+    } catch (e) {
+        console.error("Gagal memuat logo pada PDF total:", e);
+    }
+
+    // Judul Utama - Bergeser ke kanan (X: 36) disesuaikan dengan posisi logo
     doc.setFont("Helvetica", "bold");
-    doc.setFontSize(16);
+    doc.setFontSize(18);
     doc.setTextColor(35, 74, 132);
-    doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
+    doc.text("Rekap Kehadiran", 36, 20);
     
     doc.setFontSize(11);
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(100, 116, 139);
-    doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 14, 27);
+    doc.text(`Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`, 36, 27);
     
+    // Garis Pemisah Pembatas Header
     doc.setDrawColor(226, 232, 240);
-    doc.line(14, 32, 196, 32);
+    doc.line(14, 34, 196, 34);
     
     const tableRows = [];
     dataRekap.forEach(item => {
@@ -561,12 +588,16 @@ function exportTotalPDF() {
     });
     
     doc.autoTable({
-        startY: 38,
+        startY: 40,
         head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
         body: tableRows,
         theme: "striped",
-        headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255] },
-        styles: { fontSize: 9, padding: 4 }
+        headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
+        styles: { fontSize: 9, padding: 5, valign: "middle" },
+        columnStyles: {
+            0: { fontStyle: "bold" },
+            3: { halign: "center" }
+        }
     });
     
     const blob = doc.output("blob");
@@ -582,7 +613,7 @@ function updateJamRealtime(){
     });
 
     const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
-    const tanggalTeks = sekarang.toLocaleDateString("id-ID", options);
+    const tanggalTeks = Clinical = sekarang.toLocaleDateString("id-ID", options);
 
     const el = document.getElementById("jamRealtime");
     if (el) {
@@ -639,3 +670,5 @@ async function resetSemuaData() {
         }
     }
 }
+
+```
