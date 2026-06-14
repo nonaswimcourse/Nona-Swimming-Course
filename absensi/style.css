@@ -124,3 +124,34 @@ textarea { resize: none; }
 .jam-realtime .tanggal {
     font-size: 11px;
 }
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Membagi grup kiri dan grup kanan otomatis */
+    padding: 15px 20px;
+    background-color: #234a84;
+    color: white;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-right {
+    text-align: right; /* Tulisan jam dan tanggal rata kanan */
+}
+
+.jam-realtime {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.tanggal-realtime {
+    font-size: 13px;
+    margin: 2px 0 0 0;
+    opacity: 0.85;
+}
