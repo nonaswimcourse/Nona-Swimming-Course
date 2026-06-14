@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Les Renang NSC</title>
+    
+    <link rel="icon" type="image/png" href="Logo percobaan.png">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="loginSection" class="login-wrapper">
+    <div class="login-card">
+        <div class="login-logo-container">
+            <img src="Logo percobaan.png" alt="Logo NSC" class="login-logo">
+        </div>
+        <h2>Sistem Absensi NSC</h2>
+        <p>Silakan masuk menggunakan akun Gmail Anda</p>
+        
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="login-form-group">
+                <label for="loginEmail">Alamat Gmail</label>
+                <input type="email" id="loginEmail" required placeholder="namaanda@gmail.com" autocomplete="username">
+            </div>
+            
+            <div class="login-form-group">
+                <label for="loginPassword">Password</label>
+                <div class="password-container">
+                    <input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password">
+                    <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility()">
+                        <i id="eyeIcon" class="fa fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="login-btn">
+                <i class="fa fa-right-to-bracket"></i> Masuk Aplikasi
+            </button>
+        </form>
+        <div class="login-footer">
+            <p>Nona Swimming Course &copy; 2026</p>
+        </div>
+    </div>
+</div>
+
+<div id="mainAppSection" class="hidden">
+    <div class="header">
+        <img src="Logo percobaan.png" alt="Logo NSC" class="header-logo">
+        <div class="header-text">
+            <h1>Absensi Les Renang</h1>
+            <p>Nona Swimming Course</p>
+            
+            <div id="jamRealtime" class="jam-realtime"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="nav-bar">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('input', this)">
+                    <i class="fa fa-clipboard-check"></i> Input Absensi
+                </button>
+                <button class="tab-btn" onclick="showTab('rekap', this)">
+                    <i class="fa fa-chart-column"></i> Rekap Data
+                </button>
+            </div>
+            <button class="logout-main-btn" onclick="handleLogout()">
+                <i class="fa fa-arrow-right-from-bracket"></i> Keluar (Logout)
+            </button>
+        </div>
+
+        <div id="input" class="card">
+            <h2>Tambah Absensi</h2>
+            <div class="row">
+                <div>
+                    <label for="nama">Nama Siswa</label>
+                    <select id="nama" placeholder="Ketik atau pilih nama siswa...">
+                        <option value=""></option>
+                        <option value="AIRA">AIRA</option>
+                        <option value="ALDEBARAN">ALDEBARAN</option>
+                        <option value="ALFA">ALFA</option>
+                        <option value="ARGHYA">ARGHYA</option>
+                        <option value="ASHIMA">ASHIMA</option>
+                        <option value="BINTANG">BINTANG</option>
+                        <option value="BRANDEN">BRANDEN</option>
+                        <option value="CECIL">CECIL</option>
+                        <option value="DHIFA">DHIFA</option>
+                        <option value="EGA">EGA</option>
+                        <option value="FAISAL">FAISAL</option>
+                        <option value="HAFIZ">HAFIZ</option>
+                        <option value="ICHA">ICHA</option>
+                        <option value="IRUL">IRUL</option>
+                        <option value="KALA">KALA</option>
+                        <option value="KALINGGA">KALINGGA</option>
+                        <option value="KAMIL">KAMIL</option>
+                        <option value="KEANO">KEANO</option>
+                        <option value="KECIL">KECIL</option>
+                        <option value="KHSAN">KHSAN</option>
+                        <option value="KIRAN">KIRAN</option>
+                        <option value="NAJMA">NAJMA</option>
+                        <option value="NAURA">NAURA</option>
+                        <option value="NAZLA">NAZLA</option>
+                        <option value="RAFFA">RAFFA</option>
+                        <option value="RISKI">RISKI</option>
+                        <option value="RISYA">RISYA</option>
+                        <option value="UMMA">UMMA</option>
+                        <option value="YUMNA">YUMNA</option>
+                        <option value="ZIDNI">ZIDNI</option>
+                        <option value="ZULFA">ZULFA</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="status">Status</label>
+                    <select id="status">
+                        <option value="Hadir">Hadir</option>
+                        <option value="Tidak Hadir">Tidak Hadir</option>
+                    </select>
+                </div>
+            </div>
+            <br>
+            <label for="catatan">Catatan</label>
+            <textarea rows="3" id="catatan" placeholder="Tambahkan catatan khusus di sini..."></textarea>
+            <button class="btn btn-primary" id="btnSimpan" onclick="simpan()">
+                <i class="fa fa-plus-circle"></i> Simpan Data
+            </button>
+        </div>
+
+        <div id="rekap" class="card hidden">
+            <div class="rekap-header-wrapper">
+                <div class="rekap-title-area">
+                    <h2>Rekap Kehadiran</h2>
+                    <p id="totalPertemuanText">Total 12 Pertemuan Les Renang</p>
+                </div>
+                <div class="rekap-controls-area">
+                    <div class="export">
+                        <button class="btn reset" id="btnResetAll" onclick="resetSemuaData()">
+                            <i class="fa fa-trash-can"></i> Reset
+                        </button>
+                        <button class="btn excel-btn" onclick="exportTotalExcel()">
+                            <i class="fa fa-file-excel"></i> Excel Total
+                        </button>
+                        <button class="btn pdf-btn" onclick="exportTotalPDF()">
+                            <i class="fa fa-file-pdf"></i> PDF Total
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Nama</th>
+                            <th>Hadir</th>
+                            <th>Tidak Hadir</th>
+                            <th>Total</th>
+                            <th>Tanggal Terbaru</th>
+                            <th>Aksi File Harian</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
