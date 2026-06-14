@@ -302,7 +302,7 @@ async function simpan() {
             .upsert({
                 absensi: nama,
                 Hadir: nHadir,
-                "Tidak Hadir": nTidakHadir.toString(),
+                "Tidak Hadir": nTarget = nTidakHadir.toString(),
                 Catatan: catatanTeks
             }, {
                 onConflict: "absensi"
@@ -552,7 +552,7 @@ function exportTotalPDF() {
 
 function updateJamRealtime(){
     const sekarang = new Date();
-    const jam = Clinical = sekarang.toLocaleTimeString("id-ID",{
+    const jam = sekarang.toLocaleTimeString("id-ID",{
         hour:"2-digit",
         minute:"2-digit",
         second:"2-digit"
@@ -567,5 +567,52 @@ function updateJamRealtime(){
             <div class="jam">${jam}</div>
             <div class="tanggal">${tanggalTeks}</div>
         `;
+    }
+}
+
+// FUNGSI RESET TOTAL SEMUA DATA DARI SUPABASE
+async function resetSemuaData() {
+    if (!confirm("⚠️ PERINGATAN KERAS!\nApakah Anda yakin ingin MENGHAPUS TOTAL semua data absensi siswa dari database cloud Supabase?\n\nData yang dihapus tidak bisa dikembalikan!")) return;
+    if (!confirm("Konfirmasi terakhir: Benar-benar ingin mengosongkan semua rekap data?")) return;
+
+    const btnReset = document.getElementById("btnResetAll");
+    if (btnReset) {
+        btnReset.disabled = true;
+        btnReset.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mereset...';
+    }
+
+    try {
+        // Ambil semua data absensi terlebih dahulu untuk mendapatkan list nama siswa
+        const { data: listSiswa, error: fetchError } = await supabaseClient
+            .from('absensinsc')
+            .select('absensi');
+
+        if (fetchError) throw fetchError;
+
+        if (listSiswa && listSiswa.length > 0) {
+            const listNama = listSiswa.map(s => s.absensi);
+
+            // 1. Hapus semua record di tabel absensinsc
+            const { error: errorDeleteRekap } = await supabaseClient
+                .from('absensinsc')
+                .delete()
+                .in('absensi', listNama);
+
+            if (errorDeleteRekap) throw errorDeleteRekap;
+        }
+
+        // Kosongkan array lokal dan lokal storage
+        dataRekap = [];
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        
+        renderTable();
+        alert("Database Absensi Berhasil Dikosongkan!");
+    } catch (err) {
+        alert("Gagal mereset database ke Supabase: " + err.message);
+    } finally {
+        if (btnReset) {
+            btnReset.disabled = false;
+            btnReset.innerHTML = '<i class="fa fa-trash-can"></i> Reset';
+        }
     }
 }
