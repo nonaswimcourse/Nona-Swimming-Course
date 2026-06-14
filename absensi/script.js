@@ -25,16 +25,16 @@ function formatTanggalIndonesia(timestamp) {
 }
 
 function updateJamRealtime() {
-    const Clinical = new Date();
-    const jam = String(Clinical.getHours()).padStart(2, '0');
-    const menit = String(Clinical.getMinutes()).padStart(2, '0');
-    const detik = String(Clinical.getSeconds()).padStart(2, '0');
+    const sekarang = new Date();
+    const jam = String(sekarang.getHours()).padStart(2, '0');
+    const menit = String(sekarang.getMinutes()).padStart(2, '0');
+    const detik = String(sekarang.getSeconds()).padStart(2, '0');
     
     const jamEl = document.getElementById("jamRealtime");
     if (jamEl) jamEl.innerText = `${jam}.${menit}.${detik}`;
     
     const tanggalEl = document.getElementById("tanggalRealtime");
-    if (tanggalEl) tanggalEl.innerText = formatTanggalIndonesia(Clinical);
+    if (tanggalEl) tanggalEl.innerText = formatTanggalIndonesia(sekarang);
 }
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -110,12 +110,7 @@ function togglePasswordVisibility() {
     }
 }
 
-async function generateSHA256(string) {
-    const msgBuffer = new TextEncoder().encode(string);                    
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
+// KEMBALI KE VERSI AMAN & STABIL: Login menggunakan pencocokan teks biasa (Plain Text) tanpa enkripsi SHA yang merusak sesi
 async function handleLogin(event) {
     if (event) event.preventDefault(); 
     const emailEl = document.getElementById("loginEmail");
@@ -125,7 +120,8 @@ async function handleLogin(event) {
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
 
-    if (email !== "nonaswimmingcourse@gmail.com" || await generateSHA256(password) !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
+    // Silakan sesuaikan password teks biasa di bawah ini jika berbeda
+    if (email !== "nonaswimmingcourse@gmail.com" || password !== "adminnsc123") {
         alert("Akses ditolak! Akun atau Password salah.");
         return; 
     }
@@ -204,7 +200,6 @@ Terima kasih.`;
                             <i class="fa fa-file-pdf"></i>
                         </button>
                         
-                        <!-- MODIFIKASI: Tombol Pilihan Menu PDF Interaktif -->
                         <button class="btn-action btn-wa-pdf" title="Menu Opsi Dokumen PDF Siswa" onclick="bukaMenuOpsiPDF(${index})">
                             <i class="fa fa-share-nodes"></i> Opsi PDF
                         </button>
@@ -227,7 +222,7 @@ Terima kasih.`;
     document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
 }
 
-// BARU: Fungsi Menu Dialog Pilihan antara Download PDF atau Kirim ke WhatsApp
+// Fungsi Dialog Pilihan Menu PDF
 function bukaMenuOpsiPDF(index) {
     const item = dataRekap[index];
     const nomorHPValid = item.no_hp || "Belum Terinput";
@@ -235,13 +230,11 @@ function bukaMenuOpsiPDF(index) {
     const pesanPilihan = `Pilih aksi dokumen PDF untuk siswa: ${item.nama}\n(No HP Terdaftar: ${nomorHPValid})\n\nKetik ANGKA pilihannya:\n1 = Download PDF Saja ke Perangkat\n2 = Kirim Link PDF ke WhatsApp Orang Tua\n\nTekan 'Batal' untuk keluar.`;
     const pilihanUser = prompt(pesanPilihan, "1");
 
-    if (pilihanUser === null) return; // Jika admin klik batal
+    if (pilihanUser === null) return; 
 
     if (pilihanUser.trim() === "1") {
-        // Pilihan 1: Murni download saja
         exportSiswaPDF(index, true);
     } else if (pilihanUser.trim() === "2") {
-        // Pilihan 2: Upload cloud lalu bagikan ke nomor WA siswa bersangkutan
         shareSiswaPDF(index);
     } else {
         alert("Pilihan tidak valid! Masukkan angka 1 atau 2 saja.");
@@ -561,7 +554,6 @@ function exportTotalPDF() {
     doc.save("Rekap_Total_Absensi_NSC.pdf");
 }
 
-// Fungsi Unggah PDF ke Supabase Storage & Bagikan Link-nya ke WhatsApp Terdaftar milik Siswa
 async function shareSiswaPDF(index) {
     const item = dataRekap[index];
     const btnShare = document.querySelectorAll(".btn-wa-pdf")[index];
@@ -572,14 +564,10 @@ async function shareSiswaPDF(index) {
     btnShare.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mengunggah...';
 
     try {
-        // 1. Generate dokumen PDF (false agar tidak download di browser)
         const doc = exportSiswaPDF(index, false);
         const pdfBlob = doc.output('blob');
-        
-        // 2. Buat nama file unik berdasarkan timestamp waktu
         const namaFile = `${item.nama.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
         
-        // 3. Upload file dokumen ke Bucket Storage 'pdf-laporan'
         const { data, error } = await supabaseClient
             .storage
             .from('pdf-laporan')
@@ -590,7 +578,6 @@ async function shareSiswaPDF(index) {
             
         if (error) throw error;
         
-        // 4. Ambil URL Publik dari file
         const { data: urlData } = supabaseClient
             .storage
             .from('pdf-laporan')
@@ -598,7 +585,6 @@ async function shareSiswaPDF(index) {
             
         const linkDownloadPDF = urlData.publicUrl;
 
-        // 5. Konversi format nomor telepon tujuan ke kode internasional (62)
         let nomorWA = item.no_hp || ""; 
         if (!nomorWA) {
             alert("Siswa tidak memiliki nomor HP terdaftar. Proses WhatsApp dibatalkan.");
@@ -608,7 +594,6 @@ async function shareSiswaPDF(index) {
             nomorWA = '62' + nomorWA.toString().slice(1);
         }
 
-        // 6. Siapkan kalimat pengantar pesan otomatis WhatsApp
         let pesanWAPDF = `Halo Bapak/Ibu, berikut kami terbitkan dokumen resmi *PDF Hasil Evaluasi & Absensi* Ananda *${item.nama}* di *Nona Swimming Course*.
 
 Silakan klik tautan di bawah ini untuk melihat atau mengunduh langsung salinan dokumen PDF resmi:
@@ -619,7 +604,6 @@ Catatan Evaluasi: _${item.catatan || '-'}_
 
 Terima kasih.`;
 
-        // 7. Buka tautan kirim pesan WhatsApp API sesuai nomor HP terinput siswa
         let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWAPDF)}`;
         window.open(linkWA, '_blank');
 
