@@ -572,5 +572,3 @@ function updateJamRealtime(){
         `;
     }
 }
-
-```
