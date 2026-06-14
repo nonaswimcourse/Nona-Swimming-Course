@@ -88,7 +88,7 @@ async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
     try {
         if (tbody) {
-            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='7' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
         }
 
         const { data, error } = await supabaseClient
@@ -188,10 +188,11 @@ function checkLoginSession() {
     }
 }
 
+// PERBAIKAN: Menambahkan kolom No HP dan membetulkan sintaksis template literal
 function renderTable() {
     let html = "";
     if(!dataRekap || dataRekap.length === 0) {
-        html = "<tr><td colspan='6' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
+        html = "<tr><td colspan='7' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
     } else {
         dataRekap.forEach((item, index) => {
             let totalTeks = item.hadir === TOTAL_PERTEMUAN 
@@ -207,8 +208,9 @@ function renderTable() {
             let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`;
 
             html += `
-            <tr>`
+            <tr>
                 <td style="font-weight: 500;">${item.nama}</td>
+                <td><span style="color: #475569; font-size: 14px;">${item.no_hp || "-"}</span></td>
                 <td>
                     <div class="counter-box">
                         <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', -1)">-</button>
@@ -388,7 +390,7 @@ async function simpan() {
 
         if (siswaExist) {
             siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTidakHadir;
+            siswaExist.tidakHadir = nTargetHadir;
             siswaExist.catatan = catatanTeks;
             siswaExist.no_hp = noHpFinal;
             siswaExist.tanggalRealtime = realtimeSekarang;
@@ -452,6 +454,7 @@ function exportSiswaExcel(index) {
         [],
         ["Komponen", "Keterangan"],
         ["Nama Siswa", item.nama],
+        ["Nomor HP/WA", item.no_hp || "-"],
         ["Jumlah Kehadiran", `${item.hadir} Pertemuan`],
         ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
         ["Status Target", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
@@ -466,46 +469,35 @@ function exportSiswaExcel(index) {
     prosesUnduhFile(blob, `Absensi_${item.nama}.xlsx`);
 }
 
-// PERBAIKAN: Menggunakan LOGO_NSC_BASE64 secara langsung, instan & anti-macet!
 function exportSiswaPDF(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
     
-    // 1. Buat objek gambar HTML untuk memuat file gambar lokal
     const img = new Image();
     img.src = 'Logo percobaan.png'; 
 
-    // 2. Tunggu hingga gambar selesai dimuat sempurna oleh browser
     img.onload = function() {
         const doc = new jsPDF();
 
         try {
-            // Tampilkan logo di sebelah kiri atas (Lebar: 18, Tinggi: 25, Posisi Y: 10 -> Batas bawah Y: 35)
             doc.addImage(img, "PNG", 14, 10, 18, 25);
             
-            // ====================================================================
-            // PERBAIKAN POSISI JUDUL (Diturunkan agar sejajar vertikal dengan logo)
-            // ====================================================================
-            
-            // JUDUL UTAMA - Diturunkan ke Y: 23 agar pas di tengah-tengah tinggi logo
             doc.setFont("Helvetica", "bold");
             doc.setFontSize(14);
-            doc.setTextColor(35, 74, 132); // Warna Biru NSC
+            doc.setTextColor(35, 74, 132); 
             doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 23); 
 
-            // SUB-JUDUL - Diturunkan ke Y: 30 agar jaraknya proporsional di bawah judul
             doc.setFontSize(10);
             doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184); // Warna Abu-abu tipis
+            doc.setTextColor(148, 163, 184); 
             doc.text("Nona Swimming Course (NSC)", 38, 30);
             
-            // Garis Pembatas Horisontal - Diturunkan ke Y: 40 agar memberi ruang dari logo & teks
             doc.setDrawColor(241, 245, 249); 
             doc.line(14, 40, 196, 40);
 
-            // Data Susunan Baris Tabel
             const rows = [
                 ["Nama Siswa", item.nama],
+                ["Nomor HP/WA", item.no_hp || "-"],
                 ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
                 ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
                 ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
@@ -513,9 +505,8 @@ function exportSiswaPDF(index) {
                 ["Catatan Khusus", item.catatan || "-"]
             ];
 
-            // Membuat Tabel dengan Style Bersih & Elegan
             doc.autoTable({ 
-                startY: 46, // Diubah ke 46 agar ada jarak yang pas setelah garis pembatas (Y: 40)
+                startY: 46, 
                 head: [["Komponen Data", "Detail Keterangan"]], 
                 body: rows, 
                 theme: "striped",
@@ -539,7 +530,6 @@ function exportSiswaPDF(index) {
                 }
             });
 
-            // Unduh File PDF
             doc.save(`Absensi_${item.nama}.pdf`);
         } catch(e) {
             console.error("Gagal memproses pembuatan PDF:", e);
@@ -547,7 +537,6 @@ function exportSiswaPDF(index) {
         }
     };
 
-    // Penanganan darurat jika file gambar gagal load
     img.onerror = function() {
         console.warn("File 'Logo percobaan.png' tidak ditemukan. Mencetak tanpa logo...");
         const docBiasa = new jsPDF();
@@ -559,6 +548,7 @@ function exportSiswaPDF(index) {
         
         const rowsFallback = [
             ["Nama Siswa", item.nama],
+            ["Nomor HP/WA", item.no_hp || "-"],
             ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
             ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
             ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
@@ -571,44 +561,32 @@ function exportSiswaPDF(index) {
     };
 }
 
-// PERBAIKAN: Menggunakan Logo percobaan.png secara langsung, rapi, & sejajar vertikal
 function exportTotalPDF() {
     if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
     const { jsPDF } = window.jspdf;
     
-    // 1. Buat objek gambar HTML untuk memuat file gambar lokal
     const img = new Image();
     img.src = 'Logo percobaan.png'; 
 
-    // 2. Tunggu hingga gambar selesai dimuat sempurna oleh browser
     img.onload = function() {
         const doc = new jsPDF();
         
         try {
-            // Tampilkan logo di sebelah kiri atas (Lebar: 18, Tinggi: 25, Posisi Y: 10 -> Batas bawah Y: 35)
             doc.addImage(img, "PNG", 14, 10, 18, 25);
             
-            // ====================================================================
-            // PERBAIKAN POSISI JUDUL (Diturunkan agar sejajar vertikal dengan logo)
-            // ====================================================================
-            
-            // JUDUL UTAMA - Diturunkan ke Y: 23 agar pas di tengah-tengah tinggi logo
             doc.setFont("Helvetica", "bold");
             doc.setFontSize(14); 
-            doc.setTextColor(35, 74, 132); // Warna Biru NSC
+            doc.setTextColor(35, 74, 132); 
             doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 23);
             
-            // SUB-JUDUL - Diturunkan ke Y: 30 agar jaraknya proporsional di bawah judul
             doc.setFontSize(10);
             doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184); // Warna Abu-abu tipis
+            doc.setTextColor(148, 163, 184); 
             doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 30);
             
-            // Garis Pembatas Horisontal - Diturunkan ke Y: 40 agar memberi ruang dari logo & teks
             doc.setDrawColor(241, 245, 249); 
             doc.line(14, 40, 196, 40);
             
-            // Menyusun Data Baris Tabel Rekap Total
             const tableRows = [];
             dataRekap.forEach(item => {
                 tableRows.push([
@@ -618,7 +596,6 @@ function exportTotalPDF() {
                 ]);
             });
             
-            // Membuat Tabel Total dengan Jarak Mulai (startY) di koordinat 46 (6mm setelah garis)
             doc.autoTable({
                 startY: 46,
                 head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
@@ -629,7 +606,6 @@ function exportTotalPDF() {
                 columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
             });
             
-            // Unduh File PDF Total
             const blob = doc.output("blob");
             prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
         } catch(e) {
@@ -638,7 +614,6 @@ function exportTotalPDF() {
         }
     };
 
-    // Penanganan darurat jika file gambar gagal load
     img.onerror = function() {
         console.warn("File 'Logo percobaan.png' tidak ditemukan. Mencetak tanpa logo...");
         const docBiasa = new jsPDF();
@@ -708,7 +683,6 @@ async function resetSemuaData() {
         }
     }
 }
-
 
 function keluarkanSiswa(nama) {
     if(!confirm("Keluarkan siswa " + nama + " dari les renang?\n\nData absensi tetap tersimpan.")) return;
