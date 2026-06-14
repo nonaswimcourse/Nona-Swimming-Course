@@ -505,76 +505,108 @@ function exportTotalExcel() {
 }
 
 function exportTotalPDF() {
-    if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+    if (dataRekap.length === 0) { 
+        alert("Tidak ada data untuk diekspor!"); 
+        return; 
+    }
+    
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
     const logo = new Image();
-logo.src = "Logo percobaan.png";
+    logo.src = "Logo percobaan.png";
 
-logo.onload = function () {
-    doc.addImage(logo, "PNG", 170, 10, 25, 25);
-    doc.save("Data-Siswa.pdf");
-};
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(35, 74, 132);
-    doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
-    
-    doc.setFontSize(11);
-    doc.setFont("Helvetica", "normal");
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 14, 27);
-    
-    doc.setDrawColor(226, 232, 240);
-    doc.line(14, 34, 196, 34);
-    
-    const tableRows = [];
-    dataRekap.forEach(item => {
-        tableRows.push([
-            item.nama,
-            item.hadir,
-            item.tidakHadir,
-            item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-            item.tanggalRealtime,
-            item.catatan || '-'
-        ]);
-    });
-    
-    doc.autoTable({
-        startY: 40,
-        head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-        body: tableRows,
-        theme: "striped",
-        headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
-        styles: { fontSize: 9, padding: 5, valign: "middle" },
-        columnStyles: {
-            0: { fontStyle: "bold" },
-            3: { halign: "center" }
-        }
-    });
-    
-    const blob = doc.output("blob");
-    prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
-}
-function updateJamRealtime(){
-    const sekarang = new Date();
-    const jam = sekarang.toLocaleTimeString("id-ID",{
-        hour:"2-digit",
-        minute:"2-digit",
-        second:"2-digit"
-    });
+    logo.onload = function () {
+        // 1. LOGO (Posisi kiri: x=14, y=12, ukuran proporsional 20x20 mm seperti rekap siswa)
+        doc.addImage(logo, "PNG", 14, 12, 20, 20);
 
-    const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
-    const tanggalTeks = Clinical = sekarang.toLocaleDateString("id-ID", options);
+        // 2. JUDUL & SUBJUDUL (Digeser ke kanan [x: 38] agar tidak tertimpa logo)
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(18);
+        doc.setTextColor(35, 74, 132);
+        doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 20);
+        
+        doc.setFontSize(11);
+        doc.setFont("Helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 27);
+        
+        // 3. GARIS PEMBATAS (Diturunkan sedikit ke y=36 agar seimbang dengan bawah logo)
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, 36, 196, 36);
+        
+        // 4. MENYUSUN DATA TABEL
+        const tableRows = [];
+        dataRekap.forEach(item => {
+            tableRows.push([
+                item.nama,
+                item.hadir,
+                item.tidakHadir,
+                item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
+                item.tanggalRealtime,
+                item.catatan || '-'
+            ]);
+        });
+        
+        // 5. GENERATE TABEL (startY disesuaikan ke 42)
+        doc.autoTable({
+            startY: 42,
+            head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
+            body: tableRows,
+            theme: "striped",
+            headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
+            styles: { fontSize: 9, padding: 5, valign: "middle" },
+            columnStyles: {
+                0: { fontStyle: "bold" },
+                3: { halign: "center" }
+            }
+        });
+        
+        // 6. PROSES UNDUH (Wajib berada di dalam onload)
+        const blob = doc.output("blob");
+        prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
+    };
 
-    const el = document.getElementById("jamRealtime");
-    if (el) {
-        el.innerHTML = `
-            <div class="jam">${jam}</div>
-            <div class="tanggal">${tanggalTeks}</div>
-        `;
-    }
+    // Antisipasi jika gambar logo gagal dimuat / tidak ditemukan
+    logo.onerror = function () {
+        console.log("Logo gagal dibaca");
+        
+        // Tetap cetak teks tanpa logo (tetap di koordinat x: 14 agar tidak lowong ke kanan)
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(18);
+        doc.setTextColor(35, 74, 132);
+        doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
+        
+        doc.setFontSize(11);
+        doc.setFont("Helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 14, 27);
+        
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, 34, 196, 34);
+        
+        const tableRows = [];
+        dataRekap.forEach(item => {
+            tableRows.push([
+                item.nama, item.hadir, item.tidakHadir,
+                item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
+                item.tanggalRealtime, item.catatan || '-'
+            ]);
+        });
+        
+        doc.autoTable({
+            startY: 40,
+            head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
+            body: tableRows,
+            theme: "striped",
+            headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
+            styles: { fontSize: 9, padding: 5, valign: "middle" },
+            columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
+        });
+
+        const blob = doc.output("blob");
+        prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
+    };
 }
 
 // FUNGSI RESET TOTAL SEMUA DATA DARI SUPABASE
