@@ -12,9 +12,6 @@ let selectNamaControl;
 const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-// Base64 Data URI Resmi Logo Nona Swimming Course (NSC) yang Valid & Utuh
-const LOGO_NSC_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAcHJlZmVycmVkUkdCAAB4nH2RPUscURSGn30mIisbXUasbBAsZIsgZreIsbKyf6wMZp07w0wyyYwzM66gYGFpYWFpYalYWIjYpLAQLCwEizT+gIWFpYVlYmEhIisbXebOnYVAsN093Pc95z3vOfe8A6w6llXNqwEon9Yy0pGInZscG7X+BAXowAAnwK6VldMRKeofgAnvbtvqt9Z9R9V1b/tr9bdaXU0rIBAEDgB7WlsFwZfAcaxVqgBwGPgu1bIAnAG+f/M6gO8D3zvZCvA9YF8t+wT4GLAnlV6gV2b/Nzk6mhgYgLId+EZKpxw4Arxn66pWbID3gTfX2wPArwHwbePzIeAY8LmlYxbwLeAnS8cC4D0rvbA06gDft9W3M7P0N2a7ZvtE0pC067b7tr/Ympp2ZunbHwYmxsbHBqN2XNLR8Y8fH4zaO/ZlXWp3bfeM6K8Z+0pSOpaR+f+7Y/8bHwBwB8BtABgAsBMANgBwGMD6Lz0SAtbI4BcA6wDsAbDxt45VwAYZ/A7Am9+6b5HhV8gGv0P277v3WzN8Ctk9ALf/wL1fUuBzyA4BuAMA7v2Q6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLw9vms868X963I7mQicmR0Is/6KhpbLWeOZaWylrXO0epv6b+w1U6fAAAAAElFTkSuQmCC";
-
 // Fungsi pembantu untuk memformat tanggal realtime ke teks Indonesia
 function formatTanggalIndonesia(timestamp) {
     if (!timestamp) return "Belum Ada Tanggal";
@@ -27,12 +24,6 @@ function formatTanggalIndonesia(timestamp) {
     const tahun = dateObj.getFullYear();
     
     return `${hari}, ${tanggal} ${bulan} ${tahun}`;
-}
-
-function dapatkanTanggalSekarangPendek() {
-    const sekarang = new Date();
-    const opsi = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
-    return sekarang.toLocaleDateString("id-ID", opsi);
 }
 
 // Fungsi untuk memperbarui komponen Jam dan Tanggal di Header agar Realtime
@@ -60,6 +51,7 @@ function updateJamRealtime() {
         tanggalEl.innerText = hariTeks;
     }
 }
+
 document.addEventListener("DOMContentLoaded", function() {
     selectNamaControl = new TomSelect("#nama", {
         create: false,
@@ -81,6 +73,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     checkLoginSession();
     muatDataDariCloud();
+    
+    // Aktifkan Jam Realtime Bergerak
     updateJamRealtime();
     setInterval(updateJamRealtime, 1000);
 });
@@ -305,37 +299,22 @@ async function deleteRow(index) {
 
 async function simpan() {
     let nama = "";
-
-    if (selectNamaControl) {
-        nama = selectNamaControl.getValue();
-    }
-
-    if (!nama) {
-        nama = document.getElementById("nama").value;
-    }
-
-    if (!nama) {
-        alert("Silakan pilih nama siswa terlebih dahulu!");
-        return;
-    }
+    if (selectNamaControl) { nama = selectNamaControl.getValue(); }
+    if (!nama) { nama = document.getElementById("nama").value; }
+    if (!nama) { alert("Silakan pilih nama siswa terlebih dahulu!"); return; }
 
     const status = document.getElementById("status").value;
     const catatan = document.getElementById("catatan").value;
     const btnSimpan = document.getElementById("btnSimpan");
 
     nama = nama.trim().toUpperCase();
-
     btnSimpan.disabled = true;
     btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
 
     const catatanTeks = catatan.trim() !== "" ? catatan.trim() : "Absensi tercatat";
-
-    if (!Array.isArray(dataRekap)) {
-        dataRekap = [];
-    }
+    if (!Array.isArray(dataRekap)) { dataRekap = []; }
 
     let siswaExist = dataRekap.find(s => s && s.nama === nama);
-
     let nHadir = status === "Hadir" ? 1 : 0;
     let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
 
@@ -391,16 +370,10 @@ async function simpan() {
         }
 
         renderTable();
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch (e) {}
 
-        try {
-            localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        } catch (e) {}
-
-        if (selectNamaControl) {
-            selectNamaControl.clear(true);
-        } else {
-            document.getElementById("nama").value = "";
-        }
+        if (selectNamaControl) { selectNamaControl.clear(true); } 
+        else { document.getElementById("nama").value = ""; }
 
         document.getElementById("catatan").value = "";
         alert("Data berhasil disimpan ke Rekap dan Log Harian!");
@@ -427,20 +400,38 @@ function prosesUnduhFile(blob, namaFile) {
         const a = document.createElement("a");
         a.href = url;
         a.download = namaFile;
-        
         a.style.display = 'none';
         document.body.appendChild(a);
-        
         a.click();
-        
         setTimeout(() => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }, 300);
     } catch (e) {
-        console.error("Metode Blob URL Gagal:", e);
-        alert("Gagal mengunduh file secara langsung. Pastikan izin penyimpanan browser aktif.");
+        alert("Gagal mengunduh file.");
     }
+}
+
+function exportSiswaExcel(index) {
+    const item = dataRekap[index];
+    const worksheetData = [
+        ["LAPORAN ABSENSI INDIVIDU SISWA"],
+        ["Nona Swimming Course (NSC)"],
+        [],
+        ["Komponen", "Keterangan"],
+        ["Nama Siswa", item.nama],
+        ["Jumlah Kehadiran", `${item.hadir} Pertemuan`],
+        ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
+        ["Status Target", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+        ["Tanggal Terakhir Update", item.tanggalRealtime],
+        ["Catatan Terakhir", item.catatan || "-"]
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    XLSX.utils.book_append_sheet(wb, ws, "Absensi Siswa");
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    prosesUnduhFile(blob, `Absensi_${item.nama}.xlsx`);
 }
 
 function exportSiswaPDF(index) {
@@ -452,21 +443,19 @@ function exportSiswaPDF(index) {
     logo.src = "Logo percobaan.png";
 
     logo.onload = function () {
-        // LOGO: Ukuran proporsional bentuk perisai 18x24 mm (X: 14, Y: 10)
+        // LOGO: Ukuran ideal perisai 18x24mm (X=14, Y=10)
         doc.addImage(logo, "PNG", 14, 10, 18, 24);
 
-        // JUDUL: Koordinat X digeser ke 38 (menyisakan space aman di sebelah logo)
+        // JUDUL KOP (X digeser ke 38 agar tidak menabrak logo)
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(16);
         doc.setTextColor(35, 74, 132);
         doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 19); 
 
-        // SUBJUDUL: Koordinat X digeser ke 38, Y ke 26
         doc.setFontSize(11);
         doc.setFont("Helvetica", "normal");
         doc.text("Nona Swimming Course (NSC)", 38, 26);
 
-        // GARIS PEMBATAS: Diturunkan ke Y=39 agar pas di bawah logo
         doc.line(14, 39, 196, 39);
 
         const rows = [
@@ -478,7 +467,6 @@ function exportSiswaPDF(index) {
             ["Catatan", item.catatan || "-"]
         ];
 
-        // TABEL DATA: startY disesuaikan ke 45
         doc.autoTable({
             startY: 45,
             head: [["Komponen", "Keterangan"]],
@@ -490,7 +478,6 @@ function exportSiswaPDF(index) {
     };
 
     logo.onerror = function(){
-        console.log("Logo gagal dibaca");
         doc.save(`Absensi_${item.nama}.pdf`);
     };
 }
@@ -504,12 +491,8 @@ function exportTotalExcel() {
     ];
     dataRekap.forEach(item => {
         worksheetData.push([
-            item.nama,
-            item.hadir,
-            item.tidakHadir,
-            `${item.hadir}/${TOTAL_PERTEMUAN}`,
-            item.tanggalRealtime,
-            item.catatan || '-'
+            item.nama, item.hadir, item.tidakHadir,
+            `${item.hadir}/${TOTAL_PERTEMUAN}`, item.tanggalRealtime, item.catatan || '-'
         ]);
     });
     const wb = XLSX.utils.book_new();
@@ -529,22 +512,19 @@ function exportTotalPDF() {
     logo.src = "Logo percobaan.png";
 
     logo.onload = function () {
-        // LOGO: Ukuran proporsional bentuk perisai 18x24 mm (X: 14, Y: 10)
+        // LOGO: Ukuran ideal perisai 18x24mm
         doc.addImage(logo, "PNG", 14, 10, 18, 24);
 
-        // JUDUL: Digeser ke X: 38, Y: 19 agar sejajar tengah secara visual
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(18);
         doc.setTextColor(35, 74, 132);
         doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 19);
         
-        // SUBJUDUL: Digeser ke X: 38, Y: 26
         doc.setFontSize(11);
         doc.setFont("Helvetica", "normal");
         doc.setTextColor(100, 116, 139);
         doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 26);
         
-        // GARIS PEMBATAS: Diturunkan ke Y=39
         doc.setDrawColor(226, 232, 240);
         doc.line(14, 39, 196, 39);
         
@@ -557,7 +537,6 @@ function exportTotalPDF() {
             ]);
         });
         
-        // TABEL DATA: startY disesuaikan ke 45
         doc.autoTable({
             startY: 45,
             head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
@@ -565,10 +544,7 @@ function exportTotalPDF() {
             theme: "striped",
             headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
             styles: { fontSize: 9, padding: 5, valign: "middle" },
-            columnStyles: {
-                0: { fontStyle: "bold" },
-                3: { halign: "center" }
-            }
+            columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
         });
         
         const blob = doc.output("blob");
@@ -576,26 +552,11 @@ function exportTotalPDF() {
     };
 
     logo.onerror = function () {
-        console.log("Logo gagal dibaca");
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(18);
-        doc.setTextColor(35, 74, 132);
-        doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
-        
-        doc.setFontSize(11);
-        doc.setFont("Helvetica", "normal");
-        doc.setTextColor(100, 116, 139);
-        doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 14, 27);
-        
-        doc.setDrawColor(226, 232, 240);
-        doc.line(14, 34, 196, 34);
-        
         const blob = doc.output("blob");
         prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
     };
 }
 
-// FUNGSI RESET TOTAL SEMUA DATA DARI SUPABASE
 async function resetSemuaData() {
     if (!confirm("⚠️ PERINGATAN KERAS!\nApakah Anda yakin ingin MENGHAPUS TOTAL semua data absensi siswa dari database cloud Supabase?\n\nData yang dihapus tidak bisa dikembalikan!")) return;
     if (!confirm("Konfirmasi terakhir: Benar-benar ingin mengosongkan semua rekap data?")) return;
@@ -615,30 +576,19 @@ async function resetSemuaData() {
 
         if (listSiswa && listSiswa.length > 0) {
             const listNama = listSiswa.map(s => s.absensi);
-
             const { error: errorDeleteRekap } = await supabaseClient
                 .from('absensinsc')
                 .delete()
                 .in('absensi', listNama);
-
             if (errorDeleteRekap) throw errorDeleteRekap;
-        } else {
-            const { error: errorGlobalDelete } = await supabaseClient
-                .from('absensinsc')
-                .delete()
-                .neq('absensi', 'KOLOM_YANG_PASTI_TIDAK_ADA'); 
-                
-            if (errorGlobalDelete) throw errorGlobalDelete;
         }
 
         dataRekap = [];
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-        
         renderTable();
-        alert("Database Absensi Berhasil Dikosongkan! Silakan cek spreadsheet Anda kembali dalam beberapa saat.");
+        alert("Database Absensi Berhasil Dikosongkan!");
     } catch (err) {
-        console.error("Gagal Reset:", err);
-        alert("Gagal mereset database ke Supabase: " + err.message);
+        alert("Gagal mereset: " + err.message);
     } finally {
         if (btnReset) {
             btnReset.disabled = false;
