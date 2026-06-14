@@ -1,6 +1,3 @@
-Berikut adalah seluruh kode file `script.js` Anda yang sudah saya edit secara utuh dari atas sampai bawah. Fungsi `simpan()` telah diperbarui agar merekam log harian ke tabel `log_harian` tanpa merusak atau menghapus fungsi `showTab`, `prosesUnduhFile`, dan fungsi ekspor lainnya di bawahnya:
-
-```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -555,7 +552,7 @@ function exportTotalPDF() {
 
 function updateJamRealtime(){
     const sekarang = new Date();
-    const jam = sekarang.toLocaleTimeString("id-ID",{
+    const jam = Clinical = sekarang.toLocaleTimeString("id-ID",{
         hour:"2-digit",
         minute:"2-digit",
         second:"2-digit"
