@@ -1,8 +1,3 @@
-Berikut adalah file `script.js` utuh yang telah dirapikan, menggabungkan fitur baru tombol **Reset Rekap** () dan tombol **Keluarkan Siswa** (), sekaligus memperbaiki beberapa baris kode yang terpotong serta menambahkan fungsi sinkronisasi otomatis `perbaruiPilihanNamaSiswa()` ke dalam *TomSelect*.
-
-Silakan salin seluruh kode di bawah ini untuk menggantikan semua isi file `script.js` Anda:
-
-```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -182,10 +177,13 @@ function handleLogout() {
     }
 }
 
+// Memeriksa sesi login saat aplikasi dibuka
 function checkLoginSession() {
     if(localStorage.getItem("isLoggedIn") === "true") {
-        document.getElementById("loginSection").classList.add("hidden");
-        document.getElementById("mainAppSection").classList.remove("hidden");
+        const loginSec = document.getElementById("loginSection");
+        const mainSec = document.getElementById("mainAppSection");
+        if(loginSec) loginSec.classList.add("hidden");
+        if(mainSec) mainSec.classList.remove("hidden");
     }
 }
 
@@ -224,8 +222,10 @@ function renderTable() {
                         <button class="btn-action btn-excel" title="Download Excel" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
                         <button class="btn-action btn-pdf" title="Download PDF" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>
                         
+                        <!-- TOMBOL SAMPAH: Sekarang fungsinya HANYA MERESET ANGKA REKAP -->
                         <button class="btn-action btn-delete" title="Reset Angka Rekapan" id="btnResetSiswa-${index}" onclick="resetRekapSiswa(${index})"><i class="fa fa-rotate-left"></i></button>
                         
+                        <!-- TOMBOL BARU: KELUARKAN SISWA DARI SISTEM DATA -->
                         <button class="btn-action btn-kick" title="Keluarkan Siswa (Hapus Total)" id="btnKick-${index}" onclick="keluarkanSiswa(${index})"><i class="fa fa-user-minus"></i></button>
                     </div>
                 </td>
@@ -430,7 +430,7 @@ async function simpan() {
 
         if (siswaExist) {
             siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTotalTidakHadir;
+            siswaExist.tidakHadir = nTidakHadir; // Sudah diperbaiki dari sebelumnya nTotalTidakHadir
             siswaExist.catatan = catatanTeks;
             siswaExist.tanggalRealtime = realtimeSekarang;
             siswaExist.rawDate = waktuSekarangISO;
@@ -669,5 +669,3 @@ async function resetSemuaData() {
         }
     }
 }
-
-```
