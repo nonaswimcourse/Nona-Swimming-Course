@@ -1,8 +1,12 @@
 const TOTAL_PERTEMUAN = 12; // Total target pertemuan les
 
-// Inisialisasi Supabase Client
+// =========================================================================
+// PENTING: Ganti isi di dalam tanda kutip SUPABASE_ANON_KEY di bawah ini 
+// dengan Project API Anon Key yang baru dari Dashboard Supabase Anda!
+// =========================================================================
 const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndgmWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
+const SUPABASE_ANON_KEY = "PASTE_ANON_KEY_BARU_ANDA_DI_SINI"; 
+
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let dataRekap = [];
@@ -43,18 +47,20 @@ function updateJamRealtime() {
 
 document.addEventListener("DOMContentLoaded", function() {
     try {
-        selectNamaControl = new TomSelect("#nama", {
-            create: true, 
-            sortField: { field: "text", direction: "asc" },
-            placeholder: "Ketik / Pilih Nama Siswa...",
-            allowEmptyOption: true,
-            onChange: function(value) {
-                if(value) {
-                    if(selectNamaControl) { selectNamaControl.blur(); }
-                    document.activeElement.blur(); 
+        if (document.getElementById("nama")) {
+            selectNamaControl = new TomSelect("#nama", {
+                create: true, 
+                sortField: { field: "text", direction: "asc" },
+                placeholder: "Ketik / Pilih Nama Siswa...",
+                allowEmptyOption: true,
+                onChange: function(value) {
+                    if(value) {
+                        if(selectNamaControl) { selectNamaControl.blur(); }
+                        document.activeElement.blur(); 
+                    }
                 }
-            }
-        });
+            });
+        }
     } catch(e) { console.warn("TomSelect belum siap."); }
 
     const loginForm = document.getElementById("loginForm");
@@ -63,7 +69,6 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     checkLoginSession();
-    muatDataDariCloud();
     
     updateJamRealtime();
     setInterval(updateJamRealtime, 1000);
@@ -72,10 +77,10 @@ document.addEventListener("DOMContentLoaded", function() {
 // MEMUAT DATA DARI SUPABASE
 async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
+    if (!tbody) return;
+
     try {
-        if (tbody) {
-            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
-        }
+        tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
 
         const { data, error } = await supabaseClient
             .from('absensinsc')
@@ -122,7 +127,7 @@ function togglePasswordVisibility() {
     }
 }
 
-// PERBAIKAN LOGIC LOGIN VERIFIKASI LANGSUNG BYPASS ERROR SHA
+// LOGIC LOGIN STABIL TANPA CRASH SHA-256
 async function handleLogin(event) {
     if (event) event.preventDefault(); 
     
@@ -134,20 +139,24 @@ async function handleLogin(event) {
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value.trim();
 
-    // Verifikasi bypass langsung menggunakan teks murni tanpa crash SHA
+    // Verifikasi bypass menggunakan teks murni agar terhindar dari kendala enkripsi browser
     if (email === "nonaswimmingcourse@gmail.com" && password === "nonaswimmingcourse") {
         try { localStorage.setItem("isLoggedIn", "true"); } catch(e){}
         
-        const loginSection = document.getElementById("loginSection");
-        const mainAppSection = document.getElementById("mainAppSection");
-        
-        if (loginSection) loginSection.classList.add("hidden");
-        if (mainAppSection) mainAppSection.classList.remove("hidden");
-        
-        muatDataDariCloud();
+        bukaAplikasiUtama();
     } else {
         alert("Akses ditolak! Akun atau Password salah.");
     }
+}
+
+function bukaAplikasiUtama() {
+    const loginSection = document.getElementById("loginSection");
+    const mainAppSection = document.getElementById("mainAppSection");
+    
+    if (loginSection) loginSection.classList.add("hidden");
+    if (mainAppSection) mainAppSection.classList.remove("hidden");
+    
+    muatDataDariCloud();
 }
 
 function handleLogout() {
@@ -161,10 +170,7 @@ function handleLogout() {
 
 function checkLoginSession() {
     if(localStorage.getItem("isLoggedIn") === "true") {
-        const loginSec = document.getElementById("loginSection");
-        const mainSec = document.getElementById("mainAppSection");
-        if(loginSec) loginSec.classList.add("hidden");
-        if(mainSec) mainSec.classList.remove("hidden");
+        bukaAplikasiUtama();
     }
 }
 
@@ -279,8 +285,10 @@ async function prosesDanKirimCloudPDF(index) {
         let pesanWA = `Halo Bapak/Ibu, berikut ringkasan laporan absensi resmi Ananda *${item.nama}* di *Nona Swimming Course*.\n\n✓ Total Kehadiran: *${item.hadir}* Pertemuan\n✓ Tidak Hadir: *${item.tidakHadir}* Pertemuan\n\n*Dokumen PDF resmi telah diunduh oleh sistem dan akan dikirimkan file fisiknya secara langsung oleh admin via chat ini.* \n\nTerima kasih.`;
         window.open(`https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`, '_blank');
     } finally {
-        btnWa.innerHTML = iconAsli;
-        btnWa.style.pointerEvents = 'auto';
+        if (btnWa) {
+            btnWa.innerHTML = iconAsli;
+            btnWa.style.pointerEvents = 'auto';
+        }
     }
 }
 
