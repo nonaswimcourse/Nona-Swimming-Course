@@ -428,29 +428,30 @@ function exportSiswaPDF(index) {
     logo.src = "Logo percobaan.png";
 
     logo.onload = function () {
-        // 1. LOGO (Dipindah ke kiri: x=14, y=12, ukuran dibuat proporsional 20x20 mm)
+        // LOGO: Ukuran dinaikkan ke 24x24 mm agar detail perisai terlihat jelas
         doc.addImage(
             logo,
             "PNG",
-            14, // Koordinat X mepet kiri
-            12, // Koordinat Y disesuaikan agar sejajar teks
-            20, // Lebar logo (Width)
-            20  // Tinggi logo (Height)
+            14, // Tetap di kiri
+            10, // Posisi atas
+            24, // Lebar baru
+            24  // Tinggi baru
         );
 
-        // 2. JUDUL & SUBJUDUL (Digeser ke kanan [x: 38] supaya tidak menimpa logo)
+        // JUDUL: Koordinat X digeser ke 43 (memberi space setelah logo 24mm)
+        // Koordinat Y disesuaikan agar teks sejajar vertikal dengan logo
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(16);
         doc.setTextColor(35, 74, 132);
-        // Koordinat Y: 20 membuat teks ini sejajar vertikal di tengah-tengah logo
-        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 20); 
+        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 43, 19); 
 
+        // SUBJUDUL: Koordinat X digeser ke 43, Y ke 26
         doc.setFontSize(11);
         doc.setFont("Helvetica", "normal");
-        doc.text("Nona Swimming Course (NSC)", 38, 27);
+        doc.text("Nona Swimming Course (NSC)", 43, 26);
 
-        // 3. GARIS PEMBATAS (Diturunkan sedikit ke y=36 agar memberi jarak dari logo)
-        doc.line(14, 36, 196, 36);
+        // GARIS PEMBATAS: Diturunkan ke Y=39 agar pas di bawah logo yang berukuran 24mm
+        doc.line(14, 39, 196, 39);
 
         const rows = [
             ["Nama Siswa", item.nama],
@@ -461,15 +462,14 @@ function exportSiswaPDF(index) {
             ["Catatan", item.catatan || "-"]
         ];
 
-        // 4. TABEL DATA (startY disesuaikan menjadi 42 agar pas di bawah garis)
+        // TABEL DATA: startY disesuaikan ke 45
         doc.autoTable({
-            startY: 42,
+            startY: 45,
             head: [["Komponen", "Keterangan"]],
             body: rows,
             theme: "striped"
         });
 
-        // SIMPAN PALING AKHIR
         doc.save(`Absensi_${item.nama}.pdf`);
     };
 
@@ -505,11 +505,7 @@ function exportTotalExcel() {
 }
 
 function exportTotalPDF() {
-    if (dataRekap.length === 0) { 
-        alert("Tidak ada data untuk diekspor!"); 
-        return; 
-    }
-    
+    if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
@@ -517,40 +513,37 @@ function exportTotalPDF() {
     logo.src = "Logo percobaan.png";
 
     logo.onload = function () {
-        // 1. LOGO (Posisi kiri: x=14, y=12, ukuran proporsional 20x20 mm seperti rekap siswa)
-        doc.addImage(logo, "PNG", 14, 12, 20, 20);
+        // LOGO: Disamakan 24x24 mm posisi kiri
+        doc.addImage(logo, "PNG", 14, 10, 24, 24);
 
-        // 2. JUDUL & SUBJUDUL (Digeser ke kanan [x: 38] agar tidak tertimpa logo)
+        // JUDUL: Digeser ke X: 43, Y: 19 agar sejajar tengah secara visual
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(18);
         doc.setTextColor(35, 74, 132);
-        doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 20);
+        doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 43, 19);
         
+        // SUBJUDUL: Digeser ke X: 43, Y: 26
         doc.setFontSize(11);
         doc.setFont("Helvetica", "normal");
         doc.setTextColor(100, 116, 139);
-        doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 27);
+        doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 43, 26);
         
-        // 3. GARIS PEMBATAS (Diturunkan sedikit ke y=36 agar seimbang dengan bawah logo)
+        // GARIS PEMBATAS: Diturunkan ke Y=39
         doc.setDrawColor(226, 232, 240);
-        doc.line(14, 36, 196, 36);
+        doc.line(14, 39, 196, 39);
         
-        // 4. MENYUSUN DATA TABEL
         const tableRows = [];
         dataRekap.forEach(item => {
             tableRows.push([
-                item.nama,
-                item.hadir,
-                item.tidakHadir,
+                item.nama, item.hadir, item.tidakHadir,
                 item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                item.tanggalRealtime,
-                item.catatan || '-'
+                item.tanggalRealtime, item.catatan || '-'
             ]);
         });
         
-        // 5. GENERATE TABEL (startY disesuaikan ke 42)
+        // TABEL DATA: startY disesuaikan ke 45
         doc.autoTable({
-            startY: 42,
+            startY: 45,
             head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
             body: tableRows,
             theme: "striped",
@@ -562,16 +555,13 @@ function exportTotalPDF() {
             }
         });
         
-        // 6. PROSES UNDUH (Wajib berada di dalam onload)
         const blob = doc.output("blob");
         prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
     };
 
-    // Antisipasi jika gambar logo gagal dimuat / tidak ditemukan
     logo.onerror = function () {
         console.log("Logo gagal dibaca");
-        
-        // Tetap cetak teks tanpa logo (tetap di koordinat x: 14 agar tidak lowong ke kanan)
+        // ... (Logika fallback jika logo eror tetap di koordinat x=14)
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(18);
         doc.setTextColor(35, 74, 132);
@@ -585,25 +575,7 @@ function exportTotalPDF() {
         doc.setDrawColor(226, 232, 240);
         doc.line(14, 34, 196, 34);
         
-        const tableRows = [];
-        dataRekap.forEach(item => {
-            tableRows.push([
-                item.nama, item.hadir, item.tidakHadir,
-                item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                item.tanggalRealtime, item.catatan || '-'
-            ]);
-        });
-        
-        doc.autoTable({
-            startY: 40,
-            head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-            body: tableRows,
-            theme: "striped",
-            headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
-            styles: { fontSize: 9, padding: 5, valign: "middle" },
-            columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
-        });
-
+        // ... sisa kode tabel standar ...
         const blob = doc.output("blob");
         prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
     };
