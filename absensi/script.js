@@ -1,3 +1,8 @@
+Berikut adalah kode lengkap untuk file `script.js` yang sudah diperbarui. Saya telah menyatukan fungsi unggah otomatis ke **Supabase Storage** (dengan nama bucket `pdf-laporan`) dan mengubah tombol **Kirim PDF ke WA** agar langsung memproses dokumen ke cloud lalu membuka WhatsApp.
+
+Silakan salin seluruh kode di bawah ini dan timpa (*replace*) isi file `script.js` Anda yang lama:
+
+```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -165,7 +170,7 @@ function renderTable() {
                 nomorWA = '62' + nomorWA.slice(1);
             }
 
-            // Pesan WA Standar
+            // Pesan WA Standar (Teks Saja)
             let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
 
 Total Hadir: *${item.hadir}* Pertemuan
@@ -175,16 +180,6 @@ Catatan: _${item.catatan || '-'}_
 
 Terima kasih.`;
             let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`;
-
-            // Pesan Notifikasi Terbit Dokumen PDF Resmi
-            let pesanWAPDF = `Halo Bapak/Ibu, pemberitahuan resmi mengenai Laporan Dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.
-
-Dokumen resmi telah dicetak dan diterbitkan secara digital dengan status kehadiran akhir: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}* pertemuan.
-
-Catatan Evaluasi: _${item.catatan || '-'}_
-
-Silakan download langsung salinan dokumen Anda melalui Admin atau simpan pesan konfirmasi ini. Terima kasih.`;
-            let linkWAPDF = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWAPDF)}`;
 
             html += `
             <tr>
@@ -210,12 +205,12 @@ Silakan download langsung salinan dokumen Anda melalui Admin atau simpan pesan k
                         <a href="${linkWA}" target="_blank" class="btn-action btn-wa" title="Kirim Laporan Teks via WhatsApp">
                             <i class="fab fa-whatsapp"></i>
                         </a>
-                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})">
+                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index}, true)">
                             <i class="fa fa-file-pdf"></i>
                         </button>
-                        <a href="${linkWAPDF}" target="_blank" class="btn-action btn-wa-pdf" title="Kirim Notifikasi Dokumen PDF ke WA Orang Tua">
+                        <button class="btn-action btn-wa-pdf" title="Unggah PDF ke Cloud & Kirim Tautan ke WA Orang Tua" onclick="shareSiswaPDF(${index})">
                             <i class="fa fa-share-nodes"></i> Kirim PDF ke WA
-                        </a>
+                        </button>
                         <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})">
                             <i class="fa fa-file-excel"></i>
                         </button>
@@ -476,7 +471,7 @@ function exportTotalExcel() {
     prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.xlsx");
 }
 
-function exportSiswaPDF(index) {
+function exportSiswaPDF(index, autoDownload = true) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -506,7 +501,11 @@ function exportSiswaPDF(index) {
         theme: "striped",
         headStyles: { fillColor: [35, 74, 132] }
     });
-    doc.save(`Absensi_${item.nama}.pdf`);
+    
+    if (autoDownload) {
+        doc.save(`Absensi_${item.nama}.pdf`);
+    }
+    return doc;
 }
 
 function exportTotalPDF() {
@@ -541,6 +540,73 @@ function exportTotalPDF() {
     });
     
     doc.save("Rekap_Total_Absensi_NSC.pdf");
+}
+
+// FUNGSI BARU: Unggah PDF otomatis ke Supabase Storage & Bagikan Link-nya ke WhatsApp
+async function shareSiswaPDF(index) {
+    const item = dataRekap[index];
+    const btnShare = document.querySelectorAll(".btn-wa-pdf")[index];
+    if (!btnShare) return;
+
+    const originalHTML = btnShare.innerHTML;
+    btnShare.disabled = true;
+    btnShare.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Memproses...';
+
+    try {
+        // 1. Generate dokumen PDF (false agar tidak memicu download di perangkat admin)
+        const doc = exportSiswaPDF(index, false);
+        const pdfBlob = doc.output('blob');
+        
+        // 2. Buat nama file unik berdasarkan timestamp waktu
+        const namaFile = `${item.nama.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+        
+        // 3. Upload file dokumen ke Bucket Storage 'pdf-laporan'
+        const { data, error } = await supabaseClient
+            .storage
+            .from('pdf-laporan')
+            .upload(namaFile, pdfBlob, {
+                contentType: 'application/pdf',
+                upsert: true
+            });
+            
+        if (error) throw error;
+        
+        // 4. Ambil URL Publik dari file yang berhasil disimpan
+        const { data: urlData } = supabaseClient
+            .storage
+            .from('pdf-laporan')
+            .getPublicUrl(namaFile);
+            
+        const linkDownloadPDF = urlData.publicUrl;
+
+        // 5. Konversi format nomor telepon tujuan ke kode internasional (62)
+        let nomorWA = item.no_hp || ""; 
+        if (nomorWA.startsWith('0')) {
+            nomorWA = '62' + nomorWA.slice(1);
+        }
+
+        // 6. Siapkan kalimat pengantar pesan otomatis WhatsApp
+        let pesanWAPDF = `Halo Bapak/Ibu, berikut kami terbitkan dokumen resmi *PDF Hasil Evaluasi & Absensi* Ananda *${item.nama}* di *Nona Swimming Course*.
+
+Silakan klik tautan di bawah ini untuk melihat atau mengunduh langsung salinan dokumen PDF resmi:
+👉 ${linkDownloadPDF}
+
+Kehadiran Akhir: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}* pertemuan.
+Catatan Evaluasi: _${item.catatan || '-'}_
+
+Terima kasih.`;
+
+        // 7. Buka tautan kirim pesan WhatsApp API
+        let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWAPDF)}`;
+        window.open(linkWA, '_blank');
+
+    } catch (err) {
+        console.error("Gagal membagikan PDF via Cloud:", err);
+        alert("Gagal membagikan ke Cloud Supabase: " + err.message + "\n\nPastikan Anda sudah membuat bucket publik bernama 'pdf-laporan' di menu Storage Supabase.");
+    } finally {
+        btnShare.disabled = false;
+        btnShare.innerHTML = originalHTML;
+    }
 }
 
 async function resetSemuaData() {
@@ -590,3 +656,5 @@ function keluarkanSiswa(nama) {
     renderTable();
     alert(nama + " sudah dikeluarkan dari daftar siswa aktif.");
 }
+
+```
