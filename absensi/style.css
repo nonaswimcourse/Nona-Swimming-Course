@@ -84,6 +84,10 @@ textarea { resize: none; }
 .btn-action { width: 36px; height: 36px; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 14px; }
 .btn-excel { background: #e6f4ea; color: #137333; }
 .btn-excel:hover { background: #137333; color: white; }
+.btn-wa { background: #e6f9ed; color: #128c7e; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+.btn-wa:hover { background: #128c7e; color: white; }
+.btn-wa { background: #e6f9ed; color: #128c7e; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+.btn-wa:hover { background: #128c7e; color: white; }
 .btn-pdf { background: #fce8e6; color: #c5221f; }
 .btn-pdf:hover { background: #c5221f; color: white; }
 .btn-delete { background: #fef2f2; color: #dc2626; }
