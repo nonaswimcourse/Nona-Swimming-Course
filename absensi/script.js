@@ -449,7 +449,7 @@ function exportSiswaPDF(index) {
 
         try {
             // Tampilkan logo di sebelah kiri atas (Lebar: 18, Tinggi: 18, Posisi Y: 10 artinya batas bawah gambar ada di Y: 28)
-            doc.addImage(img, "PNG", 14, 10, 18, 18);
+            doc.addImage(img, "PNG", 14, 10, 18, 25);
             
             // JUDUL UTAMA - Diturunkan ke Y: 20 agar pas di tengah-tengah tinggi logo
             doc.setFont("Helvetica", "bold");
@@ -550,7 +550,7 @@ function exportTotalPDF() {
         
         try {
             // Tampilkan logo di sebelah kiri atas (Lebar: 18, Tinggi: 18, Posisi Y: 10)
-            doc.addImage(img, "PNG", 14, 10, 18, 18);
+            doc.addImage(img, "PNG", 14, 10, 18, 25);
             
             // JUDUL UTAMA - Diturunkan ke Y: 20 agar pas di tengah-tengah tinggi logo
             doc.setFont("Helvetica", "bold");
