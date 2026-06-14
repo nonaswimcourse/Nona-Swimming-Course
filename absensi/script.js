@@ -419,26 +419,6 @@ function prosesUnduhFile(blob, namaFile) {
     }
 }
 
-function exportSiswaExcel(index) {
-    const item = dataRekap[index];
-    const worksheetData = [
-        ["DATA ABSENSI INDIVIDU - NONA SWIMMING COURSE"],
-        [],
-        ["Nama Siswa", item.nama],
-        ["Jumlah Kehadiran (Hadir)", item.hadir],
-        ["Jumlah Tidak Hadir", item.tidakHadir],
-        ["Total Pertemuan Saat Ini", `${item.hadir}/${TOTAL_PERTEMUAN}`],
-        ["Tanggal Pengisian Terbaru", item.tanggalRealtime],
-        ["Catatan Terakhir", item.catatan || '-']
-    ];
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(wb, ws, "Absensi Siswa");
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
-    prosesUnduhFile(blob, `Absensi_${item.nama.replace(/\s+/g, '_')}.xlsx`);
-}
-
 function exportSiswaPDF(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
@@ -448,28 +428,29 @@ function exportSiswaPDF(index) {
     logo.src = "Logo percobaan.png";
 
     logo.onload = function () {
-
-        // LOGO
+        // 1. LOGO (Dipindah ke kiri: x=14, y=12, ukuran dibuat proporsional 20x20 mm)
         doc.addImage(
             logo,
             "PNG",
-            170,
-            10,
-            25,
-            25
+            14, // Koordinat X mepet kiri
+            12, // Koordinat Y disesuaikan agar sejajar teks
+            20, // Lebar logo (Width)
+            20  // Tinggi logo (Height)
         );
 
-        // JUDUL
+        // 2. JUDUL & SUBJUDUL (Digeser ke kanan [x: 38] supaya tidak menimpa logo)
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(16);
         doc.setTextColor(35, 74, 132);
-        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
+        // Koordinat Y: 20 membuat teks ini sejajar vertikal di tengah-tengah logo
+        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 20); 
 
         doc.setFontSize(11);
         doc.setFont("Helvetica", "normal");
-        doc.text("Nona Swimming Course (NSC)", 14, 27);
+        doc.text("Nona Swimming Course (NSC)", 38, 27);
 
-        doc.line(14,34,196,34);
+        // 3. GARIS PEMBATAS (Diturunkan sedikit ke y=36 agar memberi jarak dari logo)
+        doc.line(14, 36, 196, 36);
 
         const rows = [
             ["Nama Siswa", item.nama],
@@ -480,13 +461,13 @@ function exportSiswaPDF(index) {
             ["Catatan", item.catatan || "-"]
         ];
 
+        // 4. TABEL DATA (startY disesuaikan menjadi 42 agar pas di bawah garis)
         doc.autoTable({
-            startY: 40,
+            startY: 42,
             head: [["Komponen", "Keterangan"]],
             body: rows,
-            theme:"striped"
+            theme: "striped"
         });
-
 
         // SIMPAN PALING AKHIR
         doc.save(`Absensi_${item.nama}.pdf`);
