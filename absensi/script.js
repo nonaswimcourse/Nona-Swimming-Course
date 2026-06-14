@@ -26,6 +26,13 @@ function formatTanggalIndonesia(timestamp) {
     return `${hari}, ${tanggal} ${bulan} ${tahun}`;
 }
 
+// Fungsi pembantu tambahan untuk tanggal singkat (format ekspor / hemat ruang tabel)
+function dapatkanTanggalSekarangPendek() {
+    const sekarang = new Date();
+    const opsi = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+    return sekarang.toLocaleDateString("id-ID", opsi);
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     selectNamaControl = new TomSelect("#nama", {
         create: false,
@@ -61,14 +68,18 @@ async function muatDataDariCloud() {
         if (error) throw error;
 
         if (data && data.length > 0) {
-            dataRekap = data.map(item => ({
-                nama: item.absensi ? item.absensi.toString().toUpperCase().trim() : "TANPA NAMA",
-                hadir: parseInt(item.Hadir) || 0,
-                tidakHadir: parseInt(item["Tidak Hadir"] || item.id_tidak_hadir || item.status) || 0,
-                catatan: item.Catatan || "",
-                tanggalRealtime: formatTanggalIndonesia(item.created_at),
-                rawDate: item.created_at || ""
-            }));
+            dataRekap = data.map(item => {
+                // Utamakan membaca properti tanggal kustom, fallback ke created_at, jika kosong beri tanggal hari ini agar tidak bertuliskan "Belum Ada Tanggal"
+                let rawDateSource = item["Tanggal Terbaru"] || item.created_at || new Date().toISOString();
+                return {
+                    nama: item.absensi ? item.absensi.toString().toUpperCase().trim() : "TANPA NAMA",
+                    hadir: parseInt(item.Hadir) || 0,
+                    tidakHadir: parseInt(item["Tidak Hadir"] || item.id_tidak_hadir || item.status) || 0,
+                    catatan: item.Catatan || "",
+                    tanggalRealtime: formatTanggalIndonesia(rawDateSource),
+                    rawDate: rawDateSource
+                };
+            });
         } else {
             dataRekap = [];
         }
@@ -206,26 +217,29 @@ async function updateCounter(index, tipe, value) {
         return;
     }
 
+    const waktuSekarangISO = new Date().toISOString();
+
     try {
-        // ISI PROSES UPSERT YANG BENAR PADA SCRIPT.JS (Cari bagian ini lalu sesuaikan)
-const { error: errorRekap } = await supabaseClient
-    .from("absensinsc")
-    .upsert({
-        absensi: nama,
-        Hadir: nHadir,
-        "Tidak Hadir": nTidakHadir.toString(), // HAPUS TULISAN nTarget = KARENA ERROR
-        Catatan: catatanTeks
-    }, {
-        onConflict: "absensi"
-    });
-            .eq('absensi', namaSiswa);
+        // PERBAIKAN: Melakukan Upsert data ter-update counter dengan bersih & menyertakan waktu terbaru
+        const { error } = await supabaseClient
+            .from("absensinsc")
+            .upsert({
+                absensi: namaSiswa,
+                Hadir: baruHadir,
+                "Tidak Hadir": baruTidakHadir.toString(),
+                Catatan: catatanKetik,
+                "Tanggal Terbaru": waktuSekarangISO
+            }, {
+                onConflict: "absensi"
+            });
 
         if (error) throw error;
         
         dataRekap[index].hadir = baruHadir;
         dataRekap[index].tidakHadir = baruTidakHadir;
         dataRekap[index].catatan = catatanKetik;
-        dataRekap[index].tanggalRealtime = formatTanggalIndonesia(new Date().toISOString());
+        dataRekap[index].tanggalRealtime = formatTanggalIndonesia(waktuSekarangISO);
+        dataRekap[index].rawDate = waktuSekarangISO;
         
         renderTable();
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
@@ -299,15 +313,18 @@ async function simpan() {
         nTidakHadir = (siswaExist.tidakHadir || 0) + (status === "Tidak Hadir" ? 1 : 0);
     }
 
+    const waktuSekarangISO = new Date().toISOString();
+
     try {
-        // 1. Simpan/Update Total Akumulasi ke tabel absensinsc
+        // PERBAIKAN: Mengosongkan syntax error nTarget = dan menyuntikkan data 'Tanggal Terbaru'
         const { error: errorRekap } = await supabaseClient
             .from("absensinsc")
             .upsert({
                 absensi: nama,
                 Hadir: nHadir,
-                "Tidak Hadir": nTarget = nTidakHadir.toString(),
-                Catatan: catatanTeks
+                "Tidak Hadir": nTidakHadir.toString(),
+                Catatan: catatanTeks,
+                "Tanggal Terbaru": waktuSekarangISO
             }, {
                 onConflict: "absensi"
             });
@@ -325,20 +342,22 @@ async function simpan() {
 
         if (errorLog) throw errorLog;
 
-        const realtimeSekarang = formatTanggalIndonesia(new Date().toISOString());
+        const realtimeSekarang = formatTanggalIndonesia(waktuSekarangISO);
 
         if (siswaExist) {
             siswaExist.hadir = nHadir;
             siswaExist.tidakHadir = nTidakHadir;
             siswaExist.catatan = catatanTeks;
             siswaExist.tanggalRealtime = realtimeSekarang;
+            siswaExist.rawDate = waktuSekarangISO;
         } else {
             dataRekap.push({
                 nama: nama,
                 hadir: nHadir,
                 tidakHadir: nTidakHadir,
                 catatan: catatanTeks,
-                tanggalRealtime: realtimeSekarang
+                tanggalRealtime: realtimeSekarang,
+                rawDate: waktuSekarangISO
             });
         }
 
