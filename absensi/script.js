@@ -48,12 +48,19 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
     });
+
+    // === TAMBAHKAN BARIS INI UNTUK MENGAKTIFKAN TOMBOL LOGIN ===
+    const loginForm = document.getElementById("loginForm");
+    if (loginForm) {
+        loginForm.addEventListener("submit", handleLogin);
+    }
+    // ========================================================
+
     checkLoginSession();
     muatDataDariCloud();
     updateJamRealtime();
     setInterval(updateJamRealtime, 1000);
 });
-
 // MEMUAT DATA DARI SUPABASE
 async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
