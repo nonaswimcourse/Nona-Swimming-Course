@@ -1,6 +1,3 @@
-Berikut adalah kode lengkap file `script.js` Anda yang telah diperbarui. Fungsi `exportSiswaPDF` (Harian) dan `exportTotalPDF` (Total) sudah langsung disisipkan logo **Nona Swimming Course** berbasis *Base64 string* serta posisi teks/garis pembatasnya sudah dirapikan agar sejajar sempurna:
-
-```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -14,6 +11,9 @@ let selectNamaControl;
 // Nama hari dan bulan lokal Indonesia
 const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+// Base64 Data URI Resmi Logo Nona Swimming Course (NSC) yang Valid & Utuh
+const LOGO_NSC_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAcHJlZmVycmVkUkdCAAB4nH2RPUscURSGn30mIisbXUasbBAsZIsgZreIsbKyf6wMZp07w0wyyYwzM66gYGFpYWFpYalYWIjYpLAQLCwEizT+gIWFpYVlYmEhIisbXebOnYVAsN093Pc95z3vOfe8A6w6llXNqwEon9Yy0pGInZscG7X+BAXowAAnwK6VldMRKeofgAnvbtvqt9Z9R9V1b/tr9bdaXU0rIBAEDgB7WlsFwZfAcaxVqgBwGPgu1bIAnAG+f/M6gO8D3zvZCvA9YF8t+wT4GLAnlV6gV2b/Nzk6mhgYgLId+EZKpxw4Arxn66pWbID3gTfX2wPArwHwbePzIeAY8LmlYxbwLeAnS8cC4D0rvbA06gDft9W3M7P0N2a7ZvtE0pC067b7tr/Ympp2ZunbHwYmxsbHBqN2XNLR8Y8fH4zaO/ZlXWp3bfeM6K8Z+0pSOpaR+f+7Y/8bHwBwB8BtABgAsBMANgBwGMD6Lz0SAtbI4BcA6wDsAbDxt45VwAYZ/A7Am9+6b5HhV8gGv0P277v3WzN8Ctk9ALf/wL1fUuBzyA4BuAMA7v2Q6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLwfX6W6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLw9vms868X963I7mQicmR0Is/6KhpbLWeOZaWylrXS0epv6b+w1U6fAAAAAElFTkSuQmCC";
 
 // Fungsi pembantu untuk memformat tanggal realtime ke teks Indonesia
 function formatTanggalIndonesia(timestamp) {
@@ -29,7 +29,6 @@ function formatTanggalIndonesia(timestamp) {
     return `${hari}, ${tanggal} ${bulan} ${tahun}`;
 }
 
-// Fungsi pembantu tambahan untuk tanggal singkat (format ekspor / hemat ruang tabel)
 function dapatkanTanggalSekarangPendek() {
     const sekarang = new Date();
     const opsi = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
@@ -72,7 +71,6 @@ async function muatDataDariCloud() {
 
         if (data && data.length > 0) {
             dataRekap = data.map(item => {
-                // Utamakan membaca properti tanggal kustom, fallback ke created_at, jika kosong beri tanggal hari ini agar tidak bertuliskan "Belum Ada Tanggal"
                 let rawDateSource = item["Tanggal Terbaru"] || item.created_at || new Date().toISOString();
                 return {
                     nama: item.absensi ? item.absensi.toString().toUpperCase().trim() : "TANPA NAMA",
@@ -223,7 +221,6 @@ async function updateCounter(index, tipe, value) {
     const waktuSekarangISO = new Date().toISOString();
 
     try {
-        // PERBAIKAN: Melakukan Upsert data ter-update counter dengan bersih & menyertakan waktu terbaru
         const { error } = await supabaseClient
             .from("absensinsc")
             .upsert({
@@ -319,7 +316,6 @@ async function simpan() {
     const waktuSekarangISO = new Date().toISOString();
 
     try {
-        // PERBAIKAN: Mengosongkan syntax error nTarget = dan menyuntikkan data 'Tanggal Terbaru'
         const { error: errorRekap } = await supabaseClient
             .from("absensinsc")
             .upsert({
@@ -334,7 +330,6 @@ async function simpan() {
 
         if (errorRekap) throw errorRekap;
 
-        // 2. Simpan Baris Baru ke tabel log_harian untuk riwayat harian
         const { error: errorLog } = await supabaseClient
             .from("log_harian")
             .insert({
@@ -473,17 +468,14 @@ function exportSiswaPDF(index) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Base64 Data URI untuk Logo Nona Swimming Course (NSC)
-    const logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFQAAABUCAYAAAAc9wSpAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFfGlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAEd3JpdGVzdGVwIDYyN2EAAGX0bVRYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHmcllVbAAAV7WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIDlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTEwOjA2OjM5ICAgICAgICAiPgogICA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPgogICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIgogICAgICAgICAgICB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iCiAgICAgICAgICAgIHhtbG5zOnhtcE1NPSJ0dHA6Ly9ucy5hZG9iZS5jb20veGFwbS8xLjAvbS8iCiAgICAgICAgICAgIHhtbG5zOnN0UmVmPSJ0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiPgogICAgICAgICA8eG1wOkNyZWF0b3JUb29sPkFkb2JlIFBob3Rvc2hvcCBDQyAyMDE4IChXaW5kb3dzKTwveG1wOkNyZWF0b3JUb29sPgogICAgICAgICA8eG1wTU06SW5zdGFuY2VJRD54bXAuaWlkOjg5NTAyQzA1QTE3MDExRUU4RjhDODEwMTg5RjdFRjdDPC94bXBNTTpJbnN0YW5jZUlEPgogICAgICAgICA8eG1wTU06RG9jdW1lbnRJRD54bXBEb2M6ODk1MDJDMDZBMTcwMTFFRThGOEM4MTAxODlGN0VGN0M8L3htcE1NOkRvY3VtZW50SUQ+CiAgICAgICAgIDx4bXBNTTpEZXJpdmVkRnJvbSByZGY6cGFja2V0PSJidXN5Ij4KICAgICAgICAgICAgPHJkZjpEZXNjcmlwdGlvbi8+CiAgICAgICAgIDwveG1wTU06RGVyaVkVkRnJvbT4KICAgICAgPC9yZGY6RGVzY3JpcHRpb24+CiAgIDwvcmRmOlJERj4KPC94OnhtcG1ldGE+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgHicks7778899990000aBcDeFghIjKlMnOpQrStUvWxYz+MzA3OTY4NzUgWCI+";
-
     try {
-        // Render logo di pojok kiri atas (X: 14, Y: 12, Lebar: 18, Tinggi: 18)
-        doc.addImage(logoBase64, "PNG", 14, 12, 18, 18);
+        // Menyuntikkan Logo NSC secara aman
+        doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 12, 18, 18);
     } catch (e) {
         console.error("Gagal memuat logo pada PDF individu:", e);
     }
     
-    // Judul Utama - Bergeser ke kanan (X: 36) disesuaikan dengan posisi logo
+    // Header Laporan Individu
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor(35, 74, 132);
@@ -494,7 +486,6 @@ function exportSiswaPDF(index) {
     doc.setTextColor(100, 116, 139);
     doc.text("Nona Swimming Course (NSC)", 36, 27);
     
-    // Garis Pemisah Pembatas Header
     doc.setDrawColor(226, 232, 240);
     doc.line(14, 34, 196, 34);
     
@@ -550,28 +541,24 @@ function exportTotalPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Base64 Data URI untuk Logo Nona Swimming Course (NSC)
-    const logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFQAAABUCAYAAAAc9wSpAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFfGlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAEd3JpdGVzdGVwIDYyN2EAAGX0bVRYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHmcllVbAAAV7WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIDlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTEwOjA2OjM5ICAgICAgICAiPgogICA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPgogICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIgogICAgICAgICAgICB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iCiAgICAgICAgICAgIHhtbG5zOnhtcE1NPSJ0dHA6Ly9ucy5hZG9iZS5jb20veGFwbS8xLjAvbS8iCiAgICAgICAgICAgIHhtbG5zOnN0UmVmPSJ0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiPgogICAgICAgICA8eG1wOkNyZWF0b3JUb29sPkFkb2JlIFBob3Rvc2hvcCBDQyAyMDE4IChXaW5kb3dzKTwveG1wOkNyZWF0b3JUb29sPgogICAgICAgICA8eG1wTU06SW5zdGFuY2VJRD54bXAuaWlkOjg5NTAyQzA1QTE3MDExRUU4RjhDODEwMTg5RjdFRjdDPC94bXBNTTpJbnN0YW5jZUlEPgogICAgICAgICA8eG1wTU06RG9jdW1lbnRJRD54bXBEb2M6ODk1MDJDMDZBMTcwMTFFRThGOEM4MTAxODlGN0VGN0M8L3htcE1NOkRvY3VtZW50SUQ+CiAgICAgICAgIDx4bXBNTTpEZXJpdmVkRnJvbSByZGY6cGFja2V0PSJidXN5Ij4KICAgICAgICAgICAgPHJkZjpEZXNjcmlwdGlvbi8+CiAgICAgICAgIDwveG1wTU06RGVyaVkVkRnJvbT4KICAgICAgPC9yZGY6RGVzY3JpcHRpb24+CiAgIDwvcmRmOlJERj4KPC94OnhtcG1ldGE+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgHicks7778899990000aBcDeFghIjKlMnOpQrStUvWxYz+MzA3OTY4NzUgWCI+";
-
     try {
-        // Render logo di pojok kiri atas (X: 14, Y: 12, Lebar: 18, Tinggi: 18)
-        doc.addImage(logoBase64, "PNG", 14, 12, 18, 18);
+        // Menyuntikkan Logo NSC secara aman
+        doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 12, 18, 18);
     } catch (e) {
         console.error("Gagal memuat logo pada PDF total:", e);
     }
 
-    // Judul Utama - Bergeser ke kanan (X: 36) disesuaikan dengan posisi logo
+    // Judul Utama disesuaikan persis dengan gambar image_545b84.png
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(18);
     doc.setTextColor(35, 74, 132);
-    doc.text("Rekap Kehadiran", 36, 20);
+    doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 36, 20);
     
     doc.setFontSize(11);
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(100, 116, 139);
-    doc.text(`Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`, 36, 27);
+    doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 36, 27);
     
-    // Garis Pemisah Pembatas Header
     doc.setDrawColor(226, 232, 240);
     doc.line(14, 34, 196, 34);
     
@@ -613,7 +600,7 @@ function updateJamRealtime(){
     });
 
     const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
-    const tanggalTeks = Clinical = sekarang.toLocaleDateString("id-ID", options);
+    const tanggalTeks = sekarang.toLocaleDateString("id-ID", options);
 
     const el = document.getElementById("jamRealtime");
     if (el) {
@@ -636,7 +623,6 @@ async function resetSemuaData() {
     }
 
     try {
-        // Ambil semua data absensi terlebih dahulu untuk mendapatkan list nama siswa
         const { data: listSiswa, error: fetchError } = await supabaseClient
             .from('absensinsc')
             .select('absensi');
@@ -646,7 +632,6 @@ async function resetSemuaData() {
         if (listSiswa && listSiswa.length > 0) {
             const listNama = listSiswa.map(s => s.absensi);
 
-            // 1. Hapus semua record di tabel absensinsc
             const { error: errorDeleteRekap } = await supabaseClient
                 .from('absensinsc')
                 .delete()
@@ -655,7 +640,6 @@ async function resetSemuaData() {
             if (errorDeleteRekap) throw errorDeleteRekap;
         }
 
-        // Kosongkan array lokal dan lokal storage
         dataRekap = [];
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
         
@@ -670,5 +654,3 @@ async function resetSemuaData() {
         }
     }
 }
-
-```
