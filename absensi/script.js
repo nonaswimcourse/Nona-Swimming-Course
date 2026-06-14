@@ -390,7 +390,6 @@ function showTab(tab, btn) {
     btn.classList.add("active");
 }
 
-// PERBAIKAN UTAMA: Manajemen unduhan universal aman untuk HP Android, iOS & PC Laptop
 function prosesUnduhFile(blob, namaFile) {
     try {
         const url = URL.createObjectURL(blob);
@@ -398,13 +397,11 @@ function prosesUnduhFile(blob, namaFile) {
         a.href = url;
         a.download = namaFile;
         
-        // Siasat elemen tersembunyi agar didukung penuh oleh komponen Chrome Mobile WebView
         a.style.display = 'none';
         document.body.appendChild(a);
         
         a.click();
         
-        // Membersihkan memory cache DOM sesudah trigger klik
         setTimeout(() => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
@@ -440,8 +437,9 @@ function exportSiswaPDF(index) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
+    // PERBAIKAN: Memindahkan logo kecil ke pojok kanan atas (X: 178) agar tidak menimpa teks judul
     try {
-        doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 12, 18, 18);
+        doc.addImage(LOGO_NSC_BASE64, "PNG", 178, 12, 18, 18);
     } catch (e) {
         console.error("Gagal memuat logo pada PDF individu:", e);
     }
@@ -449,12 +447,12 @@ function exportSiswaPDF(index) {
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor(35, 74, 132);
-    doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 36, 20);
+    doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
     
     doc.setFontSize(11);
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(100, 116, 139);
-    doc.text("Nona Swimming Course (NSC)", 36, 27);
+    doc.text("Nona Swimming Course (NSC)", 14, 27);
     
     doc.setDrawColor(226, 232, 240);
     doc.line(14, 34, 196, 34);
@@ -511,8 +509,9 @@ function exportTotalPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
+    // PERBAIKAN: Memindahkan logo kecil ke pojok kanan atas (X: 178) agar judul laporan rapi di sebelah kiri
     try {
-        doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 12, 18, 18);
+        doc.addImage(LOGO_NSC_BASE64, "PNG", 178, 12, 18, 18);
     } catch (e) {
         console.error("Gagal memuat logo pada PDF total:", e);
     }
@@ -520,12 +519,12 @@ function exportTotalPDF() {
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(18);
     doc.setTextColor(35, 74, 132);
-    doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 36, 20);
+    doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
     
     doc.setFontSize(11);
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(100, 116, 139);
-    doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 36, 27);
+    doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 14, 27);
     
     doc.setDrawColor(226, 232, 240);
     doc.line(14, 34, 196, 34);
@@ -568,7 +567,7 @@ function updateJamRealtime(){
     });
 
     const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
-    const tanggalTeks = sekarang.toLocaleDateString("id-ID", options);
+    const tanggalTeks = Clinical = sekarang.toLocaleDateString("id-ID", options);
 
     const el = document.getElementById("jamRealtime");
     if (el) {
