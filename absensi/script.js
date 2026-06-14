@@ -441,14 +441,17 @@ function exportSiswaPDF(index) {
     const doc = new jsPDF();
 
     try {
-        doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 10, 18, 18);
+        // Tampilkan logo di sebelah kiri (karena sejajar judul)
+        doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 10, 18, 24);
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(16);
         doc.setTextColor(35, 74, 132);
-        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 43, 19); 
+        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 43, 19); // Digeser ke kanan agar ada ruang untuk logo
 
         doc.setFontSize(11);
         doc.setFont("Helvetica", "normal");
+        // Gunakan setTextColor dengan array RGB yang sama untuk konsistensi
+        doc.setTextColor(35, 74, 132);
         doc.text("Nona Swimming Course (NSC)", 43, 26);
         doc.line(14, 34, 196, 34);
 
@@ -461,13 +464,20 @@ function exportSiswaPDF(index) {
             ["Catatan", item.catatan || "-"]
         ];
 
-        doc.autoTable({ startY: 40, head: [["Komponen", "Keterangan"]], body: rows, theme: "striped" });
+        doc.autoTable({ 
+            startY: 40, 
+            head: [["Komponen", "Keterangan"]], 
+            body: rows, 
+            theme: "striped",
+            // Gunakan warna NSC untuk header tabel
+            headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255] }
+        });
         doc.save(`Absensi_${item.nama}.pdf`);
     } catch(e) {
+        // Fallback jika terjadi error
         doc.save(`Absensi_${item.nama}.pdf`);
     }
 }
-
 function exportTotalExcel() {
     if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
     const worksheetData = [
@@ -509,7 +519,7 @@ async function exportTotalPDF() {
         logo.onload = function () {
 
             // Header
-            doc.addImage(logo, "PNG", 14, 8, 20, 20);
+            doc.addImage(logo, "PNG", 14, 8, 18, 20);
 
             doc.setFontSize(18);
             doc.setFont(undefined, "bold");
