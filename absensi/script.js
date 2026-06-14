@@ -1,3 +1,8 @@
+Berikut adalah file `script.js` utuh yang telah dirapikan, menggabungkan fitur baru tombol **Reset Rekap** () dan tombol **Keluarkan Siswa** (), sekaligus memperbaiki beberapa baris kode yang terpotong serta menambahkan fungsi sinkronisasi otomatis `perbaruiPilihanNamaSiswa()` ke dalam *TomSelect*.
+
+Silakan salin seluruh kode di bawah ini untuk menggantikan semua isi file `script.js` Anda:
+
+```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -52,12 +57,27 @@ function updateJamRealtime() {
     }
 }
 
-// Cari bagian ini di script.js Anda dan ubah menjadi true:
-selectNamaControl = new TomSelect("#nama", {
-    create: true, // <--- UBAH DARI false MENJADI true
-    sortField: { field: "text", direction: "asc" },
-    placeholder: "Ketik / Pilih Nama Siswa...",
-    // ... sisa kode di bawahnya biarkan sama ...
+// Fungsi untuk menyinkronkan daftar pilihan nama di input drop-down berdasarkan database
+function perbaruiPilihanNamaSiswa() {
+    if (!selectNamaControl) return;
+    
+    const nilaiSekarang = selectNamaControl.getValue();
+    selectNamaControl.clearOptions();
+    
+    dataRekap.forEach(item => {
+        selectNamaControl.addOption({ value: item.nama, text: item.nama });
+    });
+    
+    selectNamaControl.refreshOptions(false);
+    selectNamaControl.setValue(nilaiSekarang);
+}
+
+// Event Listener saat halaman web selesai dimuat
+document.addEventListener("DOMContentLoaded", function() {
+    selectNamaControl = new TomSelect("#nama", {
+        create: true, // Diaktifkan agar admin bisa mengetik langsung nama siswa baru
+        sortField: { field: "text", direction: "asc" },
+        placeholder: "Ketik / Pilih Nama Siswa...",
         allowEmptyOption: true,
         onChange: function(value) {
             if(value) {
@@ -169,6 +189,7 @@ function checkLoginSession() {
     }
 }
 
+// 1. UPDATE TAMPILAN TABEL (Menampung fitur Reset Rekap dan Keluarkan Siswa)
 function renderTable() {
     let html = "";
     if(!dataRekap || dataRekap.length === 0) {
@@ -200,9 +221,12 @@ function renderTable() {
                 <td style="color: #475569; font-size: 14px;">${item.tanggalRealtime}</td>
                 <td>
                     <div class="actions-cell">
-                        <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
-                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>
-                        <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
+                        <button class="btn-action btn-excel" title="Download Excel" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
+                        <button class="btn-action btn-pdf" title="Download PDF" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>
+                        
+                        <button class="btn-action btn-delete" title="Reset Angka Rekapan" id="btnResetSiswa-${index}" onclick="resetRekapSiswa(${index})"><i class="fa fa-rotate-left"></i></button>
+                        
+                        <button class="btn-action btn-kick" title="Keluarkan Siswa (Hapus Total)" id="btnKick-${index}" onclick="keluarkanSiswa(${index})"><i class="fa fa-user-minus"></i></button>
                     </div>
                 </td>
             </tr>`;
@@ -210,6 +234,81 @@ function renderTable() {
     }
     document.getElementById("tbody").innerHTML = html;
     document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
+    
+    // Sinkronkan nama ke drop-down menu input
+    perbaruiPilihanNamaSiswa();
+}
+
+// 2. FUNGSI BARU: HANYA MERESET DATA REKAPAN (Nama tetep ada di input & tabel)
+async function resetRekapSiswa(index) {
+    const namaSiswa = dataRekap[index].nama;
+    if (!confirm(`Apakah Anda yakin ingin mereset angka rekapan ${namaSiswa} kembali ke 0?\n(Nama siswa TIDAK akan dihapus dari sistem)`)) return;
+
+    const btnResetSiswa = document.getElementById(`btnResetSiswa-${index}`);
+    if(btnResetSiswa) btnResetSiswa.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+    const waktuSekarangISO = new Date().toISOString();
+
+    try {
+        const { error } = await supabaseClient
+            .from("absensinsc")
+            .upsert({
+                absensi: namaSiswa,
+                Hadir: 0,
+                "Tidak Hadir": "0",
+                Catatan: "Data rekapan direset oleh Admin",
+                "Tanggal Terbaru": waktuSekarangISO
+            }, {
+                onConflict: "absensi"
+            });
+
+        if (error) throw error;
+        
+        // Update data di layar tanpa menghapus barisnya
+        dataRekap[index].hadir = 0;
+        dataRekap[index].tidakHadir = 0;
+        dataRekap[index].catatan = "Data rekapan direset oleh Admin";
+        dataRekap[index].tanggalRealtime = formatTanggalIndonesia(waktuSekarangISO);
+        dataRekap[index].rawDate = waktuSekarangISO;
+        
+        renderTable();
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        alert(`Data rekapan ${namaSiswa} berhasil direset ke 0!`);
+    } catch (err) {
+        alert("Gagal mereset data di Supabase: " + err.message);
+    } finally {
+        if(btnResetSiswa) btnResetSiswa.innerHTML = '<i class="fa fa-rotate-left"></i>';
+    }
+}
+
+// 3. FUNGSI EDITAN: KELUARKAN SISWA (Hapus total dari database & hilangkan dari input)
+async function keluarkanSiswa(index) {
+    const namaSiswa = dataRekap[index].nama;
+    if (!confirm(`⚠️ PERINGATAN KELUARKAN SISWA!\nApakah Anda yakin ingin mengeluarkan ${namaSiswa}?\n\nNama siswa ini akan DIHAPUS TOTAL dari database dan hilang otomatis dari daftar menu input.`)) return;
+    
+    const btnKick = document.getElementById(`btnKick-${index}`);
+    if(btnKick) btnKick.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+    try {
+        // Hapus permanen dari database Supabase
+        const { error } = await supabaseClient
+            .from('absensinsc')
+            .delete()
+            .eq('absensi', namaSiswa);
+
+        if (error) throw error;
+
+        // Hapus dari memori lokal aplikasi
+        dataRekap.splice(index, 1);
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        
+        // Render ulang tabel (otomatis memperbarui menu input)
+        renderTable();
+        alert(`Siswa bernama ${namaSiswa} telah resmi dikeluarkan dari sistem data.`);
+    } catch (err) {
+        alert("Gagal mengeluarkan siswa dari Supabase: " + err.message);
+        if(btnKick) btnKick.innerHTML = '<i class="fa fa-user-minus"></i>';
+    }
 }
 
 async function updateCounter(index, tipe, value) {
@@ -239,8 +338,8 @@ async function updateCounter(index, tipe, value) {
     }
 
     if (baruHadir === 0 && baruTidakHadir === 0) {
-        alert(`Rekap data ${namaSiswa} bernilai 0. Siswa akan otomatis dihapus dari sistem.`);
-        await deleteRow(index);
+        alert(`Rekap data ${namaSiswa} bernilai 0. Siswa akan otomatis dibersihkan lewat sistem.`);
+        await resetRekapSiswa(index);
         return;
     }
 
@@ -271,30 +370,6 @@ async function updateCounter(index, tipe, value) {
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
     } catch (err) {
         alert("Gagal memperbarui data ke Supabase: " + err.message);
-    }
-}
-
-async function deleteRow(index) {
-    const namaSiswa = dataRekap[index].nama;
-    if (!confirm(`Hapus data rekap ${namaSiswa} dari sistem Supabase?`)) return;
-    
-    const btnDelete = document.getElementById(`btnDelete-${index}`);
-    if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-
-    try {
-        const { error } = await supabaseClient
-            .from('absensinsc')
-            .delete()
-            .eq('absensi', namaSiswa);
-
-        if (error) throw error;
-
-        dataRekap.splice(index, 1);
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-        renderTable();
-    } catch (err) {
-        alert("Gagal menghapus data dari Supabase: " + err.message);
-        if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-trash"></i>';
     }
 }
 
@@ -355,7 +430,7 @@ async function simpan() {
 
         if (siswaExist) {
             siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTidakHadir;
+            siswaExist.tidakHadir = nTotalTidakHadir;
             siswaExist.catatan = catatanTeks;
             siswaExist.tanggalRealtime = realtimeSekarang;
             siswaExist.rawDate = waktuSekarangISO;
@@ -444,10 +519,8 @@ function exportSiswaPDF(index) {
     logo.src = "Logo percobaan.png";
 
     logo.onload = function () {
-        // LOGO: Ukuran ideal perisai 18x24mm (X=14, Y=10)
         doc.addImage(logo, "PNG", 14, 10, 18, 24);
 
-        // JUDUL KOP (X digeser ke 38 agar tidak menabrak logo)
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(16);
         doc.setTextColor(35, 74, 132);
@@ -513,7 +586,6 @@ function exportTotalPDF() {
     logo.src = "Logo percobaan.png";
 
     logo.onload = function () {
-        // LOGO: Ukuran ideal perisai 18x24mm
         doc.addImage(logo, "PNG", 14, 10, 18, 24);
 
         doc.setFont("Helvetica", "bold");
@@ -597,3 +669,5 @@ async function resetSemuaData() {
         }
     }
 }
+
+```
