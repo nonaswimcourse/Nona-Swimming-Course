@@ -1,3 +1,6 @@
+Berikut adalah seluruh kode file `script.js` Anda yang sudah saya edit secara utuh dari atas sampai bawah. Fungsi `simpan()` telah diperbarui agar merekam log harian ke tabel `log_harian` tanpa merusak atau menghapus fungsi `showTab`, `prosesUnduhFile`, dan fungsi ekspor lainnya di bawahnya:
+
+```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -296,6 +299,7 @@ async function simpan() {
     }
 
     try {
+        // 1. Simpan/Update Total Akumulasi ke tabel absensinsc
         const { error: errorRekap } = await supabaseClient
             .from("absensinsc")
             .upsert({
@@ -309,6 +313,7 @@ async function simpan() {
 
         if (errorRekap) throw errorRekap;
 
+        // 2. Simpan Baris Baru ke tabel log_harian untuk riwayat harian
         const { error: errorLog } = await supabaseClient
             .from("log_harian")
             .insert({
@@ -437,7 +442,7 @@ function exportSiswaExcel(index) {
     XLSX.utils.book_append_sheet(wb, ws, "Absensi Siswa");
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([wbout], { type: 'application/octet-stream' });
-    prosesUnduhFile(blob, `Absensi_${item.nama.replace(/\\s+/g, '_')}.xlsx`);
+    prosesUnduhFile(blob, `Absensi_${item.nama.replace(/\s+/g, '_')}.xlsx`);
 }
 
 function exportSiswaPDF(index) {
@@ -477,7 +482,7 @@ function exportSiswaPDF(index) {
     });
     
     const blob = doc.output("blob");
-    prosesUnduhFile(blob, `Absensi_${item.nama.replace(/\\s+/g, '_')}.pdf`);
+    prosesUnduhFile(blob, `Absensi_${item.nama.replace(/\s+/g, '_')}.pdf`);
 }
 
 function exportTotalExcel() {
@@ -556,7 +561,6 @@ function updateJamRealtime(){
         second:"2-digit"
     });
 
-    const tanggal =...
     const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
     const tanggalTeks = sekarang.toLocaleDateString("id-ID", options);
 
@@ -568,3 +572,5 @@ function updateJamRealtime(){
         `;
     }
 }
+
+```
