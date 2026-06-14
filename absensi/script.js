@@ -636,7 +636,7 @@ function exportTotalPDF() {
         prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
     };
 }
-}
+
 async function resetSemuaData() {
     if (!confirm("⚠️ PERINGATAN KERAS!\nApakah Anda yakin ingin MENGHAPUS TOTAL semua data absensi siswa dari database cloud Supabase?\n\nData yang dihapus tidak bisa dikembalikan!")) return;
     if (!confirm("Konfirmasi terakhir: Benar-benar ingin mengosongkan semua rekap data?")) return;
