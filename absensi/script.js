@@ -438,6 +438,7 @@ function exportSiswaPDF(index) {
     const doc = new jsPDF();
     
     // PERBAIKAN: Memindahkan logo kecil ke pojok kanan atas (X: 178) agar tidak menimpa teks judul
+    <img src="Logo percobaan.png" alt="Logo NSC" style="height: 55px; width: auto; object-fit: contain;">
     try {
         doc.addImage(LOGO_NSC_BASE64, "PNG", 178, 12, 18, 18);
     } catch (e) {
