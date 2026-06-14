@@ -448,24 +448,28 @@ function exportSiswaPDF(index) {
         const doc = new jsPDF();
 
         try {
-            // Tampilkan logo di sebelah kiri atas (Lebar: 18, Tinggi: 18, Posisi Y: 10 artinya batas bawah gambar ada di Y: 28)
+            // Tampilkan logo di sebelah kiri atas (Lebar: 18, Tinggi: 25, Posisi Y: 10 -> Batas bawah Y: 35)
             doc.addImage(img, "PNG", 14, 10, 18, 25);
             
-            // JUDUL UTAMA - Diturunkan ke Y: 20 agar pas di tengah-tengah tinggi logo
+            // ====================================================================
+            // PERBAIKAN POSISI JUDUL (Diturunkan agar sejajar vertikal dengan logo)
+            // ====================================================================
+            
+            // JUDUL UTAMA - Diturunkan ke Y: 23 agar pas di tengah-tengah tinggi logo
             doc.setFont("Helvetica", "bold");
             doc.setFontSize(14);
             doc.setTextColor(35, 74, 132); // Warna Biru NSC
-            doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 20); 
+            doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 23); 
 
-            // SUB-JUDUL - Diturunkan ke Y: 26 agar jaraknya proporsional di bawah judul
+            // SUB-JUDUL - Diturunkan ke Y: 30 agar jaraknya proporsional di bawah judul
             doc.setFontSize(10);
             doc.setFont("Helvetica", "normal");
             doc.setTextColor(148, 163, 184); // Warna Abu-abu tipis
-            doc.text("Nona Swimming Course (NSC)", 38, 26);
+            doc.text("Nona Swimming Course (NSC)", 38, 30);
             
-            // Garis Pembatas Horisontal - Diturunkan sedikit ke Y: 34 agar tidak terlalu mepet tulisan
+            // Garis Pembatas Horisontal - Diturunkan ke Y: 40 agar memberi ruang dari logo & teks
             doc.setDrawColor(241, 245, 249); 
-            doc.line(14, 34, 196, 34);
+            doc.line(14, 40, 196, 40);
 
             // Data Susunan Baris Tabel
             const rows = [
@@ -477,9 +481,9 @@ function exportSiswaPDF(index) {
                 ["Catatan Khusus", item.catatan || "-"]
             ];
 
-            // Membuat Tabel dengan Style Bersih & Elegan Sesuai Foto
+            // Membuat Tabel dengan Style Bersih & Elegan
             doc.autoTable({ 
-                startY: 40, // Jarak mulai tabel diturunkan ke 40 agar memberikan ruang setelah garis pembatas
+                startY: 46, // Diubah ke 46 agar ada jarak yang pas setelah garis pembatas (Y: 40)
                 head: [["Komponen Data", "Detail Keterangan"]], 
                 body: rows, 
                 theme: "striped",
@@ -534,7 +538,7 @@ function exportSiswaPDF(index) {
         docBiasa.save(`Absensi_${item.nama}.pdf`);
     };
 }
-// PERBAIKAN: Menggunakan LOGO_NSC_BASE64 secara langsung, instan & anti-macet!
+
 // PERBAIKAN: Menggunakan Logo percobaan.png secara langsung, rapi, & sejajar vertikal
 function exportTotalPDF() {
     if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
@@ -549,24 +553,28 @@ function exportTotalPDF() {
         const doc = new jsPDF();
         
         try {
-            // Tampilkan logo di sebelah kiri atas (Lebar: 18, Tinggi: 18, Posisi Y: 10)
+            // Tampilkan logo di sebelah kiri atas (Lebar: 18, Tinggi: 25, Posisi Y: 10 -> Batas bawah Y: 35)
             doc.addImage(img, "PNG", 14, 10, 18, 25);
             
-            // JUDUL UTAMA - Diturunkan ke Y: 20 agar pas di tengah-tengah tinggi logo
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(14); // Disamakan ukurannya agar konsisten dengan PDF individu
-            doc.setTextColor(35, 74, 132); // Warna Biru NSC
-            doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 20);
+            // ====================================================================
+            // PERBAIKAN POSISI JUDUL (Diturunkan agar sejajar vertikal dengan logo)
+            // ====================================================================
             
-            // SUB-JUDUL - Diturunkan ke Y: 26 agar jaraknya proporsional di bawah judul
+            // JUDUL UTAMA - Diturunkan ke Y: 23 agar pas di tengah-tengah tinggi logo
+            doc.setFont("Helvetica", "bold");
+            doc.setFontSize(14); 
+            doc.setTextColor(35, 74, 132); // Warna Biru NSC
+            doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 23);
+            
+            // SUB-JUDUL - Diturunkan ke Y: 30 agar jaraknya proporsional di bawah judul
             doc.setFontSize(10);
             doc.setFont("Helvetica", "normal");
             doc.setTextColor(148, 163, 184); // Warna Abu-abu tipis
-            doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 26);
+            doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 30);
             
-            // Garis Pembatas Horisontal - Diturunkan ke Y: 34 agar tidak terlalu mepet tulisan
+            // Garis Pembatas Horisontal - Diturunkan ke Y: 40 agar memberi ruang dari logo & teks
             doc.setDrawColor(241, 245, 249); 
-            doc.line(14, 34, 196, 34);
+            doc.line(14, 40, 196, 40);
             
             // Menyusun Data Baris Tabel Rekap Total
             const tableRows = [];
@@ -578,9 +586,9 @@ function exportTotalPDF() {
                 ]);
             });
             
-            // Membuat Tabel Total dengan Jarak Mulai (startY) di koordinat 40
+            // Membuat Tabel Total dengan Jarak Mulai (startY) di koordinat 46 (6mm setelah garis)
             doc.autoTable({
-                startY: 40,
+                startY: 46,
                 head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
                 body: tableRows,
                 theme: "striped",
@@ -627,6 +635,7 @@ function exportTotalPDF() {
         const blob = docBiasa.output("blob");
         prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
     };
+}
 }
 async function resetSemuaData() {
     if (!confirm("⚠️ PERINGATAN KERAS!\nApakah Anda yakin ingin MENGHAPUS TOTAL semua data absensi siswa dari database cloud Supabase?\n\nData yang dihapus tidak bisa dikembalikan!")) return;
