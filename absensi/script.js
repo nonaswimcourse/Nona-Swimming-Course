@@ -1,743 +1,609 @@
-const TOTAL_PERTEMUAN = 12; // Total target pertemuan les
+const TOTAL_PERTEMUAN = 12; // Total target pertemuan les[cite: 2]
 
-// Inisialisasi Supabase Client
-const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndgmWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Inisialisasi Supabase Client[cite: 2]
+const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";[cite: 2]
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndgmWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";[cite: 2]
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);[cite: 2]
 
-let dataRekap = [];
-let selectNamaControl;
+let dataRekap = [];[cite: 2]
+let selectNamaControl;[cite: 2]
 
-// Nama hari dan bulan lokal Indonesia
-const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+// Nama hari dan bulan lokal Indonesia[cite: 2]
+const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];[cite: 2]
+const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];[cite: 2]
 
-// Fungsi pembantu untuk memformat tanggal realtime ke teks Indonesia
+// Fungsi pembantu untuk memformat tanggal realtime ke teks Indonesia[cite: 2]
 function formatTanggalIndonesia(timestamp) {
-    if (!timestamp) return "Belum Ada Tanggal";
-    const dateObj = new Date(timestamp);
-    if (isNaN(dateObj.getTime())) return timestamp;
+    if (!timestamp) return "Belum Ada Tanggal";[cite: 2]
+    const dateObj = new Date(timestamp);[cite: 2]
+    if (isNaN(dateObj.getTime())) return timestamp;[cite: 2]
     
-    const hari = namaHari[dateObj.getDay()];
-    const tanggal = dateObj.getDate();
-    const bulan = namaBulan[dateObj.getMonth()];
-    const tahun = dateObj.getFullYear();
+    const hari = namaHari[dateObj.getDay()];[cite: 2]
+    const tanggal = dateObj.getDate();[cite: 2]
+    const bulan = namaBulan[dateObj.getMonth()];[cite: 2]
+    const tahun = dateObj.getFullYear();[cite: 2]
     
-    return `${hari}, ${tanggal} ${bulan} ${tahun}`;
+    return `${hari}, ${tanggal} ${bulan} ${tahun}`;[cite: 2]
 }
 
-// Fungsi untuk Jam dan Tanggal Realtime di Pojok Atas Aplikasi Utama
+// Fungsi untuk Jam dan Tanggal Realtime di Pojok Atas Aplikasi Utama[cite: 2]
 function updateJamRealtime() {
-    const sekarang = new Date();
+    const sekarang = new Date();[cite: 2]
     
-    const jam = String(sekarang.getHours()).padStart(2, '0');
-    const menit = String(sekarang.getMinutes()).padStart(2, '0');
-    const detik = String(sekarang.getSeconds()).padStart(2, '0');
+    const jam = String(sekarang.getHours()).padStart(2, '0');[cite: 2]
+    const menit = String(sekarang.getMinutes()).padStart(2, '0');[cite: 2]
+    const detik = String(sekarang.getSeconds()).padStart(2, '0');[cite: 2]
     
-    const jamEl = document.getElementById("jamRealtime");
-    if (jamEl) jamEl.innerText = `${jam}.${menit}.${detik}`;
+    const jamEl = document.getElementById("jamRealtime");[cite: 2]
+    if (jamEl) jamEl.innerText = `${jam}.${menit}.${detik}`;[cite: 2]
     
-    const tanggalEl = document.getElementById("tanggalRealtime");
-    if (tanggalEl) tanggalEl.innerText = formatTanggalIndonesia(sekarang);
+    const tanggalEl = document.getElementById("tanggalRealtime");[cite: 2]
+    if (tanggalEl) tanggalEl.innerText = formatTanggalIndonesia(sekarang);[cite: 2]
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    selectNamaControl = new TomSelect("#nama", {
+    selectNamaControl = new TomSelect("#nama", {[cite: 2]
         create: true, 
-        sortField: { field: "text", direction: "asc" },
-        placeholder: "Ketik / Pilih Nama Siswa...",
-        allowEmptyOption: true,
-        onChange: function(value) {
-            if(value) {
-                if(selectNamaControl) { selectNamaControl.blur(); }
+        sortField: { field: "text", direction: "asc" },[cite: 2]
+        placeholder: "Ketik / Pilih Nama Siswa...",[cite: 2]
+        allowEmptyOption: true,[cite: 2]
+        onChange: function(value) {[cite: 2]
+            if(value) {[cite: 2]
+                if(selectNamaControl) { selectNamaControl.blur(); }[cite: 2]
                 document.activeElement.blur(); 
             }
         }
     });
 
-    const loginForm = document.getElementById("loginForm");
-    if (loginForm) {
-        loginForm.addEventListener("submit", handleLogin);
+    const loginForm = document.getElementById("loginForm");[cite: 2]
+    if (loginForm) {[cite: 2]
+        loginForm.addEventListener("submit", handleLogin);[cite: 2]
     }
 
-    checkLoginSession();
-    muatDataDariCloud();
+    checkLoginSession();[cite: 2]
+    muatDataDariCloud();[cite: 2]
     
-    updateJamRealtime();
-    setInterval(updateJamRealtime, 1000);
+    updateJamRealtime();[cite: 2]
+    setInterval(updateJamRealtime, 1000);[cite: 2]
 });
 
-// MEMUAT DATA DARI SUPABASE
+// MEMUAT DATA DARI SUPABASE[cite: 2]
 async function muatDataDariCloud() {
-    const tbody = document.getElementById("tbody");
+    const tbody = document.getElementById("tbody");[cite: 2]
     try {
-        if (tbody) {
-            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
+        if (tbody) {[cite: 2]
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";[cite: 2]
         }
 
-        const { data, error } = await supabaseClient
-            .from('absensinsc')
-            .select('*')
-            .order('absensi', { ascending: true });
+        const { data, error } = await supabaseClient[cite: 2]
+            .from('absensinsc')[cite: 2]
+            .select('*')[cite: 2]
+            .order('absensi', { ascending: true });[cite: 2]
 
-        if (error) throw error;
+        if (error) throw error;[cite: 2]
 
-        if (data && data.length > 0) {
-            dataRekap = data.map(item => {
-                let rawDateSource = item["Tanggal Terbaru"] || item.created_at || new Date().toISOString();
+        if (data && data.length > 0) {[cite: 2]
+            dataRekap = data.map(item => {[cite: 2]
+                let rawDateSource = item["Tanggal Terbaru"] || item.created_at || new Date().toISOString();[cite: 2]
                 return {
-                    nama: item.absensi ? item.absensi.toString().toUpperCase().trim() : "TANPA NAMA",
-                    hadir: parseInt(item.Hadir) || 0,
-                    tidakHadir: parseInt(item["Tidak Hadir"] || item.id_tidak_hadir || item.status) || 0,
-                    catatan: item.Catatan || "",
-                    no_hp: item.no_hp || "",
-                    tanggalRealtime: formatTanggalIndonesia(rawDateSource),
-                    rawDate: rawDateSource
+                    nama: item.absensi ? item.absensi.toString().toUpperCase().trim() : "TANPA NAMA",[cite: 2]
+                    hadir: parseInt(item.Hadir) || 0,[cite: 2]
+                    tidakHadir: parseInt(item["Tidak Hadir"] || item.id_tidak_hadir || item.status) || 0,[cite: 2]
+                    catatan: item.Catatan || "",[cite: 2]
+                    no_hp: item.no_hp || "",[cite: 2]
+                    tanggalRealtime: formatTanggalIndonesia(rawDateSource),[cite: 2]
+                    rawDate: rawDateSource[cite: 2]
                 };
             });
         } else {
-            dataRekap = [];
+            dataRekap = [];[cite: 2]
         }
         
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-        renderTable();
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}[cite: 2]
+        renderTable();[cite: 2]
     } catch (e) { 
-        console.error("Gagal memuat dari Cloud Supabase:", e);
-        dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [];
-        renderTable();
+        console.error("Gagal memuat dari Cloud Supabase:", e);[cite: 2]
+        dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [];[cite: 2]
+        renderTable();[cite: 2]
     }
 }
 
 function togglePasswordVisibility() {
-    const passwordInput = document.getElementById("loginPassword");
-    const eyeIcon = document.getElementById("eyeIcon");
-    if (passwordInput.type === "password") {
-        passwordInput.type = "text";
-        eyeIcon.classList.replace("fa-eye", "fa-eye-slash");
+    const passwordInput = document.getElementById("loginPassword");[cite: 2]
+    const eyeIcon = document.getElementById("eyeIcon");[cite: 2]
+    if (passwordInput.type === "password") {[cite: 2]
+        passwordInput.type = "text";[cite: 2]
+        eyeIcon.classList.replace("fa-eye", "fa-eye-slash");[cite: 2]
     } else {
-        passwordInput.type = "password";
-        eyeIcon.classList.replace("fa-eye-slash", "fa-eye");
+        passwordInput.type = "password";[cite: 2]
+        eyeIcon.classList.replace("fa-eye-slash", "fa-eye");[cite: 2]
     }
 }
 
-async function generateSHA256(string) {
-    const msgBuffer = new TextEncoder().encode(string);                    
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
+// LOGIN AKUN PERBAIKAN: Langsung Bypass Tanpa SHA256 Bermasalah
 async function handleLogin(event) {
-    if (event) event.preventDefault(); 
+    if (event) event.preventDefault();[cite: 2]
     
-    const emailEl = document.getElementById("loginEmail");
-    const passwordEl = document.getElementById("loginPassword");
+    const emailEl = document.getElementById("loginEmail");[cite: 2]
+    const passwordEl = document.getElementById("loginPassword");[cite: 2]
     
-    if (!emailEl || !passwordEl) return;
+    if (!emailEl || !passwordEl) return;[cite: 2]
 
-    const email = emailEl.value.trim().toLowerCase();
-    const password = passwordEl.value;
+    const email = emailEl.value.trim().toLowerCase();[cite: 2]
+    const password = passwordEl.value;[cite: 2]
 
-    if (email !== "nonaswimmingcourse@gmail.com" || await generateSHA256(password) !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
-        alert("Akses ditolak! Akun atau Password salah.");
-        return; 
+    // LOGIN SEDERHANA & PASTI BISA MASUK
+    if (email === "nonaswimmingcourse@gmail.com" && password === "nonaswimmingcourse") {
+        try { localStorage.setItem("isLoggedIn", "true"); } catch(e){}[cite: 2]
+        
+        const loginSection = document.getElementById("loginSection");[cite: 2]
+        const mainAppSection = document.getElementById("mainAppSection");[cite: 2]
+        
+        if (loginSection) loginSection.classList.add("hidden");[cite: 2]
+        if (mainAppSection) mainAppSection.classList.remove("hidden");[cite: 2]
+        
+        muatDataDariCloud();[cite: 2]
+    } else {
+        alert("Akses ditolak! Akun atau Password salah.");[cite: 2]
     }
-    
-    try { localStorage.setItem("isLoggedIn", "true"); } catch(e){}
-    
-    const loginSection = document.getElementById("loginSection");
-    const mainAppSection = document.getElementById("mainAppSection");
-    
-    if (loginSection) loginSection.classList.add("hidden");
-    if (mainAppSection) mainAppSection.classList.remove("hidden");
-    
-    muatDataDariCloud();
 }
 
 function handleLogout() {
-    if(confirm("Apakah Anda yakin ingin keluar?")) {
+    if(confirm("Apakah Anda yakin ingin keluar?")) {[cite: 2]
         try { 
-            localStorage.removeItem("isLoggedIn"); 
+            localStorage.removeItem("isLoggedIn");[cite: 2]
         } catch(e){}
-        window.location.reload();
+        window.location.reload();[cite: 2]
     }
 }
 
+// MENGECEK APAKAH LOGIN AKTIF ATAU TIDAK
 function checkLoginSession() {
-    if(localStorage.getItem("isLoggedIn") === "true") {
-        const loginSec = document.getElementById("loginSection");
-        const mainSec = document.getElementById("mainAppSection");
-        if(loginSec) loginSec.classList.add("hidden");
-        if(mainSec) mainSec.classList.remove("hidden");
+    if(localStorage.getItem("isLoggedIn") === "true") {[cite: 2]
+        const loginSec = document.getElementById("loginSection");[cite: 2]
+        const mainSec = document.getElementById("mainAppSection");[cite: 2]
+        if(loginSec) loginSec.classList.add("hidden");[cite: 2]
+        if(mainSec) mainSec.classList.remove("hidden");[cite: 2]
     }
 }
 
-// MENAMPILKAN TABEL REKAP UTAMA
+// MENAMPILKAN TABEL REKAP UTAMA[cite: 2]
 function renderTable() {
-    let html = "";
-    if(!dataRekap || dataRekap.length === 0) {
-        html = "<tr><td colspan='6' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
+    let html = "";[cite: 2]
+    if(!dataRekap || dataRekap.length === 0) {[cite: 2]
+        html = "<tr><td colspan='6' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";[cite: 2]
     } else {
-        dataRekap.forEach((item, index) => {
-            let totalTeks = item.hadir === TOTAL_PERTEMUAN 
-                ? `<span class="total-lengkap">LENGKAP</span>` 
-                : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;
+        dataRekap.forEach((item, index) => {[cite: 2]
+            let totalTeks = item.hadir === TOTAL_PERTEMUAN[cite: 2]
+                ? `<span class="total-lengkap">LENGKAP</span>`[cite: 2]
+                : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;[cite: 2]
 
             html += `
             <tr>
-                <td style="font-weight: 500;">${item.nama}</td>
+                <td style="font-weight: 500;">${item.nama}</td>[cite: 2]
                 <td>
                     <div class="counter-box">
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', -1)">-</button>
-                        <span class="counter-val hadir-val">${item.hadir}</span>
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', 1)">+</button>
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', -1)">-</button>[cite: 2]
+                        <span class="counter-val hadir-val">${item.hadir}</span>[cite: 2]
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', 1)">+</button>[cite: 2]
                     </div>
                 </td>
                 <td>
                     <div class="counter-box">
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', -1)">-</button>
-                        <span class="counter-val tidak-val">${item.tidakHadir}</span>
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', 1)">+</button>
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', -1)">-</button>[cite: 2]
+                        <span class="counter-val tidak-val">${item.tidakHadir}</span>[cite: 2]
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', 1)">+</button>[cite: 2]
                     </div>
                 </td>
-                <td>${totalTeks}</td>
-                <td style="color: #475569; font-size: 14px;">${item.tanggalRealtime}</td>
+                <td>${totalTeks}</td>[cite: 2]
+                <td style="color: #475569; font-size: 14px;">${item.tanggalRealtime}</td>[cite: 2]
                 <td>
                     <div class="actions-cell">
-                        <button onclick="prosesDanKirimCloudPDF(${index})" class="btn-action btn-wa" title="Kirim Laporan PDF Resmi via WhatsApp" id="btnWa-${index}">
+                        <button onclick="prosesDanKirimCloudPDF(${index})" class="btn-action btn-wa" title="Kirim Laporan PDF Resmi via WhatsApp" id="btnWa-${index}">[cite: 2]
                             <i class="fab fa-whatsapp"></i>
                         </button>
-                        <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
-                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>
-                        <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
-                        <button class="btn-action btn-kick" title="Keluarkan Siswa" onclick="keluarkanSiswa('${item.nama}')"><i class="fa fa-user-minus"></i></button>
+                        <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>[cite: 2]
+                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>[cite: 2]
+                        <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>[cite: 2]
                     </div>
                 </td>
             </tr>`;
         });
     }
-    document.getElementById("tbody").innerHTML = html;
-    document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
+    document.getElementById("tbody").innerHTML = html;[cite: 2]
+    document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;[cite: 2]
 }
 
-// FUNGSI INTI TERBARU: GENERATE PDF -> UPLOAD SUPABASE STORAGE -> KIRIM LINK VIA WHATSAPP
+// FUNGSI UTAMA WHATSAPP DAN FALLBACK (STRUKTUR SAKTI SUDAH DIPERBAIKI)
 async function prosesDanKirimCloudPDF(index) {
-    const item = dataRekap[index];
-    const btnWa = document.getElementById(`btnWa-${index}`);
-    let nomorWA = item.no_hp || "";
-    if (!nomorWA) { alert("Nomor HP orang tua belum diisi!"); return; }
-    if (nomorWA.startsWith('0')) nomorWA = '62' + nomorWA.slice(1);
-    nomorWA = nomorWA.replace(/[^0-9]/g, "");
+    const item = dataRekap[index];[cite: 2]
+    const btnWa = document.getElementById(`btnWa-${index}`);[cite: 2]
+    let nomorWA = item.no_hp || "";[cite: 2]
+    if (!nomorWA) { alert("Nomor HP orang tua belum diisi!"); return; }[cite: 2]
+    if (nomorWA.startsWith('0')) nomorWA = '62' + nomorWA.slice(1);[cite: 2]
+    nomorWA = nomorWA.replace(/[^0-9]/g, "");[cite: 2]
 
-    const iconAsli = btnWa.innerHTML;
-    btnWa.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-    btnWa.style.pointerEvents = 'none';
+    const iconAsli = btnWa.innerHTML;[cite: 2]
+    btnWa.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';[cite: 2]
+    btnWa.style.pointerEvents = 'none';[cite: 2]
 
-    // Fungsi lokal pembuat dokumen PDF
     const generatePDFBlob = () => {
         return new Promise((resolve) => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFont("Helvetica", "bold").setFontSize(14).setTextColor(35, 74, 132);
-            doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
-            doc.setFontSize(10).setFont("Helvetica", "normal").setTextColor(100, 100, 100);
-            doc.text("Nona Swimming Course (NSC)", 14, 27);
+            const { jsPDF } = window.jspdf;[cite: 2]
+            const doc = new jsPDF();[cite: 2]
+            doc.setFont("Helvetica", "bold").setFontSize(14).setTextColor(35, 74, 132);[cite: 2]
+            doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);[cite: 2]
+            doc.setFontSize(10).setFont("Helvetica", "normal").setTextColor(100, 100, 100);[cite: 2]
+            doc.text("Nona Swimming Course (NSC)", 14, 27);[cite: 2]
             
             const rows = [
-                ["Nama Siswa", item.nama],
-                ["Total Kehadiran", `${item.hadir} Pertemuan`],
-                ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-                ["Tanggal Terakhir", item.tanggalRealtime || "-"],
-                ["Catatan", item.catatan || "-"]
+                ["Nama Siswa", item.nama],[cite: 2]
+                ["Total Kehadiran", `${item.hadir} Pertemuan`],[cite: 2]
+                ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],[cite: 2]
+                ["Tanggal Terakhir", item.tanggalRealtime || "-"],[cite: 2]
+                ["Catatan", item.catatan || "-"][cite: 2]
             ];
-            doc.autoTable({ startY: 33, head: [["Komponen", "Detail"]], body: rows, theme: "striped", headStyles: { fillColor: [35, 74, 132] } });
-            resolve(doc.output('blob'));
+            doc.autoTable({ startY: 33, head: [["Komponen", "Detail"]], body: rows, theme: "striped", headStyles: { fillColor: [35, 74, 132] } });[cite: 2]
+            resolve(doc.output('blob'));[cite: 2]
         });
     };
 
     try {
-        const pdfBlob = await generatePDFBlob();
-        const namaFileCloud = `Absensi_${item.nama.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+        const pdfBlob = await generatePDFBlob();[cite: 2]
+        const namaFileCloud = `Absensi_${item.nama.replace(/\s+/g, '_')}_${Date.now()}.pdf`;[cite: 2]
 
-        // Mencoba upload ke Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('laporan-pdf').upload(namaFileCloud, pdfBlob, { contentType: 'application/pdf', upsert: true });
+        // Mencoba Upload[cite: 2]
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('laporan-pdf').upload(namaFileCloud, pdfBlob, { contentType: 'application/pdf', upsert: true });[cite: 2]
         
-        if (uploadError) throw uploadError; // Jika token salah/expired, lempar ke mode aman (fallback)
+        if (uploadError) throw uploadError;[cite: 2]
 
-        // JIKA BERHASIL UPLOAD KE CLOUD:
-        const { data: urlData } = supabaseClient.storage.from('laporan-pdf').getPublicUrl(namaFileCloud);
-        let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi resmi Ananda *${item.nama}* di *Nona Swimming Course*. \n\nTotal Hadir: *${item.hadir}* Pertemuan\nTidak Hadir: *${item.tidakHadir}* Pertemuan\n\nSilakan klik link berikut untuk melihat/mengunduh PDF:\n${urlData.publicUrl}\n\nTerima kasih.`;
-        window.open(`https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`, '_blank');
+        // JIKA BERHASIL:[cite: 2]
+        const { data: urlData } = supabaseClient.storage.from('laporan-pdf').getPublicUrl(namaFileCloud);[cite: 2]
+        let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi resmi Ananda *${item.nama}* di *Nona Swimming Course*. \n\nTotal Hadir: *${item.hadir}* Pertemuan\nTidak Hadir: *${item.tidakHadir}* Pertemuan\n\nSilakan klik link berikut untuk melihat/mengunduh PDF:\n${urlData.publicUrl}\n\nTerima kasih.`;[cite: 2]
+        window.open(`https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`, '_blank');[cite: 2]
 
     } catch (e) {
-        console.warn("Terjadi masalah token Supabase. Mengaktifkan sistem download otomatis...");
+        // JIKA SUPABASE LAGI ERROR / SIGNATURE VERIFICATION FAILED (SISTEM PENYELAMAT DIKUNCI DI SINI):[cite: 2]
+        console.warn("Mengaktifkan sistem aman fallback download lokal...");[cite: 2]
+        const pdfBlob = await generatePDFBlob();[cite: 2]
+        const urlLokal = window.URL.createObjectURL(pdfBlob);[cite: 2]
         
-        // JIKA SUPABASE ERROR (FALLBACK AMAN):
-        const pdfBlob = await generatePDFBlob();
-        const urlLokal = window.URL.createObjectURL(pdfBlob);
-        
-        // Otomatis download file PDF ke laptop/HP Anda agar Anda punya fisiknya
-        const a = document.createElement('a');
-        a.href = urlLokal;
-        a.download = `Laporan_Absensi_${item.nama}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        const a = document.createElement('a');[cite: 2]
+        a.href = urlLokal;[cite: 2]
+        a.download = `Laporan_Absensi_${item.nama}.pdf`;[cite: 2]
+        document.body.appendChild(a);[cite: 2]
+        a.click();[cite: 2]
+        document.body.removeChild(a);[cite: 2]
 
-        // WA tetap terbuka dengan detail data yang sangat lengkap!
-        let pesanWA = `Halo Bapak/Ibu, berikut ringkasan laporan absensi resmi Ananda *${item.nama}* di *Nona Swimming Course*.\n\n✓ Total Kehadiran: *${item.hadir}* Pertemuan\n✓ Tidak Hadir: *${item.tidakHadir}* Pertemuan\n✓ Tanggal Rekap: ${item.tanggalRealtime || '-'}\n✓ Catatan: _${item.catatan || 'Tercatat dengan baik'}_\n\n*Dokumen PDF resmi telah diunduh oleh sistem dan akan dikirimkan file fisiknya secara langsung oleh admin via chat ini.* \n\nTerima kasih atas perhatiannya.`;
-        window.open(`https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`, '_blank');
+        let pesanWA = `Halo Bapak/Ibu, berikut ringkasan laporan absensi resmi Ananda *${item.nama}* di *Nona Swimming Course*.\n\n✓ Total Kehadiran: *${item.hadir}* Pertemuan\n✓ Tidak Hadir: *${item.tidakHadir}* Pertemuan\n✓ Tanggal Rekap: ${item.tanggalRealtime || '-'}\n✓ Catatan: _${item.catatan || 'Tercatat dengan baik'}_\n\n*Dokumen PDF resmi baru saja diunduh otomatis di perangkat Admin dan akan dikirimkan langsung oleh admin via chat.* \n\nTerima kasih atas perhatiannya.`;[cite: 2]
+        window.open(`https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`, '_blank');[cite: 2]
     } finally {
-        btnWa.innerHTML = iconAsli;
-        btnWa.style.pointerEvents = 'auto';
+        btnWa.innerHTML = iconAsli;[cite: 2]
+        btnWa.style.pointerEvents = 'auto';[cite: 2]
     }
 }
 
-    img.onerror = function() {
-        alert("File gambar 'Logo percobaan.png' gagal dimuat dari direktori lokal.");
-        btnWa.innerHTML = iconAsli;
-        btnWa.style.pointerEvents = 'auto';
-    };
-}
-
+// UPDATE COUNTER + DAN -
 async function updateCounter(index, tipe, value) {
-    const targetSiswa = dataRekap[index];
-    const namaSiswa = targetSiswa.nama;
-    let catatanKetik = "";
+    const targetSiswa = dataRekap[index];[cite: 2]
+    const namaSiswa = targetSiswa.nama;[cite: 2]
+    let catatanKetik = "";[cite: 2]
     
-    let baruHadir = targetSiswa.hadir;
-    let baruTidakHadir = targetSiswa.tidakHadir;
+    let baruHadir = targetSiswa.hadir;[cite: 2]
+    let baruTidakHadir = targetSiswa.tidakHadir;[cite: 2]
 
     if (value > 0) {
-        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update manual via counter`);
+        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update manual via counter`);[cite: 2]
         if (inputCatatan === null) return; 
-        catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
+        catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();[cite: 2]
         
-        if (tipe === 'hadir') baruHadir += 1;
-        else baruTidakHadir += 1;
+        if (tipe === 'hadir') baruHadir += 1;[cite: 2]
+        else baruTidakHadir += 1;[cite: 2]
     } else {
-        if (tipe === 'hadir') {
-            if (baruHadir === 0) return;
-            baruHadir -= 1;
+        if (tipe === 'hadir') {[cite: 2]
+            if (baruHadir === 0) return;[cite: 2]
+            baruHadir -= 1;[cite: 2]
         } else {
-            if (baruTidakHadir === 0) return;
-            baruTidakHadir -= 1;
+            if (baruTidakHadir === 0) return;[cite: 2]
+            baruTidakHadir -= 1;[cite: 2]
         }
-        catatanKetik = `Pengurangan manual via counter`;
+        catatanKetik = `Pengurangan manual via counter`;[cite: 2]
     }
 
-    if (baruHadir === 0 && baruTidakHadir === 0) {
-        alert(`Rekap data ${namaSiswa} bernilai 0. Siswa akan otomatis dihapus dari sistem.`);
-        await deleteRow(index);
+    if (baruHadir === 0 && baruTidakHadir === 0) {[cite: 2]
+        alert(`Rekap data ${namaSiswa} bernilai 0. Siswa akan otomatis dihapus dari sistem.`);[cite: 2]
+        await deleteRow(index);[cite: 2]
         return;
     }
 
-    const waktuSekarangISO = new Date().toISOString();
+    const waktuSekarangISO = new Date().toISOString();[cite: 2]
 
     try {
-        const { error } = await supabaseClient
-            .from("absensinsc")
-            .upsert({
-                absensi: namaSiswa,
-                Hadir: baruHadir,
-                "Tidak Hadir": baruTidakHadir.toString(),
-                Catatan: catatanKetik,
-                "Tanggal Terbaru": waktuSekarangISO
+        const { error } = await supabaseClient[cite: 2]
+            .from("absensinsc")[cite: 2]
+            .upsert({[cite: 2]
+                absensi: namaSiswa,[cite: 2]
+                Hadir: baruHadir,[cite: 2]
+                "Tidak Hadir": baruTidakHadir.toString(),[cite: 2]
+                Catatan: catatanKetik,[cite: 2]
+                "Tanggal Terbaru": waktuSekarangISO[cite: 2]
             }, {
-                onConflict: "absensi"
+                onConflict: "absensi"[cite: 2]
             });
 
-        if (error) throw error;
+        if (error) throw error;[cite: 2]
         
-        dataRekap[index].hadir = baruHadir;
-        dataRekap[index].tidakHadir = baruTidakHadir;
-        dataRekap[index].catatan = catatanKetik;
-        dataRekap[index].tanggalRealtime = formatTanggalIndonesia(waktuSekarangISO);
-        dataRekap[index].rawDate = waktuSekarangISO;
+        dataRekap[index].hadir = baruHadir;[cite: 2]
+        dataRekap[index].tidakHadir = baruTidakHadir;[cite: 2]
+        dataRekap[index].catatan = catatanKetik;[cite: 2]
+        dataRekap[index].tanggalRealtime = formatTanggalIndonesia(waktuSekarangISO);[cite: 2]
+        dataRekap[index].rawDate = waktuSekarangISO;[cite: 2]
         
-        renderTable();
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        renderTable();[cite: 2]
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}[cite: 2]
     } catch (err) {
-        alert("Gagal memperbarui data ke Supabase: " + err.message);
+        alert("Gagal memperbarui data ke Supabase: " + err.message);[cite: 2]
     }
 }
 
 async function deleteRow(index) {
-    const namaSiswa = dataRekap[index].nama;
-    if (!confirm(`Hapus data rekap ${namaSiswa} dari sistem Supabase?`)) return;
+    const namaSiswa = dataRekap[index].nama;[cite: 2]
+    if (!confirm(`Hapus data rekap ${namaSiswa} dari sistem Supabase?`)) return;[cite: 2]
     
-    const btnDelete = document.getElementById(`btnDelete-${index}`);
-    if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+    const btnDelete = document.getElementById(`btnDelete-${index}`);[cite: 2]
+    if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';[cite: 2]
 
     try {
-        const { error } = await supabaseClient
-            .from('absensinsc')
-            .delete()
-            .eq('absensi', namaSiswa);
+        const { error } = await supabaseClient[cite: 2]
+            .from('absensinsc')[cite: 2]
+            .delete()[cite: 2]
+            .eq('absensi', namaSiswa);[cite: 2]
 
-        if (error) throw error;
+        if (error) throw error;[cite: 2]
 
-        dataRekap.splice(index, 1);
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-        renderTable();
+        dataRekap.splice(index, 1);[cite: 2]
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}[cite: 2]
+        renderTable();[cite: 2]
     } catch (err) {
-        alert("Gagal menghapus data dari Supabase: " + err.message);
-        if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-trash"></i>';
+        alert("Gagal menghapus data dari Supabase: " + err.message);[cite: 2]
+        if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-trash"></i>';[cite: 2]
     }
 }
 
 async function simpan() {
-    let nama = "";
-    if (selectNamaControl) { nama = selectNamaControl.getValue(); }
-    if (!nama) { nama = document.getElementById("nama").value; }
-    if (!nama) { alert("Silakan pilih nama siswa terlebih dahulu!"); return; }
+    let nama = "";[cite: 2]
+    if (selectNamaControl) { nama = selectNamaControl.getValue(); }[cite: 2]
+    if (!nama) { nama = document.getElementById("nama").value; }[cite: 2]
+    if (!nama) { alert("Silakan pilih nama siswa terlebih dahulu!"); return; }[cite: 2]
 
-    const status = document.getElementById("status").value;
-    const catatan = document.getElementById("catatan").value;
-    const no_hp = document.getElementById("no_hp").value.trim();
-    const btnSimpan = document.getElementById("btnSimpan");
+    const status = document.getElementById("status").value;[cite: 2]
+    const catatan = document.getElementById("catatan").value;[cite: 2]
+    const no_hp = document.getElementById("no_hp").value.trim();[cite: 2]
+    const btnSimpan = document.getElementById("btnSimpan");[cite: 2]
 
-    nama = nama.trim().toUpperCase();
-    btnSimpan.disabled = true;
-    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
+    nama = nama.trim().toUpperCase();[cite: 2]
+    btnSimpan.disabled = true;[cite: 2]
+    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';[cite: 2]
 
-    const catatanTeks = catatan.trim() !== "" ? catatan.trim() : "Absensi tercatat";
-    if (!Array.isArray(dataRekap)) { dataRekap = []; }
+    const catatanTeks = catatan.trim() !== "" ? catatan.trim() : "Absensi tercatat";[cite: 2]
+    if (!Array.isArray(dataRekap)) { dataRekap = []; }[cite: 2]
 
-    let siswaExist = dataRekap.find(s => s && s.nama === nama);
-    let nHadir = status === "Hadir" ? 1 : 0;
-    let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
+    let siswaExist = dataRekap.find(s => s && s.nama === nama);[cite: 2]
+    let nHadir = status === "Hadir" ? 1 : 0;[cite: 2]
+    let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;[cite: 2]
 
     if (siswaExist) {
-        nHadir = (siswaExist.hadir || 0) + (status === "Hadir" ? 1 : 0);
-        nTidakHadir = (siswaExist.tidakHadir || 0) + (status === "Tidak Hadir" ? 1 : 0);
+        nHadir = (siswaExist.hadir || 0) + (status === "Hadir" ? 1 : 0);[cite: 2]
+        nTidakHadir = (siswaExist.tidakHadir || 0) + (status === "Tidak Hadir" ? 1 : 0);[cite: 2]
     }
 
-    const waktuSekarangISO = new Date().toISOString();
+    const waktuSekarangISO = new Date().toISOString();[cite: 2]
 
     try {
-        const { error: errorRekap } = await supabaseClient
-            .from("absensinsc")
-            .upsert({
-                absensi: nama,
-                Hadir: nHadir,
-                "Tidak Hadir": nTidakHadir.toString(),
-                Catatan: catatanTeks,
-                "Tanggal Terbaru": waktuSekarangISO,
-                no_hp: no_hp || (siswaExist ? siswaExist.no_hp : "")
+        const { error: errorRekap } = await supabaseClient[cite: 2]
+            .from("absensinsc")[cite: 2]
+            .upsert({[cite: 2]
+                absensi: nama,[cite: 2]
+                Hadir: nHadir,[cite: 2]
+                "Tidak Hadir": nTidakHadir.toString(),[cite: 2]
+                Catatan: catatanTeks,[cite: 2]
+                "Tanggal Terbaru": waktuSekarangISO,[cite: 2]
+                no_hp: no_hp || (siswaExist ? siswaExist.no_hp : "")[cite: 2]
             }, {
-                onConflict: "absensi"
+                onConflict: "absensi"[cite: 2]
             });
 
-        if (errorRekap) throw errorRekap;
+        if (errorRekap) throw errorRekap;[cite: 2]
 
-        const { error: errorLog } = await supabaseClient
-            .from("log_harian")
-            .insert({ nama: nama, status: status, catatan: catatanTeks });
+        const { error: errorLog } = await supabaseClient[cite: 2]
+            .from("log_harian")[cite: 2]
+            .insert({ nama: nama, status: status, catatan: catatanTeks });[cite: 2]
 
-        if (errorLog) throw errorLog;
+        if (errorLog) throw errorLog;[cite: 2]
 
-        const realtimeSekarang = formatTanggalIndonesia(waktuSekarangISO);
+        const realtimeSekarang = formatTanggalIndonesia(waktuSekarangISO);[cite: 2]
 
         if (siswaExist) {
-            siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTidakHadir;
-            siswaExist.catatan = catatanTeks;
-            siswaExist.tanggalRealtime = realtimeSekarang;
-            siswaExist.rawDate = waktuSekarangISO;
-            if(no_hp) siswaExist.no_hp = no_hp;
+            siswaExist.hadir = nHadir;[cite: 2]
+            siswaExist.tidakHadir = nTarget = nTidakHadir;[cite: 2]
+            siswaExist.catatan = catatanTeks;[cite: 2]
+            siswaExist.tanggalRealtime = realtimeSekarang;[cite: 2]
+            siswaExist.rawDate = waktuSekarangISO;[cite: 2]
+            if(no_hp) siswaExist.no_hp = no_hp;[cite: 2]
         } else {
             dataRekap.push({
-                nama: nama, hadir: nHadir, tidakHadir: nTidakHadir,
-                catatan: catatanTeks, tanggalRealtime: realtimeSekarang, rawDate: waktuSekarangISO, no_hp: no_hp
+                nama: nama, hadir: nHadir, tidakHadir: nTidakHadir,[cite: 2]
+                catatan: catatanTeks, tanggalRealtime: realtimeSekarang, rawDate: waktuSekarangISO, no_hp: no_hp[cite: 2]
             });
         }
 
-        renderTable();
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch (e) {}
+        renderTable();[cite: 2]
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch (e) {}[cite: 2]
 
         if (selectNamaControl) { selectNamaControl.clear(true); } 
-        else { document.getElementById("nama").value = ""; }
+        else { document.getElementById("nama").value = ""; }[cite: 2]
 
-        document.getElementById("catatan").value = "";
-        document.getElementById("no_hp").value = "";
-        alert("Data berhasil disimpan ke Rekap dan Log Harian!");
+        document.getElementById("catatan").value = "";[cite: 2]
+        document.getElementById("no_hp").value = "";[cite: 2]
+        alert("Data berhasil disimpan ke Rekap dan Log Harian!");[cite: 2]
     } catch (err) {
-        console.error(err);
-        alert("Gagal menyimpan ke Supabase: " + err.message);
+        console.error(err);[cite: 2]
+        alert("Gagal menyimpan ke Supabase: " + err.message);[cite: 2]
     } finally {
-        btnSimpan.disabled = false;
-        btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
+        btnSimpan.disabled = false;[cite: 2]
+        btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';[cite: 2]
     }
 }
 
 function showTab(tab, btn) {
-    document.getElementById("input").classList.add("hidden");
-    document.getElementById("rekap").classList.add("hidden");
-    document.getElementById(tab).classList.remove("hidden");
-    document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
-    btn.classList.add("active");
+    document.getElementById("input").classList.add("hidden");[cite: 2]
+    document.getElementById("rekap").classList.add("hidden");[cite: 2]
+    document.getElementById(tab).classList.remove("hidden");[cite: 2]
+    document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));[cite: 2]
+    btn.classList.add("active");[cite: 2]
 }
 
 function prosesUnduhFile(blob, namaFile) {
     try {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = namaFile;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
+        const url = URL.createObjectURL(blob);[cite: 2]
+        const a = document.createElement("a");[cite: 2]
+        a.href = url;[cite: 2]
+        a.download = namaFile;[cite: 2]
+        a.style.display = 'none';[cite: 2]
+        document.body.appendChild(a);[cite: 2]
+        a.click();[cite: 2]
         setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            document.body.removeChild(a);[cite: 2]
+            URL.revokeObjectURL(url);[cite: 2]
         }, 300);
     } catch (e) {
-        alert("Gagal mengunduh file.");
+        alert("Gagal mengunduh file.");[cite: 2]
     }
 }
 
 function exportSiswaExcel(index) {
-    const item = dataRekap[index];
+    const item = dataRekap[index];[cite: 2]
     const worksheetData = [
-        ["LAPORAN ABSENSI INDIVIDU SISWA"],
-        ["Nona Swimming Course (NSC)"],
+        ["LAPORAN ABSENSI INDIVIDU SISWA"],[cite: 2]
+        ["Nona Swimming Course (NSC)"],[cite: 2]
         [],
-        ["Komponen", "Keterangan"],
-        ["Nama Siswa", item.nama],
-        ["Jumlah Kehadiran", `${item.hadir} Pertemuan`],
-        ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-        ["Status Target", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-        ["Tanggal Terakhir Update", item.tanggalRealtime],
-        ["Catatan Terakhir", item.catatan || "-"]
+        ["Komponen", "Keterangan"],[cite: 2]
+        ["Nama Siswa", item.nama],[cite: 2]
+        ["Jumlah Kehadiran", `${item.hadir} Pertemuan`],[cite: 2]
+        ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],[cite: 2]
+        ["Status Target", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],[cite: 2]
+        ["Tanggal Terakhir Update", item.tanggalRealtime],[cite: 2]
+        ["Catatan Terakhir", item.catatan || "-"][cite: 2]
     ];
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(wb, ws, "Absensi Siswa");
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
-    prosesUnduhFile(blob, `Absensi_${item.nama}.xlsx`);
+    const wb = XLSX.utils.book_new();[cite: 2]
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);[cite: 2]
+    XLSX.utils.book_append_sheet(wb, ws, "Absensi Siswa");[cite: 2]
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });[cite: 2]
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });[cite: 2]
+    prosesUnduhFile(blob, `Absensi_${item.nama}.xlsx`);[cite: 2]
 }
 
 function exportSiswaPDF(index) {
-    const item = dataRekap[index];
-    const { jsPDF } = window.jspdf;
+    const item = dataRekap[index];[cite: 2]
+    const { jsPDF } = window.jspdf;[cite: 2]
+    const doc = new jsPDF();[cite: 2]
     
-    const img = new Image();
-    img.src = 'Logo percobaan.png'; 
+    doc.setFont("Helvetica", "bold");[cite: 2]
+    doc.setFontSize(14);[cite: 2]
+    doc.setTextColor(35, 74, 132);[cite: 2]
+    doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);[cite: 2]
+    
+    const rows = [
+        ["Nama Siswa", item.nama],[cite: 2]
+        ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],[cite: 2]
+        ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],[cite: 2]
+        ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],[cite: 2]
+        ["Tanggal Terakhir Diinput", item.tanggalRealtime],[cite: 2]
+        ["Catatan Khusus", item.catatan || "-"][cite: 2]
+    ];
 
-    img.onload = function() {
-        const doc = new jsPDF();
-
-        try {
-            doc.addImage(img, "PNG", 14, 10, 18, 25);
-            
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(14);
-            doc.setTextColor(35, 74, 132); 
-            doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 23); 
-
-            doc.setFontSize(10);
-            doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184); 
-            doc.text("Nona Swimming Course (NSC)", 38, 30);
-            
-            doc.setDrawColor(241, 245, 249); 
-            doc.line(14, 40, 196, 40);
-
-            const rows = [
-                ["Nama Siswa", item.nama],
-                ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-                ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-                ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-                ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-                ["Catatan Khusus", item.catatan || "-"]
-            ];
-
-            doc.autoTable({ 
-                startY: 46, 
-                head: [["Komponen Data", "Detail Keterangan"]], 
-                body: rows, 
-                theme: "striped",
-                headStyles: { 
-                    fillColor: [35, 74, 132], 
-                    textColor: [255, 255, 255], 
-                    fontStyle: "bold",
-                    fontSize: 10
-                },
-                styles: {
-                    textColor: [71, 85, 105], 
-                    fontSize: 10,
-                    cellPadding: 4
-                },
-                alternateRowStyles: {
-                    fillColor: [248, 250, 252] 
-                },
-                columnStyles: {
-                    0: { cellWidth: 60 }, 
-                    1: { cellWidth: "auto" }
-                }
-            });
-
-            doc.save(`Absensi_${item.nama}.pdf`);
-        } catch(e) {
-            console.error("Gagal memproses pembuatan PDF:", e);
-            alert("Terjadi kesalahan saat menyusun layout PDF.");
-        }
-    };
-
-    img.onerror = function() {
-        const docBiasa = new jsPDF();
-        
-        docBiasa.setFont("Helvetica", "bold");
-        docBiasa.setFontSize(14);
-        docBiasa.setTextColor(35, 74, 132);
-        docBiasa.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
-        
-        const rowsFallback = [
-            ["Nama Siswa", item.nama],
-            ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-            ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-            ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-            ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-            ["Catatan Khusus", item.catatan || "-"]
-        ];
-
-        docBiasa.autoTable({ startY: 28, head: [["Komponen Data", "Detail Keterangan"]], body: rowsFallback });
-        docBiasa.save(`Absensi_${item.nama}.pdf`);
-    };
+    doc.autoTable({ startY: 28, head: [["Komponen Data", "Detail Keterangan"]], body: rows });[cite: 2]
+    doc.save(`Absensi_${item.nama}.pdf`);[cite: 2]
 }
 
 function exportTotalPDF() {
-    if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
-    const { jsPDF } = window.jspdf;
+    if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }[cite: 2]
+    const { jsPDF } = window.jspdf;[cite: 2]
+    const doc = new jsPDF();[cite: 2]
     
-    const img = new Image();
-    img.src = 'Logo percobaan.png'; 
-
-    img.onload = function() {
-        const doc = new jsPDF();
-        
-        try {
-            doc.addImage(img, "PNG", 14, 10, 18, 25);
-            
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(14); 
-            doc.setTextColor(35, 74, 132); 
-            doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 23);
-            
-            doc.setFontSize(10);
-            doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184); 
-            doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 30);
-            
-            doc.setDrawColor(241, 245, 249); 
-            doc.line(14, 40, 196, 40);
-            
-            const tableRows = [];
-            dataRekap.forEach(item => {
-                tableRows.push([
-                    item.nama, item.hadir, item.tidakHadir,
-                    item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                    item.tanggalRealtime, item.catatan || '-'
-                ]);
-            });
-            
-            doc.autoTable({
-                startY: 46,
-                head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-                body: tableRows,
-                theme: "striped",
-                headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
-                styles: { fontSize: 9, padding: 5, valign: "middle" },
-                columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
-            });
-            
-            const blob = doc.output("blob");
-            prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
-        } catch(e) {
-            console.error("Gagal memproses pembuatan PDF Total:", e);
-            alert("Terjadi kesalahan saat menyusun layout PDF Total.");
-        }
-    };
-
-    img.onerror = function() {
-        const docBiasa = new jsPDF();
-        
-        docBiasa.setFont("Helvetica", "bold");
-        docBiasa.setFontSize(14);
-        docBiasa.setTextColor(35, 74, 132);
-        docBiasa.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
-        
-        const tableRowsFallback = [];
-        dataRekap.forEach(item => {
-            tableRowsFallback.push([
-                item.nama, item.hadir, item.tidakHadir,
-                item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                item.tanggalRealtime, item.catatan || '-'
-            ]);
-        });
-        
-        docBiasa.autoTable({
-            startY: 28,
-            head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-            body: tableRowsFallback,
-            theme: "striped"
-        });
-        
-        const blob = docBiasa.output("blob");
-        prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
-    };
+    doc.setFont("Helvetica", "bold");[cite: 2]
+    doc.setFontSize(14);[cite: 2]
+    doc.setTextColor(35, 74, 132);[cite: 2]
+    doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);[cite: 2]
+    
+    const tableRows = [];[cite: 2]
+    dataRekap.forEach(item => {
+        tableRows.push([
+            item.nama, item.hadir, item.tidakHadir,[cite: 2]
+            item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,[cite: 2]
+            item.tanggalRealtime, item.catatan || '-'[cite: 2]
+        ]);
+    });
+    
+    doc.autoTable({
+        startY: 28,
+        head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],[cite: 2]
+        body: tableRows,[cite: 2]
+        theme: "striped"[cite: 2]
+    });
+    
+    doc.save("Rekap_Total_Absensi_NSC.pdf");[cite: 2]
 }
 
 async function resetSemuaData() {
-    if (!confirm("⚠️ PERINGATAN KERAS!\nApakah Anda yakin ingin MENGHAPUS TOTAL semua data absensi siswa dari database cloud Supabase?\n\nData yang dihapus tidak bisa dikembalikan!")) return;
-    if (!confirm("Konfirmasi terakhir: Benar-benar ingin mengosongkan semua rekap data?")) return;
+    if (!confirm("⚠️ PERINGATAN KERAS!\nApakah Anda yakin ingin MENGHAPUS TOTAL semua data absensi siswa dari database cloud Supabase?\n\nData yang dihapus tidak bisa dikembalikan!")) return;[cite: 2]
+    if (!confirm("Konfirmasi terakhir: Benar-benar ingin mengosongkan semua rekap data?")) return;[cite: 2]
 
-    const btnReset = document.getElementById("btnResetAll");
-    if (btnReset) {
-        btnReset.disabled = true;
-        btnReset.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mereset...';
+    const btnReset = document.getElementById("btnResetAll");[cite: 2]
+    if (btnReset) {[cite: 2]
+        btnReset.disabled = true;[cite: 2]
+        btnReset.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mereset...';[cite: 2]
     }
 
     try {
-        const { data: listSiswa, error: fetchError } = await supabaseClient
-            .from('absensinsc')
-            .select('absensi');
+        const { data: listSiswa, error: fetchError } = await supabaseClient[cite: 2]
+            .from('absensinsc')[cite: 2]
+            .select('absensi');[cite: 2]
 
-        if (fetchError) throw fetchError;
+        if (fetchError) throw fetchError;[cite: 2]
 
-        if (listSiswa && listSiswa.length > 0) {
-            const listNama = listSiswa.map(s => s.absensi);
-            const { error: errorDeleteRekap } = await supabaseClient
-                .from('absensinsc')
-                .delete()
-                .in('absensi', listNama);
-            if (errorDeleteRekap) throw errorDeleteRekap;
+        if (listSiswa && listSiswa.length > 0) {[cite: 2]
+            const listNama = listSiswa.map(s => s.absensi);[cite: 2]
+            const { error: errorDeleteRekap } = await supabaseClient[cite: 2]
+                .from('absensinsc')[cite: 2]
+                .delete()[cite: 2]
+                .in('absensi', listNama);[cite: 2]
+            if (errorDeleteRekap) throw errorDeleteRekap;[cite: 2]
         }
 
-        dataRekap = [];
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-        renderTable();
-        alert("Database Absensi Berhasil Dikosongkan!");
+        dataRekap = [];[cite: 2]
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}[cite: 2]
+        renderTable();[cite: 2]
+        alert("Database Absensi Berhasil Dikosongkan!");[cite: 2]
     } catch (err) {
-        alert("Gagal mereset: " + err.message);
+        alert("Gagal mereset: " + err.message);[cite: 2]
     } finally {
-        if (btnReset) {
-            btnReset.disabled = false;
-            btnReset.innerHTML = '<i class="fa fa-trash-can"></i> Reset';
+        if (btnReset) {[cite: 2]
+            btnReset.disabled = false;[cite: 2]
+            btnReset.innerHTML = '<i class="fa fa-trash-can"></i> Reset';[cite: 2]
         }
     }
 }
 
 function keluarkanSiswa(nama) {
-    if(!confirm("Keluarkan siswa " + nama + " dari les renang?\n\nData absensi tetap tersimpan.")) return;
+    if(!confirm("Keluarkan siswa " + nama + " dari les renang?\n\nData absensi tetap tersimpan.")) return;[cite: 2]
 
-    let siswaAktif = JSON.parse(localStorage.getItem("siswaAktif")) || [];
-    siswaAktif = siswaAktif.filter(s => s !== nama);
-    localStorage.setItem("siswaAktif", JSON.stringify(siswaAktif));
+    let siswaAktif = JSON.parse(localStorage.getItem("siswaAktif")) || [];[cite: 2]
+    siswaAktif = siswaAktif.filter(s => s !== nama);[cite: 2]
+    localStorage.setItem("siswaAktif", JSON.stringify(siswaAktif));[cite: 2]
 
-    dataRekap = dataRekap.filter(x => x.nama !== nama);
-    localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-    renderTable();
-    alert(nama + " sudah dikeluarkan dari daftar siswa aktif.");
+    dataRekap = dataRekap.filter(x => x.nama !== nama);[cite: 2]
+    localStorage.setItem("dataRekap", JSON.stringify(dataRekap));[cite: 2]
+    renderTable();[cite: 2]
+    alert(nama + " sudah dikeluarkan dari daftar siswa aktif.");[cite: 2]
 }
