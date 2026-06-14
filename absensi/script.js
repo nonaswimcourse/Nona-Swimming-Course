@@ -13,7 +13,7 @@ const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 // Base64 Data URI Resmi Logo Nona Swimming Course (NSC) yang Valid & Utuh
-const LOGO_NSC_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAcHJlZmVycmVkUkdCAAB4nH2RPUscURSGn30mIisbXUasbBAsZIsgZreIsbKyf6wMZp07w0wyyYwzM66gYGFpYWFpYalYWIjYpLAQLCwEizT+gIWFpYVlYmEhIisbXebOnYVAsN093Pc95z3vOfe8A6w6llXNqwEon9Yy0pGInZscG7X+BAXowAAnwK6VldMRKeofgAnvbtvqt9Z9R9V1b/tr9bdaXU0rIBAEDgB7WlsFwZfAcaxVqgBwGPgu1bIAnAG+f/M6gO8D3zvZCvA9YF8t+wT4GLAnlV6gV2b/Nzk6mhgYgLId+EZKpxw4Arxn66pWbID3gTfX2wPArwHwbePzIeAY8LmlYxbwLeAnS8cC4D0rvbA06gDft9W3M7P0N2a7ZvtE0pC067b7tr/Ympp2ZunbHwYmxsbHBqN2XNLR8Y8fH4zaO/ZlXWp3bfeM6K8Z+0pSOpaR+f+7Y/8bHwBwB8BtABgAsBMANgBwGMD6Lz0SAtbI4BcA6wDsAbDxt45VwAYZ/A7Am9+6b5HhV8gGv0P277v3WzN8Ctk9ALf/wL1fUuBzyA4BuAMA7v2Q6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLwfX6W6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLw9vms868X963I7mQicmR0Is/6KhpbLWeOZaWylrXS0epv6b+w1U6fAAAAAElFTkSuQmCC";
+const LOGO_NSC_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAcHJlZmVycmVkUkdCAAB4nH2RPUscURSGn30mIisbXUasbBAsZIsgZreIsbKyf6wMZp07w0wyyYwzM66gYGFpYWFpYalYWIjYpLAQLCwEizT+gIWFpYVlYmEhIisbXebOnYVAsN093Pc95z3vOfe8A6w6llXNqwEon9Yy0pGInZscG7X+BAXowAAnwK6VldMRKeofgAnvbtvqt9Z9R9V1b/tr9bdaXU0rIBAEDgB7WlsFwZfAcaxVqgBwGPgu1bIAnAG+f/M6gO8D3zvZCvA9YF8t+wT4GLAnlV6gV2b/Nzk6mhgYgLId+EZKpxw4Arxn66pWbID3gTfX2wPArwHwbePzIeAY8LmlYxbwLeAnS8cC4D0rvbA06gDft9W3M7P0N2a7ZvtE0pC067b7tr/Ympp2ZunbHwYmxsbHBqN2XNLR8Y8fH4zaO/ZlXWp3bfeM6K8Z+0pSOpaR+f+7Y/8bHwBwB8BtABgAsBMANgBwGMD6Lz0SAtbI4BcA6wDsAbDxt45VwAYZ/A7Am9+6b5HhV8gGv0P277v3WzN8Ctk9ALf/wL1fUuBzyA4BuAMA7v2Q6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLw9vms868X963I7mQicmR0Is/6KhpbLWeOZaWylrXS0epv6b+w1U6fAAAAAElFTkSuQmCC";
 
 // Fungsi pembantu untuk memformat tanggal realtime ke teks Indonesia
 function formatTanggalIndonesia(timestamp) {
@@ -190,18 +190,20 @@ async function updateCounter(index, tipe, value) {
     const targetSiswa = dataRekap[index];
     const namaSiswa = targetSiswa.nama;
     let catatanKetik = "";
+    let statusLog = tipe === 'hadir' ? 'Hadir' : 'Tidak Hadir';
     
     let baruHadir = targetSiswa.hadir;
     let baruTidakHadir = targetSiswa.tidakHadir;
 
     if (value > 0) {
-        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update manual via counter`);
+        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update via counter +`);
         if (inputCatatan === null) return; 
-        catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
+        catatanKetik = inputCatatan.trim() === "" ? `Update via counter +` : inputCatatan.trim();
         
         if (tipe === 'hadir') baruHadir += 1;
         else baruTidakHadir += 1;
     } else {
+        catatanKetik = `Pengurangan manual via counter -`;
         if (tipe === 'hadir') {
             if (baruHadir === 0) return;
             baruHadir -= 1;
@@ -209,7 +211,7 @@ async function updateCounter(index, tipe, value) {
             if (baruTidakHadir === 0) return;
             baruTidakHadir -= 1;
         }
-        catatanKetik = `Pengurangan manual via counter`;
+        statusLog = `Kurang ${statusLog}`;
     }
 
     if (baruHadir === 0 && baruTidakHadir === 0) {
@@ -221,6 +223,7 @@ async function updateCounter(index, tipe, value) {
     const waktuSekarangISO = new Date().toISOString();
 
     try {
+        // 1. Update ke tabel rekap utama absensinsc
         const { error } = await supabaseClient
             .from("absensinsc")
             .upsert({
@@ -234,6 +237,17 @@ async function updateCounter(index, tipe, value) {
             });
 
         if (error) throw error;
+
+        // 2. Kirim data baru ke log_harian secara beruntun (menyebabkan data menumpuk per input)
+        const { error: errorLog } = await supabaseClient
+            .from("log_harian")
+            .insert({
+                nama: namaSiswa,
+                status: statusLog,
+                catatan: catatanKetik
+            });
+
+        if (errorLog) throw errorLog;
         
         dataRekap[index].hadir = baruHadir;
         dataRekap[index].tidakHadir = baruTidakHadir;
@@ -330,6 +344,7 @@ async function simpan() {
 
         if (errorRekap) throw errorRekap;
 
+        // Menyimpan riwayat masukan ke log harian
         const { error: errorLog } = await supabaseClient
             .from("log_harian")
             .insert({
@@ -469,13 +484,11 @@ function exportSiswaPDF(index) {
     const doc = new jsPDF();
     
     try {
-        // Menyuntikkan Logo NSC secara aman
         doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 12, 18, 18);
     } catch (e) {
         console.error("Gagal memuat logo pada PDF individu:", e);
     }
     
-    // Header Laporan Individu
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor(35, 74, 132);
@@ -542,13 +555,11 @@ function exportTotalPDF() {
     const doc = new jsPDF();
     
     try {
-        // Menyuntikkan Logo NSC secara aman
         doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 12, 18, 18);
     } catch (e) {
         console.error("Gagal memuat logo pada PDF total:", e);
     }
 
-    // Judul Utama disesuaikan persis dengan gambar image_545b84.png
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(18);
     doc.setTextColor(35, 74, 132);
@@ -593,7 +604,7 @@ function exportTotalPDF() {
 
 function updateJamRealtime(){
     const sekarang = new Date();
-    const jam = sekarang.toLocaleTimeString("id-ID",{
+    const jam = Clinical = sekarang.toLocaleTimeString("id-ID",{
         hour:"2-digit",
         minute:"2-digit",
         second:"2-digit"
@@ -623,18 +634,15 @@ async function resetSemuaData() {
     }
 
     try {
-        // Langkah 1: Ambil semua data baris yang ada untuk mendapatkan identitasnya
         const { data: listSiswa, error: fetchError } = await supabaseClient
             .from('absensinsc')
             .select('absensi');
 
         if (fetchError) throw fetchError;
 
-        // Langkah 2: Jika ada data, hapus satu per satu atau menggunakan filter .in() untuk memastikan interaksi RLS aman
         if (listSiswa && listSiswa.length > 0) {
             const listNama = listSiswa.map(s => s.absensi);
 
-            // Menghapus baris berdasarkan kecocokan nama array yang ditemukan
             const { error: errorDeleteRekap } = await supabaseClient
                 .from('absensinsc')
                 .delete()
@@ -642,7 +650,6 @@ async function resetSemuaData() {
 
             if (errorDeleteRekap) throw errorDeleteRekap;
         } else {
-            // Antisipasi jika filtering biasa tersendat, jalankan perintah hapus global yang valid untuk API Supabase
             const { error: errorGlobalDelete } = await supabaseClient
                 .from('absensinsc')
                 .delete()
@@ -651,7 +658,6 @@ async function resetSemuaData() {
             if (errorGlobalDelete) throw errorGlobalDelete;
         }
 
-        // Langkah 3: Bersihkan data di tampilan aplikasi & LocalStorage
         dataRekap = [];
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
         
