@@ -434,7 +434,7 @@ function exportSiswaPDF(index) {
             "PNG",
             14, // Tetap di kiri
             10, // Posisi atas
-            24, // Lebar baru
+            18, // Lebar baru
             24  // Tinggi baru
         );
 
@@ -514,7 +514,7 @@ function exportTotalPDF() {
 
     logo.onload = function () {
         // LOGO: Disamakan 24x24 mm posisi kiri
-        doc.addImage(logo, "PNG", 14, 10, 24, 24);
+        doc.addImage(logo, "PNG", 14, 10, 18, 24);
 
         // JUDUL: Digeser ke X: 43, Y: 19 agar sejajar tengah secara visual
         doc.setFont("Helvetica", "bold");
