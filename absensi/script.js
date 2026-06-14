@@ -209,6 +209,7 @@ function renderTable() {
                         <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
                         <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>
                         <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
+                        <button class="btn-action btn-kick" title="Keluarkan Siswa" onclick="keluarkanSiswa('${item.nama}')"><i class="fa fa-user-minus"></i></button>
                     </div>
                 </td>
             </tr>`;
@@ -573,4 +574,18 @@ async function resetSemuaData() {
             btnReset.innerHTML = '<i class="fa fa-trash-can"></i> Reset';
         }
     }
+}
+
+
+function keluarkanSiswa(nama) {
+    if(!confirm("Keluarkan siswa " + nama + " dari les renang?\n\nData absensi tetap tersimpan.")) return;
+
+    let siswaAktif = JSON.parse(localStorage.getItem("siswaAktif")) || [];
+    siswaAktif = siswaAktif.filter(s => s !== nama);
+    localStorage.setItem("siswaAktif", JSON.stringify(siswaAktif));
+
+    dataRekap = dataRekap.filter(x => x.nama !== nama);
+    localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
+    renderTable();
+    alert(nama + " sudah dikeluarkan dari daftar siswa aktif.");
 }
