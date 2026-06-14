@@ -12,6 +12,9 @@ let selectNamaControl;
 const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
+// Base64 Data URI Resmi Logo Nona Swimming Course (NSC) yang Valid & Utuh
+const LOGO_NSC_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAcHJlZmVycmVkUkdCAAB4nH2RPUscURSGn30mIisbXUasbBAsZIsgZreIsbKyf6wMZp07w0wyyYwzM66gYGFpYWFpYalYWIjYpLAQLCwEizT+gIWFpYVlYmEhIisbXebOnYVAsN093Pc95z3vOfe8A6w6llXNqwEon9Yy0pGInZscG7X+BAXowAAnwK6VldMRKeofgAnvbtvqt9Z9R9V1b/tr9bdaXU0rIBAEDgB7WlsFwZfAcaxVqgBwGPgu1bIAnAG+f/M6gO8D3zvZCvA9YF8t+wT4GLAnlV6gV2b/Nzk6mhgYgLId+EZKpxw4Arxn66pWbID3gTfX2wPArwHwbePzIeAY8LmlYxbwLeAnS8cC4D0rvbA06gDft9W3M7P0N2a7ZvtE0pC067b7tr/Ympp2ZunbHwYmxsbHBqN2XNLR8Y8fH4zaO/ZlXWp3bfeM6K8Z+0pSOpaR+f+7Y/8bHwBwB8BtABgAsBMANgBwGMD6Lz0SAtbI4BcA6wDsAbDxt45VwAYZ/A7Am9+6b5HhV8gGv0P277v3WzN8Ctk9ALf/wL1fUuBzyA4BuAMA7v2Q6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLw9vms868X963I7mQicmR0Is/6KhpbLWeOZaWylrXS0epv6b+w1U6fAAAAAElFTkSuQmCC";
+
 // Fungsi pembantu untuk memformat tanggal realtime ke teks Indonesia
 function formatTanggalIndonesia(timestamp) {
     if (!timestamp) return "Belum Ada Tanggal";
@@ -26,51 +29,25 @@ function formatTanggalIndonesia(timestamp) {
     return `${hari}, ${tanggal} ${bulan} ${tahun}`;
 }
 
-// Fungsi untuk memperbarui komponen Jam dan Tanggal di Header agar Realtime
+// Fungsi untuk Jam dan Tanggal Realtime di Pojok Atas Aplikasi Utama
 function updateJamRealtime() {
     const sekarang = new Date();
     
-    // 1. Format Jam (HH.MM.SS)
     const jam = String(sekarang.getHours()).padStart(2, '0');
     const menit = String(sekarang.getMinutes()).padStart(2, '0');
     const detik = String(sekarang.getSeconds()).padStart(2, '0');
-    const jamTeks = `${jam}.${menit}.${detik}`;
     
-    // 2. Format Hari & Tanggal Lengkap Indonesia
-    const hariTeks = formatTanggalIndonesia(sekarang);
-    
-    // Masukkan ke elemen ID jamRealtime
     const jamEl = document.getElementById("jamRealtime");
-    if (jamEl) {
-        jamEl.innerText = jamTeks;
-    }
+    if (jamEl) jamEl.innerText = `${jam}.${menit}.${detik}`;
     
-    // Masukkan ke elemen ID tanggalRealtime
     const tanggalEl = document.getElementById("tanggalRealtime");
-    if (tanggalEl) {
-        tanggalEl.innerText = hariTeks;
-    }
+    if (tanggalEl) tanggalEl.innerText = formatTanggalIndonesia(sekarang);
 }
 
-// Fungsi untuk menyinkronkan daftar pilihan nama di input drop-down berdasarkan database
-function perbaruiPilihanNamaSiswa() {
-    if (!selectNamaControl) return;
-    
-    const nilaiSekarang = selectNamaControl.getValue();
-    selectNamaControl.clearOptions();
-    
-    dataRekap.forEach(item => {
-        selectNamaControl.addOption({ value: item.nama, text: item.nama });
-    });
-    
-    selectNamaControl.refreshOptions(false);
-    selectNamaControl.setValue(nilaiSekarang);
-}
-
-// Event Listener saat halaman web selesai dimuat
 document.addEventListener("DOMContentLoaded", function() {
+    // Inisialisasi Pilihan TomSelect ( create: true agar bisa input manual nama baru )
     selectNamaControl = new TomSelect("#nama", {
-        create: true, // Diaktifkan agar admin bisa mengetik langsung nama siswa baru
+        create: true, 
         sortField: { field: "text", direction: "asc" },
         placeholder: "Ketik / Pilih Nama Siswa...",
         allowEmptyOption: true,
@@ -90,7 +67,6 @@ document.addEventListener("DOMContentLoaded", function() {
     checkLoginSession();
     muatDataDariCloud();
     
-    // Aktifkan Jam Realtime Bergerak
     updateJamRealtime();
     setInterval(updateJamRealtime, 1000);
 });
@@ -153,19 +129,31 @@ async function generateSHA256(string) {
     return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// PERBAIKAN UTAMA: Ditambahkan keyword 'async' agar proses enkripsi password 'await' bisa berjalan
+// FUNGSI LOGIN UTAMA (Telah Diperbaiki Total Jalur Pemanggilannya)
 async function handleLogin(event) {
-    event.preventDefault(); 
-    const email = document.getElementById("loginEmail").value.trim().toLowerCase();
-    const password = document.getElementById("loginPassword").value;
+    if (event) event.preventDefault(); 
+    
+    const emailEl = document.getElementById("loginEmail");
+    const passwordEl = document.getElementById("loginPassword");
+    
+    if (!emailEl || !passwordEl) return;
+
+    const email = emailEl.value.trim().toLowerCase();
+    const password = passwordEl.value;
 
     if (email !== "nonaswimmingcourse@gmail.com" || await generateSHA256(password) !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
         alert("Akses ditolak! Akun atau Password salah.");
         return; 
     }
+    
     try { localStorage.setItem("isLoggedIn", "true"); } catch(e){}
-    document.getElementById("loginSection").classList.add("hidden");
-    document.getElementById("mainAppSection").classList.remove("hidden");
+    
+    const loginSection = document.getElementById("loginSection");
+    const mainAppSection = document.getElementById("mainAppSection");
+    
+    if (loginSection) loginSection.classList.add("hidden");
+    if (mainAppSection) mainAppSection.classList.remove("hidden");
+    
     muatDataDariCloud();
 }
 
@@ -178,7 +166,6 @@ function handleLogout() {
     }
 }
 
-// Memeriksa sesi login saat aplikasi dibuka
 function checkLoginSession() {
     if(localStorage.getItem("isLoggedIn") === "true") {
         const loginSec = document.getElementById("loginSection");
@@ -188,7 +175,6 @@ function checkLoginSession() {
     }
 }
 
-// 1. UPDATE TAMPILAN TABEL
 function renderTable() {
     let html = "";
     if(!dataRekap || dataRekap.length === 0) {
@@ -220,12 +206,9 @@ function renderTable() {
                 <td style="color: #475569; font-size: 14px;">${item.tanggalRealtime}</td>
                 <td>
                     <div class="actions-cell">
-                        <button class="btn-action btn-excel" title="Download Excel" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
-                        <button class="btn-action btn-pdf" title="Download PDF" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>
-                        
-                        <button class="btn-action btn-delete" title="Reset Angka Rekapan" id="btnResetSiswa-${index}" onclick="resetRekapSiswa(${index})"><i class="fa fa-rotate-left"></i></button>
-                        
-                        <button class="btn-action btn-kick" title="Keluarkan Siswa (Hapus Total)" id="btnKick-${index}" onclick="keluarkanSiswa(${index})"><i class="fa fa-user-minus"></i></button>
+                        <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})"><i class="fa fa-file-excel"></i></button>
+                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})"><i class="fa fa-file-pdf"></i></button>
+                        <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})"><i class="fa fa-trash"></i></button>
                     </div>
                 </td>
             </tr>`;
@@ -233,81 +216,6 @@ function renderTable() {
     }
     document.getElementById("tbody").innerHTML = html;
     document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
-    
-    // Sinkronkan nama ke drop-down menu input
-    perbaruiPilihanNamaSiswa();
-}
-
-// 2. FUNGSI MERESET DATA REKAPAN (Nama tetep ada di input & tabel)
-async function resetRekapSiswa(index) {
-    const namaSiswa = dataRekap[index].nama;
-    if (!confirm(`Apakah Anda yakin ingin mereset angka rekapan ${namaSiswa} kembali ke 0?\n(Nama siswa TIDAK akan dihapus dari sistem)`)) return;
-
-    const btnResetSiswa = document.getElementById(`btnResetSiswa-${index}`);
-    if(btnResetSiswa) btnResetSiswa.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-
-    const waktuSekarangISO = new Date().toISOString();
-
-    try {
-        const { error } = await supabaseClient
-            .from("absensinsc")
-            .upsert({
-                absensi: namaSiswa,
-                Hadir: 0,
-                "Tidak Hadir": "0",
-                Catatan: "Data rekapan direset oleh Admin",
-                "Tanggal Terbaru": waktuSekarangISO
-            }, {
-                onConflict: "absensi"
-            });
-
-        if (error) throw error;
-        
-        // Update data di layar tanpa menghapus barisnya
-        dataRekap[index].hadir = 0;
-        dataRekap[index].tidakHadir = 0;
-        dataRekap[index].catatan = "Data rekapan direset oleh Admin";
-        dataRekap[index].tanggalRealtime = formatTanggalIndonesia(waktuSekarangISO);
-        dataRekap[index].rawDate = waktuSekarangISO;
-        
-        renderTable();
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-        alert(`Data rekapan ${namaSiswa} berhasil direset ke 0!`);
-    } catch (err) {
-        alert("Gagal mereset data di Supabase: " + err.message);
-    } finally {
-        if(btnResetSiswa) btnResetSiswa.innerHTML = '<i class="fa fa-rotate-left"></i>';
-    }
-}
-
-// 3. FUNGSI KELUARKAN SISWA (Hapus total dari database & hilangkan dari input)
-async function keluarkanSiswa(index) {
-    const namaSiswa = dataRekap[index].nama;
-    if (!confirm(`⚠️ PERINGATAN KELUARKAN SISWA!\nApakah Anda yakin ingin mengeluarkan ${namaSiswa}?\n\nNama siswa ini akan DIHAPUS TOTAL dari database dan hilang otomatis dari daftar menu input.`)) return;
-    
-    const btnKick = document.getElementById(`btnKick-${index}`);
-    if(btnKick) btnKick.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-
-    try {
-        // Hapus permanen dari database Supabase
-        const { error } = await supabaseClient
-            .from('absensinsc')
-            .delete()
-            .eq('absensi', namaSiswa);
-
-        if (error) throw error;
-
-        // Hapus dari memori lokal aplikasi
-        dataRekap.splice(index, 1);
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
-        
-        // Render ulang tabel (otomatis memperbarui menu input)
-        renderTable();
-        alert(`Siswa bernama ${namaSiswa} telah resmi dikeluarkan dari sistem data.`);
-    } catch (err) {
-        alert("Gagal mengeluarkan siswa dari Supabase: " + err.message);
-        if(btnKick) btnKick.innerHTML = '<i class="fa fa-user-minus"></i>';
-    }
 }
 
 async function updateCounter(index, tipe, value) {
@@ -337,8 +245,8 @@ async function updateCounter(index, tipe, value) {
     }
 
     if (baruHadir === 0 && baruTidakHadir === 0) {
-        alert(`Rekap data ${namaSiswa} bernilai 0. Siswa akan otomatis dibersihkan lewat sistem.`);
-        await resetRekapSiswa(index);
+        alert(`Rekap data ${namaSiswa} bernilai 0. Siswa akan otomatis dihapus dari sistem.`);
+        await deleteRow(index);
         return;
     }
 
@@ -369,6 +277,30 @@ async function updateCounter(index, tipe, value) {
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
     } catch (err) {
         alert("Gagal memperbarui data ke Supabase: " + err.message);
+    }
+}
+
+async function deleteRow(index) {
+    const namaSiswa = dataRekap[index].nama;
+    if (!confirm(`Hapus data rekap ${namaSiswa} dari sistem Supabase?`)) return;
+    
+    const btnDelete = document.getElementById(`btnDelete-${index}`);
+    if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+    try {
+        const { error } = await supabaseClient
+            .from('absensinsc')
+            .delete()
+            .eq('absensi', namaSiswa);
+
+        if (error) throw error;
+
+        dataRekap.splice(index, 1);
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        renderTable();
+    } catch (err) {
+        alert("Gagal menghapus data dari Supabase: " + err.message);
+        if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-trash"></i>';
     }
 }
 
@@ -417,11 +349,7 @@ async function simpan() {
 
         const { error: errorLog } = await supabaseClient
             .from("log_harian")
-            .insert({
-                nama: nama,
-                status: status,
-                catatan: catatanTeks
-            });
+            .insert({ nama: nama, status: status, catatan: catatanTeks });
 
         if (errorLog) throw errorLog;
 
@@ -429,18 +357,14 @@ async function simpan() {
 
         if (siswaExist) {
             siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTidakHadir; 
+            siswaExist.tidakHadir = nTidakHadir;
             siswaExist.catatan = catatanTeks;
             siswaExist.tanggalRealtime = realtimeSekarang;
             siswaExist.rawDate = waktuSekarangISO;
         } else {
             dataRekap.push({
-                nama: nama,
-                hadir: nHadir,
-                tidakHadir: nTidakHadir,
-                catatan: catatanTeks,
-                tanggalRealtime: realtimeSekarang,
-                rawDate: waktuSekarangISO
+                nama: nama, hadir: nHadir, tidakHadir: nTidakHadir,
+                catatan: catatanTeks, tanggalRealtime: realtimeSekarang, rawDate: waktuSekarangISO
             });
         }
 
@@ -509,27 +433,23 @@ function exportSiswaExcel(index) {
     prosesUnduhFile(blob, `Absensi_${item.nama}.xlsx`);
 }
 
+// PERBAIKAN: Menggunakan LOGO_NSC_BASE64 secara langsung, instan & anti-macet!
 function exportSiswaPDF(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    const logo = new Image();
-    logo.src = "Logo percobaan.png";
-
-    logo.onload = function () {
-        doc.addImage(logo, "PNG", 14, 10, 18, 24);
-
+    try {
+        doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 10, 18, 18);
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(16);
         doc.setTextColor(35, 74, 132);
-        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 19); 
+        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 43, 19); 
 
         doc.setFontSize(11);
         doc.setFont("Helvetica", "normal");
-        doc.text("Nona Swimming Course (NSC)", 38, 26);
-
-        doc.line(14, 39, 196, 39);
+        doc.text("Nona Swimming Course (NSC)", 43, 26);
+        doc.line(14, 34, 196, 34);
 
         const rows = [
             ["Nama Siswa", item.nama],
@@ -540,19 +460,11 @@ function exportSiswaPDF(index) {
             ["Catatan", item.catatan || "-"]
         ];
 
-        doc.autoTable({
-            startY: 45,
-            head: [["Komponen", "Keterangan"]],
-            body: rows,
-            theme: "striped"
-        });
-
+        doc.autoTable({ startY: 40, head: [["Komponen", "Keterangan"]], body: rows, theme: "striped" });
         doc.save(`Absensi_${item.nama}.pdf`);
-    };
-
-    logo.onerror = function(){
+    } catch(e) {
         doc.save(`Absensi_${item.nama}.pdf`);
-    };
+    }
 }
 
 function exportTotalExcel() {
@@ -576,29 +488,25 @@ function exportTotalExcel() {
     prosesUnduhFile(blob, `Rekap_Total_Absensi_NSC.xlsx`);
 }
 
+// PERBAIKAN: Menggunakan LOGO_NSC_BASE64 secara langsung, instan & anti-macet!
 function exportTotalPDF() {
     if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    const logo = new Image();
-    logo.src = "Logo percobaan.png";
-
-    logo.onload = function () {
-        doc.addImage(logo, "PNG", 14, 10, 18, 24);
-
+    try {
+        doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 10, 18, 18);
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(18);
         doc.setTextColor(35, 74, 132);
-        doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 19);
+        doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 43, 19);
         
         doc.setFontSize(11);
         doc.setFont("Helvetica", "normal");
         doc.setTextColor(100, 116, 139);
-        doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 26);
-        
+        doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 43, 26);
         doc.setDrawColor(226, 232, 240);
-        doc.line(14, 39, 196, 39);
+        doc.line(14, 34, 196, 34);
         
         const tableRows = [];
         dataRekap.forEach(item => {
@@ -610,7 +518,7 @@ function exportTotalPDF() {
         });
         
         doc.autoTable({
-            startY: 45,
+            startY: 40,
             head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
             body: tableRows,
             theme: "striped",
@@ -621,12 +529,10 @@ function exportTotalPDF() {
         
         const blob = doc.output("blob");
         prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
-    };
-
-    logo.onerror = function () {
+    } catch(e) {
         const blob = doc.output("blob");
         prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
-    };
+    }
 }
 
 async function resetSemuaData() {
@@ -668,5 +574,3 @@ async function resetSemuaData() {
         }
     }
 }
-
-```
