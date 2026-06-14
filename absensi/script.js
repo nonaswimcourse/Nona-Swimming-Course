@@ -80,7 +80,7 @@ async function muatDataDariCloud() {
                     hadir: parseInt(item.Hadir) || 0,
                     tidakHadir: parseInt(item["Tidak Hadir"]) || 0,
                     catatan: item.Catatan || "",
-                    no_hp: item.no_hp || item.No_HP || "",
+                    no_hp: item.no_hp || "",
                     tanggalRealtime: formatTanggalIndonesia(rawDateSource),
                     rawDate: rawDateSource
                 };
@@ -110,30 +110,30 @@ function togglePasswordVisibility() {
     }
 }
 
-// PERBAIKAN TOTAL: Menggunakan fungsi standar tanpa async/await agar tidak memicu error promise di browser
-function handleLogin(event) {
+async function generateSHA256(string) {
+    const msgBuffer = new TextEncoder().encode(string);                    
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function handleLogin(event) {
     if (event) event.preventDefault(); 
-    
     const emailEl = document.getElementById("loginEmail");
     const passwordEl = document.getElementById("loginPassword");
-    
-    if (!emailEl || !passwordEl) {
-        alert("Elemen login HTML tidak ditemukan! Periksa kembali ID input Anda.");
-        return;
-    }
+    if (!emailEl || !passwordEl) return;
 
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
 
-    // Silakan sesuaikan email & password di bawah ini jika ada perubahan
-    if (email === "nonaswimmingcourse@gmail.com" && password === "adminnsc123") {
-        localStorage.setItem("isLoggedIn", "true");
-        document.getElementById("loginSection").classList.add("hidden");
-        document.getElementById("mainAppSection").classList.remove("hidden");
-        muatDataDariCloud();
-    } else {
+    if (email !== "nonaswimmingcourse@gmail.com" || await generateSHA256(password) !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
         alert("Akses ditolak! Akun atau Password salah.");
+        return; 
     }
+    
+    localStorage.setItem("isLoggedIn", "true");
+    document.getElementById("loginSection").classList.add("hidden");
+    document.getElementById("mainAppSection").classList.remove("hidden");
+    muatDataDariCloud();
 }
 
 function handleLogout() {
@@ -161,10 +161,11 @@ function renderTable() {
                 : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;
 
             let nomorWA = item.no_hp || ""; 
-            if (nomorWA.toString().startsWith('0')) {
-                nomorWA = '62' + nomorWA.toString().slice(1);
+            if (nomorWA.startsWith('0')) {
+                nomorWA = '62' + nomorWA.slice(1);
             }
 
+            // Pesan WA Standar
             let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
 
 Total Hadir: *${item.hadir}* Pertemuan
@@ -174,6 +175,16 @@ Catatan: _${item.catatan || '-'}_
 
 Terima kasih.`;
             let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`;
+
+            // Pesan Notifikasi Terbit Dokumen PDF Resmi
+            let pesanWAPDF = `Halo Bapak/Ibu, pemberitahuan resmi mengenai Laporan Dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.
+
+Dokumen resmi telah dicetak dan diterbitkan secara digital dengan status kehadiran akhir: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}* pertemuan.
+
+Catatan Evaluasi: _${item.catatan || '-'}_
+
+Silakan download langsung salinan dokumen Anda melalui Admin atau simpan pesan konfirmasi ini. Terima kasih.`;
+            let linkWAPDF = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWAPDF)}`;
 
             html += `
             <tr>
@@ -199,14 +210,12 @@ Terima kasih.`;
                         <a href="${linkWA}" target="_blank" class="btn-action btn-wa" title="Kirim Laporan Teks via WhatsApp">
                             <i class="fab fa-whatsapp"></i>
                         </a>
-                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index}, true)">
+                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})">
                             <i class="fa fa-file-pdf"></i>
                         </button>
-                        
-                        <button class="btn-action btn-wa-pdf" title="Menu Opsi Dokumen PDF Siswa" onclick="bukaMenuOpsiPDF(${index})">
-                            <i class="fa fa-share-nodes"></i> Opsi PDF
-                        </button>
-
+                        <a href="${linkWAPDF}" target="_blank" class="btn-action btn-wa-pdf" title="Kirim Notifikasi Dokumen PDF ke WA Orang Tua">
+                            <i class="fa fa-share-nodes"></i> Kirim PDF ke WA
+                        </a>
                         <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})">
                             <i class="fa fa-file-excel"></i>
                         </button>
@@ -223,24 +232,6 @@ Terima kasih.`;
     }
     document.getElementById("tbody").innerHTML = html;
     document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
-}
-
-function bukaMenuOpsiPDF(index) {
-    const item = dataRekap[index];
-    const nomorHPValid = item.no_hp || "Belum Terinput";
-
-    const pesanPilihan = `Pilih aksi dokumen PDF untuk siswa: ${item.nama}\n(No HP Terdaftar: ${nomorHPValid})\n\nKetik ANGKA pilihannya:\n1 = Download PDF Saja ke Perangkat\n2 = Kirim Link PDF ke WhatsApp Orang Tua\n\nTekan 'Batal' untuk keluar.`;
-    const pilihanUser = prompt(pesanPilihan, "1");
-
-    if (pilihanUser === null) return; 
-
-    if (pilihanUser.trim() === "1") {
-        exportSiswaPDF(index, true);
-    } else if (pilihanUser.trim() === "2") {
-        shareSiswaPDF(index);
-    } else {
-        alert("Pilihan tidak valid! Masukkan angka 1 atau 2 saja.");
-    }
 }
 
 async function updateCounter(index, tipe, value) {
@@ -485,7 +476,7 @@ function exportTotalExcel() {
     prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.xlsx");
 }
 
-function exportSiswaPDF(index, autoDownload = true) {
+function exportSiswaPDF(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -515,11 +506,7 @@ function exportSiswaPDF(index, autoDownload = true) {
         theme: "striped",
         headStyles: { fillColor: [35, 74, 132] }
     });
-    
-    if (autoDownload) {
-        doc.save(`Absensi_${item.nama}.pdf`);
-    }
-    return doc;
+    doc.save(`Absensi_${item.nama}.pdf`);
 }
 
 function exportTotalPDF() {
@@ -554,68 +541,6 @@ function exportTotalPDF() {
     });
     
     doc.save("Rekap_Total_Absensi_NSC.pdf");
-}
-
-async function shareSiswaPDF(index) {
-    const item = dataRekap[index];
-    const btnShare = document.querySelectorAll(".btn-wa-pdf")[index];
-    if (!btnShare) return;
-
-    const originalHTML = btnShare.innerHTML;
-    btnShare.disabled = true;
-    btnShare.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mengunggah...';
-
-    try {
-        const doc = exportSiswaPDF(index, false);
-        const pdfBlob = doc.output('blob');
-        const namaFile = `${item.nama.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
-        
-        const { data, error } = await supabaseClient
-            .storage
-            .from('pdf-laporan')
-            .upload(namaFile, pdfBlob, {
-                contentType: 'application/pdf',
-                upsert: true
-            });
-            
-        if (error) throw error;
-        
-        const { data: urlData } = supabaseClient
-            .storage
-            .from('pdf-laporan')
-            .getPublicUrl(namaFile);
-            
-        const linkDownloadPDF = urlData.publicUrl;
-
-        let nomorWA = item.no_hp || ""; 
-        if (!nomorWA) {
-            alert("Siswa tidak memiliki nomor HP terdaftar. Proses WhatsApp dibatalkan.");
-            return;
-        }
-        if (nomorWA.toString().startsWith('0')) {
-            nomorWA = '62' + nomorWA.toString().slice(1);
-        }
-
-        let pesanWAPDF = `Halo Bapak/Ibu, berikut kami terbitkan dokumen resmi *PDF Hasil Evaluasi & Absensi* Ananda *${item.nama}* di *Nona Swimming Course*.
-
-Silakan klik tautan di bawah ini untuk melihat atau mengunduh langsung salinan dokumen PDF resmi:
-👉 ${linkDownloadPDF}
-
-Kehadiran Akhir: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}* pertemuan.
-Catatan Evaluasi: _${item.catatan || '-'}_
-
-Terima kasih.`;
-
-        let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWAPDF)}`;
-        window.open(linkWA, '_blank');
-
-    } catch (err) {
-        console.error("Gagal membagikan PDF via Cloud:", err);
-        alert("Gagal membagikan ke Cloud Supabase: " + err.message + "\n\nPastikan Anda sudah membuat bucket publik bernama 'pdf-laporan' di menu Storage Supabase.");
-    } finally {
-        btnShare.disabled = false;
-        btnShare.innerHTML = originalHTML;
-    }
 }
 
 async function resetSemuaData() {
