@@ -611,7 +611,7 @@ function updateJamRealtime(){
     }
 }
 
-// FUNGSI RESET TOTAL SEMUA DATA DARI SUPABASE
+// FUNGSI RESET TOTAL SEMUA DATA DARI SUPABASE (VERSI PERBAIKAN)
 async function resetSemuaData() {
     if (!confirm("⚠️ PERINGATAN KERAS!\nApakah Anda yakin ingin MENGHAPUS TOTAL semua data absensi siswa dari database cloud Supabase?\n\nData yang dihapus tidak bisa dikembalikan!")) return;
     if (!confirm("Konfirmasi terakhir: Benar-benar ingin mengosongkan semua rekap data?")) return;
@@ -623,29 +623,42 @@ async function resetSemuaData() {
     }
 
     try {
+        // Langkah 1: Ambil semua data baris yang ada untuk mendapatkan identitasnya
         const { data: listSiswa, error: fetchError } = await supabaseClient
             .from('absensinsc')
             .select('absensi');
 
         if (fetchError) throw fetchError;
 
+        // Langkah 2: Jika ada data, hapus satu per satu atau menggunakan filter .in() untuk memastikan interaksi RLS aman
         if (listSiswa && listSiswa.length > 0) {
             const listNama = listSiswa.map(s => s.absensi);
 
+            // Menghapus baris berdasarkan kecocokan nama array yang ditemukan
             const { error: errorDeleteRekap } = await supabaseClient
                 .from('absensinsc')
                 .delete()
                 .in('absensi', listNama);
 
             if (errorDeleteRekap) throw errorDeleteRekap;
+        } else {
+            // Antisipasi jika filtering biasa tersendat, jalankan perintah hapus global yang valid untuk API Supabase
+            const { error: errorGlobalDelete } = await supabaseClient
+                .from('absensinsc')
+                .delete()
+                .neq('absensi', 'KOLOM_YANG_PASTI_TIDAK_ADA'); 
+                
+            if (errorGlobalDelete) throw errorGlobalDelete;
         }
 
+        // Langkah 3: Bersihkan data di tampilan aplikasi & LocalStorage
         dataRekap = [];
         try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
         
         renderTable();
-        alert("Database Absensi Berhasil Dikosongkan!");
+        alert("Database Absensi Berhasil Dikosongkan! Silakan cek spreadsheet Anda kembali dalam beberapa saat.");
     } catch (err) {
+        console.error("Gagal Reset:", err);
         alert("Gagal mereset database ke Supabase: " + err.message);
     } finally {
         if (btnReset) {
