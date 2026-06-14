@@ -13,7 +13,7 @@ const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 // Base64 Data URI Resmi Logo Nona Swimming Course (NSC) yang Valid & Utuh
-const LOGO_NSC_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAcHJlZmVycmVkUkdCAAB4nH2RPUscURSGn30mIisbXUasbBAsZIsgZreIsbKyf6wMZp07w0wyyYwzM66gYGFpYWFpYalYWIjYpLAQLCwEizT+gIWFpYVlYmEhIisbXebOnYVAsN093Pc95z3vOfe8A6w6llXNqwEon9Yy0pGInZscG7X+BAXowAAnwK6VldMRKeofgAnvbtvqt9Z9R9V1b/tr9bdaXU0rIBAEDgB7WlsFwZfAcaxVqgBwGPgu1bIAnAG+f/M6gO8D3zvZCvA9YF8t+wT4GLAnlV6gV2b/Nzk6mhgYgLId+EZKpxw4Arxn66pWbID3gTfX2wPArwHwbePzIeAY8LmlYxbwLeAnS8cC4D0rvbA06gDft9W3M7P0N2a7ZvtE0pC067b7tr/Ympp2ZunbHwYmxsbHBqN2XNLR8Y8fH4zaO/ZlXWp3bfeM6K8Z+0pSOpaR+f+7Y/8bHwBwB8BtABgAsBMANgBwGMD6Lz0SAtbI4BcA6wDsAbDxt45VwAYZ/A7Am9+6b5HhV8gGv0P277v3WzN8Ctk9ALf/wL1fUuBzyA4BuAMA7v2Q6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLw9vms868X963I7mQicmR0Is/6KhpbLWeOZaWylrXS0epv6b+w1U6fAAAAAElFTkSuQmCC";
+const LOGO_NSC_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAcHJlZmVycmVkUkdCAAB4nH2RPUscURSGn30mIisbXUasbBAsZIsgZreIsbKyf6wMZp07w0wyyYwzM66gYGFpYWFpYalYWIjYpLAQLCwEizT+gIWFpYVlYmEhIisbXebOnYVAsN093Pc95z3vOfe8A6w6llXNqwEon9Yy0pGInZscG7X+BAXowAAnwK6VldMRKeofgAnvbtvqt9Z9R9V1b/tr9bdaXU0rIBAEDgB7WlsFwZfAcaxVqgBwGPgu1bIAnAG+f/M6gO8D3zvZCvA9YF8t+wT4GLAnlV6gV2b/Nzk6mhgYgLId+EZKpxw4Arxn66pWbID3gTfX2wPArwHwbePzIeAY8LmlYxbwLeAnS8cC4D0rvbA06gDft9W3M7P0N2a7ZvtE0pC067b7tr/Ympp2ZunbHwYmxsbHBqN2XNLR8Y8fH4zaO/ZlXWp3bfeM6K8Z+0pSOpaR+f+7Y/8bHwBwB8BtABgAsBMANgBwGMD6Lz0SAtbI4BcA6wDsAbDxt45VwAYZ/A7Am9+6b5HhV8gGv0P277v3WzN8Ctk9ALf/wL1fUuBzyA4BuAMA7v2Q6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLwfX6W6H9p+Nf8v87/7b/7+ZcI+ByyfQDukGj/3f9jGv7V/7D/5xL/8w7+3f9bMnyG7A6AuwfAnRDw9gC4fT66U7H9V/v9F8NnyB4CuA/AHRLw9vms868X963I7mQicmR0Is/6KhpbLWeOZaWylrXS0epv6b+w1U6fAAAAAElFTkSuQmCC";
 
 // Fungsi pembantu untuk memformat tanggal realtime ke teks Indonesia
 function formatTanggalIndonesia(timestamp) {
@@ -190,20 +190,18 @@ async function updateCounter(index, tipe, value) {
     const targetSiswa = dataRekap[index];
     const namaSiswa = targetSiswa.nama;
     let catatanKetik = "";
-    let statusLog = tipe === 'hadir' ? 'Hadir' : 'Tidak Hadir';
     
     let baruHadir = targetSiswa.hadir;
     let baruTidakHadir = targetSiswa.tidakHadir;
 
     if (value > 0) {
-        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update via counter +`);
+        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update manual via counter`);
         if (inputCatatan === null) return; 
-        catatanKetik = inputCatatan.trim() === "" ? `Update via counter +` : inputCatatan.trim();
+        catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
         
         if (tipe === 'hadir') baruHadir += 1;
         else baruTidakHadir += 1;
     } else {
-        catatanKetik = `Pengurangan manual via counter -`;
         if (tipe === 'hadir') {
             if (baruHadir === 0) return;
             baruHadir -= 1;
@@ -211,7 +209,7 @@ async function updateCounter(index, tipe, value) {
             if (baruTidakHadir === 0) return;
             baruTidakHadir -= 1;
         }
-        statusLog = `Kurang ${statusLog}`;
+        catatanKetik = `Pengurangan manual via counter`;
     }
 
     if (baruHadir === 0 && baruTidakHadir === 0) {
@@ -223,7 +221,6 @@ async function updateCounter(index, tipe, value) {
     const waktuSekarangISO = new Date().toISOString();
 
     try {
-        // 1. Update ke tabel rekap utama absensinsc
         const { error } = await supabaseClient
             .from("absensinsc")
             .upsert({
@@ -237,17 +234,6 @@ async function updateCounter(index, tipe, value) {
             });
 
         if (error) throw error;
-
-        // 2. Kirim data baru ke log_harian secara beruntun (menyebabkan data menumpuk per input)
-        const { error: errorLog } = await supabaseClient
-            .from("log_harian")
-            .insert({
-                nama: namaSiswa,
-                status: statusLog,
-                catatan: catatanKetik
-            });
-
-        if (errorLog) throw errorLog;
         
         dataRekap[index].hadir = baruHadir;
         dataRekap[index].tidakHadir = baruTidakHadir;
@@ -344,7 +330,6 @@ async function simpan() {
 
         if (errorRekap) throw errorRekap;
 
-        // Menyimpan riwayat masukan ke log harian
         const { error: errorLog } = await supabaseClient
             .from("log_harian")
             .insert({
@@ -405,56 +390,28 @@ function showTab(tab, btn) {
     btn.classList.add("active");
 }
 
+// PERBAIKAN UTAMA: Manajemen unduhan universal aman untuk HP Android, iOS & PC Laptop
 function prosesUnduhFile(blob, namaFile) {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-    if (isMobile) {
-        const reader = new FileReader();
-        reader.onloadend = function() {
-            const dataUrl = reader.result;
-            const w = window.open();
-            if (w) {
-                w.document.write(`
-                    <html lang="id">
-                    <head>
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Unduh File NSC</title>
-                        <style>
-                            body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 40px 20px; background: #f4f6f9; color: #1e3a63; }
-                            .box { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
-                            .btn-download { display: inline-block; background: #234a84; color: white; padding: 14px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px; box-shadow: 0 4px 6px rgba(35,74,132,0.2); }
-                            .info { color: #64748b; font-size: 14px; margin-top: 15px; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="box">
-                            <h3>File Berhasil Disiapkan!</h3>
-                            <p>Silakan klik tombol di bawah untuk menyimpan berkas ke perangkat Anda.</p>
-                            <a href="${dataUrl}" download="${namaFile}" class="btn-download">⬇️ SIMPAN FILE SEKARANG</a>
-                            <p class="info">Nama File: <br><strong>${namaFile}</strong></p>
-                        </div>
-                    </body>
-                    </html>
-                `);
-                w.document.close();
-            } else {
-                alert("Gagal membuka window baru. Aktifkan izin pop-up.");
-            }
-        };
-        reader.readAsDataURL(blob);
-    } else {
-        try {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = namaFile;
-            document.body.appendChild(a);
-            a.click();
+    try {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = namaFile;
+        
+        // Siasat elemen tersembunyi agar didukung penuh oleh komponen Chrome Mobile WebView
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        
+        a.click();
+        
+        // Membersihkan memory cache DOM sesudah trigger klik
+        setTimeout(() => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        } catch(e) {
-            alert("Gagal mengunduh file.");
-        }
+        }, 300);
+    } catch (e) {
+        console.error("Metode Blob URL Gagal:", e);
+        alert("Gagal mengunduh file secara langsung. Pastikan izin penyimpanan browser aktif.");
     }
 }
 
@@ -604,7 +561,7 @@ function exportTotalPDF() {
 
 function updateJamRealtime(){
     const sekarang = new Date();
-    const jam = Clinical = sekarang.toLocaleTimeString("id-ID",{
+    const jam = sekarang.toLocaleTimeString("id-ID",{
         hour:"2-digit",
         minute:"2-digit",
         second:"2-digit"
@@ -622,7 +579,7 @@ function updateJamRealtime(){
     }
 }
 
-// FUNGSI RESET TOTAL SEMUA DATA DARI SUPABASE (VERSI PERBAIKAN)
+// FUNGSI RESET TOTAL SEMUA DATA DARI SUPABASE
 async function resetSemuaData() {
     if (!confirm("⚠️ PERINGATAN KERAS!\nApakah Anda yakin ingin MENGHAPUS TOTAL semua data absensi siswa dari database cloud Supabase?\n\nData yang dihapus tidak bisa dikembalikan!")) return;
     if (!confirm("Konfirmasi terakhir: Benar-benar ingin mengosongkan semua rekap data?")) return;
