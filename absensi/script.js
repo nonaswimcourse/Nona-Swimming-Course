@@ -15,33 +15,25 @@ function formatTanggalIndonesia(timestamp) {
     if (!timestamp) return "Belum Ada Tanggal";
     const dateObj = new Date(timestamp);
     if (isNaN(dateObj.getTime())) return timestamp;
-    const hari = namaHari[dateObj.getDay()];
-    const tanggal = dateObj.getDate();
-    const bulan = namaBulan[dateObj.getMonth()];
-    const tahun = dateObj.getFullYear();
-    return `${hari}, ${tanggal} ${bulan} ${tahun}`;
+    return `${namaHari[dateObj.getDay()]}, ${dateObj.getDate()} ${namaBulan[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
 }
 
 function updateJamRealtime() {
     const sekarang = new Date();
-    const jam = String(sekarang.getHours()).padStart(2, '0');
-    const menit = String(sekarang.getMinutes()).padStart(2, '0');
-    const detik = String(sekarang.getSeconds()).padStart(2, '0');
     const jamEl = document.getElementById("jamRealtime");
-    if (jamEl) jamEl.innerText = `${jam}.${menit}.${detik}`;
+    if (jamEl) {
+        jamEl.innerText = `${String(sekarang.getHours()).padStart(2, '0')}.${String(sekarang.getMinutes()).padStart(2, '0')}.${String(sekarang.getSeconds()).padStart(2, '0')}`;
+    }
     const tanggalEl = document.getElementById("tanggalRealtime");
     if (tanggalEl) tanggalEl.innerText = formatTanggalIndonesia(sekarang);
 }
 
-// BYPASS UTAMA YANG DIPANGGIL OLEH KLIK TOMBOL HTML
+// LOGIC UTAMA LOGIN BYPASS
 function eksekusiLoginBypass() {
     const emailEl = document.getElementById("loginEmail");
     const passwordEl = document.getElementById("loginPassword");
     
-    if (!emailEl || !passwordEl) {
-        alert("Komponen login di HTML tidak terbaca!");
-        return;
-    }
+    if (!emailEl || !passwordEl) return;
 
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
@@ -50,7 +42,7 @@ function eksekusiLoginBypass() {
         localStorage.setItem("isLoggedIn", "true");
         bukaAplikasiUtama();
     } else {
-        alert("Akses ditolak! Akun atau Password salah.");
+        alert("Akses ditolak! Email atau Password salah.");
     }
 }
 
@@ -59,7 +51,7 @@ function bukaAplikasiUtama() {
     const mainAppSection = document.getElementById("mainAppSection");
     
     if (loginSection) {
-        loginSection.style.setProperty("display", "none", "important");
+        loginSection.style.display = "none";
         loginSection.classList.add("hidden");
     }
     if (mainAppSection) {
@@ -70,7 +62,6 @@ function bukaAplikasiUtama() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    // Kunci session langsung jika sudah login sebelumnya
     if(localStorage.getItem("isLoggedIn") === "true") {
         bukaAplikasiUtama();
     }
@@ -81,25 +72,13 @@ document.addEventListener("DOMContentLoaded", function() {
             sortField: { field: "text", direction: "asc" },
             placeholder: "Ketik / Pilih Nama Siswa...",
             allowEmptyOption: true,
-            onChange: function(value) {
-                if(value) {
-                    if(selectNamaControl) { selectNamaControl.blur(); }
-                    document.activeElement.blur(); 
-                }
+            onChange: function() {
+                if(selectNamaControl) selectNamaControl.blur();
+                document.activeElement.blur(); 
             }
         });
-    } catch(e) { console.warn("TomSelect belum siap."); }
+    } catch(e) { console.warn("TomSelect ready."); }
 
-    // Intercept jika user menekan tombol Enter di form agar tidak memicu reload halaman
-    const loginForm = document.getElementById("loginForm");
-    if (loginForm) {
-        loginForm.onsubmit = function(e) {
-            if(e) { e.preventDefault(); e.stopPropagation(); }
-            eksekusiLoginBypass();
-            return false;
-        };
-    }
-    
     updateJamRealtime();
     setInterval(updateJamRealtime, 1000);
 });
@@ -107,9 +86,8 @@ document.addEventListener("DOMContentLoaded", function() {
 async function muatDataDariCloud() {
     const tbody = document.getElementById("tbody");
     try {
-        if (tbody) {
-            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru...</td></tr>";
-        }
+        if (tbody) tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data...</td></tr>";
+        
         const { data, error } = await supabaseClient
             .from('absensinsc')
             .select('*')
@@ -123,41 +101,20 @@ async function muatDataDariCloud() {
                 return {
                     nama: item.absensi ? item.absensi.toString().toUpperCase().trim() : "TANPA NAMA",
                     hadir: parseInt(item.Hadir) || 0,
-                    tidakHadir: parseInt(item["Tidak Hadir"] || item.id_tidak_hadir || item.status) || 0,
+                    tidakHadir: parseInt(item["Tidak Hadir"] || 0),
                     catatan: item.Catatan || "",
                     no_hp: item.no_hp || "",
-                    tanggalRealtime: formatTanggalIndonesia(rawDateSource),
-                    rawDate: rawDateSource
+                    tanggalRealtime: formatTanggalIndonesia(rawDateSource)
                 };
             });
         } else {
             dataRekap = [];
         }
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e){}
+        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
         renderTable();
     } catch (e) { 
-        console.error(e);
         dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [];
         renderTable();
-    }
-}
-
-function togglePasswordVisibility() {
-    const passwordInput = document.getElementById("loginPassword");
-    const eyeIcon = document.getElementById("eyeIcon");
-    if (passwordInput && passwordInput.type === "password") {
-        passwordInput.type = "text";
-        if (eyeIcon) eyeIcon.classList.replace("fa-eye", "fa-eye-slash");
-    } else if (passwordInput) {
-        passwordInput.type = "password";
-        if (eyeIcon) eyeIcon.classList.replace("fa-eye-slash", "fa-eye");
-    }
-}
-
-function handleLogout() {
-    if(confirm("Apakah Anda yakin ingin keluar?")) {
-        try { localStorage.removeItem("isLoggedIn"); } catch(e){}
-        window.location.reload();
     }
 }
 
@@ -166,7 +123,7 @@ function renderTable() {
     const tbody = document.getElementById("tbody");
     if (!tbody) return;
 
-    if(!dataRekap || dataRekap.length === 0) {
+    if(dataRekap.length === 0) {
         html = "<tr><td colspan='6' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
     } else {
         dataRekap.forEach((item, index) => {
@@ -205,8 +162,141 @@ function renderTable() {
         });
     }
     tbody.innerHTML = html;
-    const totalPertemuanText = document.getElementById("totalPertemuanText");
-    if (totalPertemuanText) totalPertemuanText.innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
+}
+
+async function updateCounter(index, tipe, value) {
+    const targetSiswa = dataRekap[index];
+    let baruHadir = targetSiswa.hadir;
+    let baruTidakHadir = targetSiswa.tidakHadir;
+
+    if (value > 0) {
+        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${targetSiswa.nama}:`, `Update manual`);
+        if (inputCatatan === null) return;
+        var catatanKetik = inputCatatan.trim() === "" ? `Update manual` : inputCatatan.trim();
+        if (tipe === 'hadir') baruHadir += 1; else baruTidakHadir += 1;
+    } else {
+        if (tipe === 'hadir') { if (baruHadir === 0) return; baruHadir -= 1; } 
+        else { if (baruTidakHadir === 0) return; baruTidakHadir -= 1; }
+        var catatanKetik = `Pengurangan manual`;
+    }
+
+    const waktuSekarangISO = new Date().toISOString();
+    try {
+        const { error } = await supabaseClient.from("absensinsc").upsert({
+            absensi: targetSiswa.nama, Hadir: baruHadir, "Tidak Hadir": baruTidakHadir.toString(),
+            Catatan: catatanKetik, "Tanggal Terbaru": waktuSekarangISO
+        }, { onConflict: "absensi" });
+
+        if (error) throw error;
+        dataRekap[index].hadir = baruHadir;
+        dataRekap[index].tidakHadir = baruTidakHadir;
+        dataRekap[index].tanggalRealtime = formatTanggalIndonesia(waktuSekarangISO);
+        renderTable();
+    } catch (err) { alert(err.message); }
+}
+
+async function simpan() {
+    let nama = selectNamaControl ? selectNamaControl.getValue() : document.getElementById("nama").value;
+    if (!nama) { alert("Silakan pilih nama siswa!"); return; }
+
+    const status = document.getElementById("status").value;
+    const catatan = document.getElementById("catatan").value;
+    const no_hp = document.getElementById("no_hp").value.trim();
+    const btnSimpan = document.getElementById("btnSimpan");
+
+    nama = nama.trim().toUpperCase();
+    btnSimpan.disabled = true;
+
+    let siswaExist = dataRekap.find(s => s.nama === nama);
+    let nHadir = status === "Hadir" ? 1 : 0;
+    let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
+
+    if (siswaExist) {
+        nHadir = siswaExist.hadir + (status === "Hadir" ? 1 : 0);
+        nTidakHadir = siswaExist.tidakHadir + (status === "Tidak Hadir" ? 1 : 0);
+    }
+
+    const waktuSekarangISO = new Date().toISOString();
+    try {
+        const { error } = await supabaseClient.from("absensinsc").upsert({
+            absensi: nama, Hadir: nHadir, "Tidak Hadir": nTidakHadir.toString(),
+            Catatan: catatan || "Absensi tercatat", "Tanggal Terbaru": waktuSekarangISO, no_hp: no_hp || (siswaExist ? siswaExist.no_hp : "")
+        }, { onConflict: "absensi" });
+
+        if (error) throw error;
+        alert("Data berhasil disimpan!");
+        muatDataDariCloud();
+    } catch (err) { alert(err.message); }
+    finally { btnSimpan.disabled = false; }
+}
+
+function showTab(tab, btn) {
+    document.getElementById("input").classList.add("hidden");
+    document.getElementById("rekap").classList.add("hidden");
+    document.getElementById(tab).classList.remove("hidden");
+    document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+    btn.classList.add("active");
+}
+
+function handleLogout() {
+    if(confirm("Apakah Anda yakin ingin keluar?")) {
+        localStorage.removeItem("isLoggedIn");
+        window.location.reload();
+    }
+}
+
+function togglePasswordVisibility() {
+    const pInput = document.getElementById("loginPassword");
+    const icon = document.getElementById("eyeIcon");
+    if (pInput.type === "password") {
+        pInput.type = "text";
+        icon.classList.replace("fa-eye", "fa-eye-slash");
+    } else {
+        pInput.type = "password";
+        icon.classList.replace("fa-eye-slash", "fa-eye");
+    }
+}
+
+async function deleteRow(index) {
+    const namaSiswa = dataRekap[index].nama;
+    if (!confirm(`Hapus data rekap ${namaSiswa}?`)) return;
+    try {
+        await supabaseClient.from('absensinsc').delete().eq('absensi', namaSiswa);
+        muatDataDariCloud();
+    } catch (err) { alert(err.message); }
+}
+
+function exportTotalExcel() {
+    if (dataRekap.length === 0) return;
+    const worksheetData = [["Nama Siswa", "Hadir", "Tidak Hadir", "Tanggal Terbaru"]];
+    dataRekap.forEach(item => worksheetData.push([item.nama, item.hadir, item.tidakHadir, item.tanggalRealtime]));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    XLSX.utils.book_append_sheet(wb, ws, "Rekap");
+    XLSX.writeFile(wb, "Rekap_Total_Absensi.xlsx");
+}
+
+function exportTotalPDF() {
+    const doc = new window.jspdf.jsPDF();
+    const rows = dataRekap.map(x => [x.nama, x.hadir, x.tidakHadir, x.tanggalRealtime]);
+    doc.autoTable({ head: [["Nama", "Hadir", "Absen", "Tanggal Terbaru"]], body: rows });
+    doc.save("Total_Absensi.pdf");
+}
+
+function exportSiswaExcel(index) {
+    const item = dataRekap[index];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([["Nama Siswa", item.nama], ["Hadir", item.hadir], ["Tidak Hadir", item.tidakHadir]]);
+    XLSX.utils.book_append_sheet(wb, ws, "Absensi");
+    XLSX.writeFile(wb, `Absensi_${item.nama}.xlsx`);
+}
+
+function exportSiswaPDF(index) {
+    const item = dataRekap[index];
+    const doc = new window.jspdf.jsPDF();
+    doc.text(`Absensi: ${item.nama}`, 14, 20);
+    doc.autoTable({ startY: 28, head: [["Hadir", "Tidak Hadir"]], body: [[item.hadir, item.tidakHadir]] });
+    doc.save(`Absensi_${item.nama}.pdf`);
 }
 
 async function prosesDanKirimCloudPDF(index) {
@@ -221,227 +311,38 @@ async function prosesDanKirimCloudPDF(index) {
     btnWa.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
     btnWa.style.pointerEvents = 'none';
 
-    const generatePDFBlob = () => {
-        return new Promise((resolve) => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFont("Helvetica", "bold").setFontSize(14).setTextColor(35, 74, 132);
-            doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
-            doc.setFontSize(10).setFont("Helvetica", "normal").setTextColor(100, 100, 100);
-            doc.text("Nona Swimming Course (NSC)", 14, 27);
-            const rows = [
-                ["Nama Siswa", item.nama],
-                ["Total Kehadiran", `${item.hadir} Pertemuan`],
-                ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-                ["Tanggal Terakhir", item.tanggalRealtime || "-"],
-                ["Catatan", item.catatan || "-"]
-            ];
-            doc.autoTable({ startY: 33, head: [["Komponen", "Detail"]], body: rows, theme: "striped", headStyles: { fillColor: [35, 74, 132] } });
-            resolve(doc.output('blob'));
-        });
-    };
-
     try {
-        const pdfBlob = await generatePDFBlob();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFont("Helvetica", "bold").setFontSize(14).setTextColor(35, 74, 132);
+        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
+        doc.setFontSize(10).setFont("Helvetica", "normal").setTextColor(100, 100, 100);
+        doc.text("Nona Swimming Course (NSC)", 14, 27);
+        const rows = [
+            ["Nama Siswa", item.nama],
+            ["Total Kehadiran", `${item.hadir} Pertemuan`],
+            ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
+            ["Tanggal Terakhir", item.tanggalRealtime || "-"],
+            ["Catatan", item.catatan || "-"]
+        ];
+        doc.autoTable({ startY: 33, head: [["Komponen", "Detail"]], body: rows, theme: "striped", headStyles: { fillColor: [35, 74, 132] } });
+        
+        const pdfBlob = doc.output('blob');
         const namaFileCloud = `Absensi_${item.nama.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+        
         const { error: uploadError } = await supabaseClient.storage.from('laporan-pdf').upload(namaFileCloud, pdfBlob, { contentType: 'application/pdf', upsert: true });
         if (uploadError) throw uploadError;
+        
         const { data: urlData } = supabaseClient.storage.from('laporan-pdf').getPublicUrl(namaFileCloud);
         let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi resmi Ananda *${item.nama}* di *Nona Swimming Course*. \n\nTotal Hadir: *${item.hadir}* Pertemuan\nTidak Hadir: *${item.tidakHadir}* Pertemuan\n\nSilakan klik link berikut untuk melihat/mengunduh PDF:\n${urlData.publicUrl}\n\nTerima kasih.`;
         window.open(`https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`, '_blank');
     } catch (e) {
-        const pdfBlob = await generatePDFBlob();
-        const urlLokal = window.URL.createObjectURL(pdfBlob);
-        const a = document.createElement('a');
-        a.href = urlLokal;
-        a.download = `Laporan_Absensi_${item.nama}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        let pesanWA = `Halo Bapak/Ibu, berikut ringkasan laporan absensi resmi Ananda *${item.nama}* di *Nona Swimming Course*.\n\n✓ Total Kehadiran: *${item.hadir}* Pertemuan\n✓ Tidak Hadir: *${item.tidakHadir}* Pertemuan\n\n*Dokumen PDF resmi baru saja diunduh otomatis di perangkat Admin dan akan dikirimkan langsung oleh admin via chat.*`;
-        window.open(`https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`, '_blank');
+        alert("Gagal otomatisasi cloud WA. Mengunduh file PDF secara lokal...");
+        exportSiswaPDF(index);
     } finally {
         btnWa.innerHTML = iconAsli;
         btnWa.style.pointerEvents = 'auto';
     }
-}
-
-async function updateCounter(index, tipe, value) {
-    const targetSiswa = dataRekap[index];
-    const namaSiswa = targetSiswa.nama;
-    let catatanKetik = "";
-    let baruHadir = targetSiswa.hadir;
-    let baruTidakHadir = targetSiswa.tidakHadir;
-
-    if (value > 0) {
-        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update manual via counter`);
-        if (inputCatatan === null) return;
-        catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
-        if (tipe === 'hadir') baruHadir += 1;
-        else baruTidakHadir += 1;
-    } else {
-        if (tipe === 'hadir') {
-            if (baruHadir === 0) return;
-            baruHadir -= 1;
-        } else {
-            if (baruTidakHadir === 0) return;
-            baruTidakHadir -= 1;
-        }
-        catatanKetik = `Pengurangan manual via counter`;
-    }
-
-    if (baruHadir === 0 && baruTidakHadir === 0) {
-        alert(`Rekap data ${namaSiswa} bernilai 0. Siswa akan otomatis dihapus.`);
-        await deleteRow(index);
-        return;
-    }
-
-    const waktuSekarangISO = new Date().toISOString();
-    try {
-        const { error } = await supabaseClient
-            .from("absensinsc")
-            .upsert({
-                absensi: namaSiswa,
-                Hadir: baruHadir,
-                "Tidak Hadir": baruTidakHadir.toString(),
-                Catatan: catatanKetik,
-                "Tanggal Terbaru": waktuSekarangISO
-            }, { onConflict: "absensi" });
-
-        if (error) throw error;
-        dataRekap[index].hadir = baruHadir;
-        dataRekap[index].tidakHadir = baruTidakHadir;
-        dataRekap[index].catatan = catatanKetik;
-        dataRekap[index].tanggalRealtime = formatTanggalIndonesia(waktuSekarangISO);
-        renderTable();
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-    } catch (err) { alert(err.message); }
-}
-
-async function deleteRow(index) {
-    const namaSiswa = dataRekap[index].nama;
-    if (!confirm(`Hapus data rekap ${namaSiswa}?`)) return;
-    const btnDelete = document.getElementById(`btnDelete-${index}`);
-    if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-    try {
-        const { error } = await supabaseClient.from('absensinsc').delete().eq('absensi', namaSiswa);
-        if (error) throw error;
-        dataRekap.splice(index, 1);
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        renderTable();
-    } catch (err) { alert(err.message); }
-}
-
-async function simpan() {
-    let nama = "";
-    if (selectNamaControl) { nama = selectNamaControl.getValue(); }
-    if (!nama) { nama = document.getElementById("nama").value; }
-    if (!nama) { alert("Silakan pilih nama siswa!"); return; }
-
-    const status = document.getElementById("status").value;
-    const catatan = document.getElementById("catatan").value;
-    const no_hp = document.getElementById("no_hp").value.trim();
-    const btnSimpan = document.getElementById("btnSimpan");
-
-    nama = nama.trim().toUpperCase();
-    btnSimpan.disabled = true;
-    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
-
-    const catatanTeks = catatan.trim() !== "" ? catatan.trim() : "Absensi tercatat";
-    let siswaExist = dataRekap.find(s => s && s.nama === nama);
-    let nHadir = status === "Hadir" ? 1 : 0;
-    let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
-
-    if (siswaExist) {
-        nHadir = (siswaExist.hadir || 0) + (status === "Hadir" ? 1 : 0);
-        nTidakHadir = (siswaExist.tidakHadir || 0) + (status === "Tidak Hadir" ? 1 : 0);
-    }
-
-    const waktuSekarangISO = new Date().toISOString();
-    try {
-        const { error: errorRekap } = await supabaseClient.from("absensinsc").upsert({
-            absensi: nama, Hadir: nHadir, "Tidak Hadir": nTechnical_error || nTidakHadir.toString(),
-            Catatan: catatanTeks, "Tanggal Terbaru": waktuSekarangISO, no_hp: no_hp || (siswaExist ? siswaExist.no_hp : "")
-        }, { onConflict: "absensi" });
-
-        if (errorRekap) throw errorRekap;
-        await supabaseClient.from("log_harian").insert({ nama: nama, status: status, catatan: catatanTeks });
-
-        if (siswaExist) {
-            siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTidakHadir;
-            siswaExist.catatan = catatanTeks;
-            siswaExist.tanggalRealtime = formatTanggalIndonesia(waktuSekarangISO);
-            if(no_hp) siswaExist.no_hp = no_hp;
-        } else {
-            dataRekap.push({ nama: nama, hadir: nHadir, tidakHadir: nTidakHadir, catatan: catatanTeks, tanggalRealtime: formatTanggalIndonesia(waktuSekarangISO), no_hp: no_hp });
-        }
-
-        renderTable();
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        if (selectNamaControl) { selectNamaControl.clear(true); }
-        document.getElementById("catatan").value = "";
-        document.getElementById("no_hp").value = "";
-        alert("Data berhasil disimpan!");
-    } catch (err) { alert(err.message); }
-    finally { btnSimpan.disabled = false; btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data'; }
-}
-
-function showTab(tab, btn) {
-    document.getElementById("input").classList.add("hidden");
-    document.getElementById("rekap").classList.add("hidden");
-    document.getElementById(tab).classList.remove("hidden");
-    document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
-    btn.classList.add("active");
-}
-
-function prosesUnduhFile(blob, namaFile) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = namaFile; a.style.display = 'none';
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
-}
-
-function exportSiswaExcel(index) {
-    const item = dataRekap[index];
-    const worksheetData = [
-        ["LAPORAN ABSENSI INDIVIDU SISWA"], ["Nona Swimming Course (NSC)"], [],
-        ["Komponen", "Keterangan"], ["Nama Siswa", item.nama], [`Hadir: ${item.hadir}`, `Absen: ${item.tidakHadir}`]
-    ];
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(wb, ws, "Absensi");
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    prosesUnduhFile(new Blob([wbout], { type: 'application/octet-stream' }), `Absensi_${item.nama}.xlsx`);
-}
-
-function exportTotalExcel() {
-    if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
-    const worksheetData = [["Nama Siswa", "Hadir", "Tidak Hadir", "Tanggal Terbaru", "Catatan"]];
-    dataRekap.forEach(item => {
-        worksheetData.push([item.nama, item.hadir, item.tidakHadir, item.tanggalRealtime, item.catatan || "-"]);
-    });
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(wb, ws, "Total Absensi NSC");
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    prosesUnduhFile(new Blob([wbout], { type: 'application/octet-stream' }), "Rekap_Total_Absensi_NSC.xlsx");
-}
-
-function exportSiswaPDF(index) {
-    const item = dataRekap[index];
-    const doc = new window.jspdf.jsPDF();
-    doc.text(`Absensi: ${item.nama}`, 14, 20);
-    doc.autoTable({ startY: 28, head: [["Hadir", "Tidak Hadir"]], body: [[item.hadir, item.tidakHadir]] });
-    doc.save(`Absensi_${item.nama}.pdf`);
-}
-
-function exportTotalPDF() {
-    const doc = new window.jspdf.jsPDF();
-    const rows = dataRekap.map(x => [x.nama, x.hadir, x.tidakHadir, x.tanggalRealtime]);
-    doc.autoTable({ head: [["Nama", "Hadir", "Absen", "Tanggal Terbaru"]], body: rows });
-    doc.save("Total_Absensi.pdf");
 }
 
 async function resetSemuaData() {
