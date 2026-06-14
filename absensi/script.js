@@ -490,52 +490,129 @@ function exportTotalExcel() {
 }
 
 // PERBAIKAN: Menggunakan LOGO_NSC_BASE64 secara langsung, instan & anti-macet!
-function exportTotalPDF() {
-    if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+async function exportTotalPDF() {
+
+    if (!dataRekap || dataRekap.length === 0) {
+        alert("Tidak ada data untuk diekspor!");
+        return;
+    }
+
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
+    const doc = new jsPDF("landscape");
+
     try {
-        doc.addImage(LOGO_NSC_BASE64, "PNG", 14, 10, 18, 18);
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(18);
-        doc.setTextColor(35, 74, 132);
-        doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 43, 19);
-        
-        doc.setFontSize(11);
-        doc.setFont("Helvetica", "normal");
-        doc.setTextColor(100, 116, 139);
-        doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 43, 26);
-        doc.setDrawColor(226, 232, 240);
-        doc.line(14, 34, 196, 34);
-        
-        const tableRows = [];
-        dataRekap.forEach(item => {
-            tableRows.push([
-                item.nama, item.hadir, item.tidakHadir,
-                item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                item.tanggalRealtime, item.catatan || '-'
+
+        // ===== LOGO =====
+        const logo = new Image();
+        logo.src = "Logo percobaan.png";
+
+        logo.onload = function () {
+
+            // Header
+            doc.addImage(logo, "PNG", 14, 8, 20, 20);
+
+            doc.setFontSize(18);
+            doc.setFont(undefined, "bold");
+            doc.text("REKAP TOTAL ABSENSI NSC", 40, 16);
+
+            doc.setFontSize(11);
+            doc.setFont(undefined, "normal");
+            doc.text("Nona Swimming Course", 40, 23);
+
+            const tanggalCetak = new Date().toLocaleDateString("id-ID", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric"
+            });
+
+            doc.text(`Tanggal Cetak : ${tanggalCetak}`, 250, 16, {
+                align: "right"
+            });
+
+            // Garis Header
+            doc.setDrawColor(35, 74, 132);
+            doc.setLineWidth(0.8);
+            doc.line(14, 32, 283, 32);
+
+            // Data tabel
+            const rows = dataRekap.map(item => [
+
+                item.nama || "-",
+
+                item.hadir || 0,
+
+                item.tidakHadir || 0,
+
+                `${item.hadir || 0}/${TOTAL_PERTEMUAN}`,
+
+                item.tanggalRealtime || "-",
+
+                item.catatan || "-"
             ]);
-        });
-        
-        doc.autoTable({
-            startY: 40,
-            head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-            body: tableRows,
-            theme: "striped",
-            headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
-            styles: { fontSize: 9, padding: 5, valign: "middle" },
-            columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
-        });
-        
-        const blob = doc.output("blob");
-        prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
-    } catch(e) {
-        const blob = doc.output("blob");
-        prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
+
+            doc.autoTable({
+                startY: 38,
+
+                head: [[
+                    "Nama Siswa",
+                    "Hadir",
+                    "Tidak Hadir",
+                    "Rasio",
+                    "Tanggal Terbaru",
+                    "Catatan"
+                ]],
+
+                body: rows,
+
+                theme: "grid",
+
+                styles: {
+                    fontSize: 9,
+                    cellPadding: 3,
+                    valign: "middle"
+                },
+
+                headStyles: {
+                    fillColor: [35, 74, 132],
+                    textColor: [255, 255, 255],
+                    fontStyle: "bold"
+                },
+
+                alternateRowStyles: {
+                    fillColor: [245, 247, 250]
+                }
+            });
+
+            // Footer
+            const pageCount = doc.internal.getNumberOfPages();
+
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+
+                doc.setFontSize(9);
+
+                doc.text(
+                    `Halaman ${i} dari ${pageCount}`,
+                    280,
+                    200,
+                    { align: "right" }
+                );
+            }
+
+            doc.save("Rekap_Total_Absensi_NSC.pdf");
+        };
+
+        logo.onerror = function () {
+
+            alert("Logo percobaan.png tidak ditemukan!");
+        };
+
+    } catch (err) {
+
+        console.error(err);
+        alert("Gagal membuat PDF: " + err.message);
     }
 }
-
 async function resetSemuaData() {
     if (!confirm("⚠️ PERINGATAN KERAS!\nApakah Anda yakin ingin MENGHAPUS TOTAL semua data absensi siswa dari database cloud Supabase?\n\nData yang dihapus tidak bisa dikembalikan!")) return;
     if (!confirm("Konfirmasi terakhir: Benar-benar ingin mengosongkan semua rekap data?")) return;
