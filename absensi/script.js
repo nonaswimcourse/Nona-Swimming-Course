@@ -55,6 +55,18 @@ document.addEventListener("DOMContentLoaded", function() {
             if(value) {
                 if(selectNamaControl) { selectNamaControl.blur(); }
                 document.activeElement.blur(); 
+                
+                // Fitur Auto-Fill Nomor HP jika nama siswa sudah terdaftar sebelumnya
+                const namaTerpilih = value.trim().toUpperCase();
+                const siswaExist = dataRekap.find(s => s && s.nama === namaTerpilih);
+                const inputNoHp = document.getElementById("no_hp");
+                if (inputNoHp) {
+                    if (siswaExist && siswaExist.no_hp) {
+                        inputNoHp.value = siswaExist.no_hp;
+                    } else {
+                        inputNoHp.value = "";
+                    }
+                }
             }
         }
     });
@@ -195,7 +207,7 @@ function renderTable() {
             let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`;
 
             html += `
-            <tr>
+            <tr>`
                 <td style="font-weight: 500;">${item.nama}</td>
                 <td>
                     <div class="counter-box">
@@ -273,6 +285,7 @@ async function updateCounter(index, tipe, value) {
                 Hadir: baruHadir,
                 "Tidak Hadir": baruTidakHadir.toString(),
                 Catatan: catatanKetik,
+                no_hp: targetSiswa.no_hp || "",
                 "Tanggal Terbaru": waktuSekarangISO
             }, {
                 onConflict: "absensi"
@@ -325,6 +338,7 @@ async function simpan() {
 
     const status = document.getElementById("status").value;
     const catatan = document.getElementById("catatan").value;
+    const noHpInput = document.getElementById("no_hp") ? document.getElementById("no_hp").value.trim() : "";
     const btnSimpan = document.getElementById("btnSimpan");
 
     nama = nama.trim().toUpperCase();
@@ -337,6 +351,9 @@ async function simpan() {
     let siswaExist = dataRekap.find(s => s && s.nama === nama);
     let nHadir = status === "Hadir" ? 1 : 0;
     let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
+
+    // Gunakan input baru, jika kosong pertahankan nomor hp lama (jika ada)
+    let noHpFinal = noHpInput !== "" ? noHpInput : (siswaExist ? (siswaExist.no_hp || "") : "");
 
     if (siswaExist) {
         nHadir = (siswaExist.hadir || 0) + (status === "Hadir" ? 1 : 0);
@@ -353,6 +370,7 @@ async function simpan() {
                 Hadir: nHadir,
                 "Tidak Hadir": nTidakHadir.toString(),
                 Catatan: catatanTeks,
+                no_hp: noHpFinal,
                 "Tanggal Terbaru": waktuSekarangISO
             }, {
                 onConflict: "absensi"
@@ -372,22 +390,24 @@ async function simpan() {
             siswaExist.hadir = nHadir;
             siswaExist.tidakHadir = nTidakHadir;
             siswaExist.catatan = catatanTeks;
+            siswaExist.no_hp = noHpFinal;
             siswaExist.tanggalRealtime = realtimeSekarang;
             siswaExist.rawDate = waktuSekarangISO;
         } else {
             dataRekap.push({
                 nama: nama, hadir: nHadir, tidakHadir: nTidakHadir,
-                catatan: catatanTeks, tanggalRealtime: realtimeSekarang, rawDate: waktuSekarangISO
+                catatan: catatanTeks, no_hp: noHpFinal, tanggalRealtime: realtimeSekarang, rawDate: waktuSekarangISO
             });
         }
 
         renderTable();
-        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch (e) {}
+        try { localStorage.setItem("dataRekap", JSON.stringify(dataRekap)); } catch(e) {}
 
         if (selectNamaControl) { selectNamaControl.clear(true); } 
         else { document.getElementById("nama").value = ""; }
 
         document.getElementById("catatan").value = "";
+        if(document.getElementById("no_hp")) document.getElementById("no_hp").value = "";
         alert("Data berhasil disimpan ke Rekap dan Log Harian!");
     } catch (err) {
         console.error(err);
