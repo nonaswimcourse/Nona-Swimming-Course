@@ -481,7 +481,7 @@ function exportSiswaPDF(index) {
     const { jsPDF } = window.jspdf;
     
     const img = new Image();
-    img.src = 'Logo percobaan.png'; 
+    img.src = 'logo_percobaan.png'; 
 
     img.onload = function() {
         const doc = new jsPDF();
@@ -570,7 +570,7 @@ function exportTotalPDF() {
     const { jsPDF } = window.jspdf;
     
     const img = new Image();
-    img.src = 'Logo percobaan.png'; 
+    img.src = 'logo_percobaan.png'; 
 
     img.onload = function() {
         const doc = new jsPDF();
