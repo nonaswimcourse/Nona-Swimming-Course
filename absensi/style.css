@@ -1,771 +1,118 @@
-const TOTAL_PERTEMUAN = 12;
-
-// Inisialisasi Supabase Client
-const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndnbWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-let dataRekap = [];
-let selectNamaControl;
-
-const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-
-function formatTanggalIndonesia(timestamp) {
-    if (!timestamp) return "Belum Ada Tanggal";
-    const dateObj = new Date(timestamp);
-    if (isNaN(dateObj.getTime())) return timestamp;
-    
-    const hari = namaHari[dateObj.getDay()];
-    const tanggal = dateObj.getDate();
-    const bulan = namaBulan[dateObj.getMonth()];
-    const tahun = dateObj.getFullYear();
-    
-    return `${hari}, ${tanggal} ${bulan} ${tahun}`;
-}
-
-function updateJamRealtime() {
-    const sekarang = new Date();
-    const jam = String(sekarang.getHours()).padStart(2, '0');
-    const menit = String(sekarang.getMinutes()).padStart(2, '0');
-    const detik = String(sekarang.getSeconds()).padStart(2, '0');
-    
-    const jamEl = document.getElementById("jamRealtime");
-    if (jamEl) jamEl.innerText = `${jam}.${menit}.${detik}`;
-    
-    const tanggalEl = document.getElementById("tanggalRealtime");
-    if (tanggalEl) tanggalEl.innerText = formatTanggalIndonesia(sekarang);
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-    selectNamaControl = new TomSelect("#nama", {
-        create: true, 
-        sortField: { field: "text", direction: "asc" },
-        placeholder: "Ketik / Pilih Nama Siswa...",
-        allowEmptyOption: true,
-        onChange: function(value) {
-            if(value) {
-                if(selectNamaControl) { selectNamaControl.blur(); }
-                document.activeElement.blur(); 
-            }
-        }
-    });
-
-    checkLoginSession();
-    muatDataDariCloud();
-    
-    updateJamRealtime();
-    setInterval(updateJamRealtime, 1000);
-});
-
-async function muatDataDariCloud() {
-    const tbody = document.getElementById("tbody");
-    try {
-        if (tbody) {
-            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
-        }
-
-        const { data, error } = await supabaseClient
-            .from('absensinsc')
-            .select('*')
-            .order('absensi', { ascending: true });
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-            dataRekap = data.map(item => {
-                let rawDateSource = item["Tanggal Terbaru"] || item.created_at || new Date().toISOString();
-                return {
-                    nama: item.absensi ? item.absensi.toString().toUpperCase().trim() : "TANPA NAMA",
-                    hadir: parseInt(item.Hadir) || 0,
-                    tidakHadir: parseInt(item["Tidak Hadir"]) || 0,
-                    catatan: item.Catatan || "",
-                    no_hp: item.no_hp || "",
-                    tanggalRealtime: formatTanggalIndonesia(rawDateSource),
-                    rawDate: rawDateSource
-                };
-            });
-        } else {
-            dataRekap = [];
-        }
-        
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        renderTable();
-    } catch (e) { 
-        console.error("Gagal memuat dari Cloud Supabase:", e);
-        dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [];
-        renderTable();
-    }
-}
-
-function togglePasswordVisibility() {
-    const passwordInput = document.getElementById("loginPassword");
-    const eyeIcon = document.getElementById("eyeIcon");
-    if (passwordInput.type === "password") {
-        passwordInput.type = "text";
-        eyeIcon.classList.replace("fa-eye", "fa-eye-slash");
-    } else {
-        passwordInput.type = "password";
-        eyeIcon.classList.replace("fa-eye-slash", "fa-eye");
-    }
-}
-
-async function generateSHA256(string) {
-    const msgBuffer = new TextEncoder().encode(string);                    
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function handleLogin(event) {
-    if (event) event.preventDefault(); 
-    const emailEl = document.getElementById("loginEmail");
-    const passwordEl = document.getElementById("loginPassword");
-    if (!emailEl || !passwordEl) return;
-
-    const email = emailEl.value.trim().toLowerCase();
-    const password = passwordEl.value;
-
-    if (email !== "nonaswimmingcourse@gmail.com" || await generateSHA256(password) !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
-        alert("Akses ditolak! Akun atau Password salah.");
-        return; 
-    }
-    
-    localStorage.setItem("isLoggedIn", "true");
-    document.getElementById("loginSection").classList.add("hidden");
-    document.getElementById("mainAppSection").classList.remove("hidden");
-    muatDataDariCloud();
-}
-
-function handleLogout() {
-    if(confirm("Apakah Anda yakin ingin keluar?")) {
-        localStorage.removeItem("isLoggedIn"); 
-        window.location.reload();
-    }
-}
-
-function checkLoginSession() {
-    if(localStorage.getItem("isLoggedIn") === "true") {
-        if(document.getElementById("loginSection")) document.getElementById("loginSection").classList.add("hidden");
-        if(document.getElementById("mainAppSection")) document.getElementById("mainAppSection").classList.remove("hidden");
-    }
-}
-
-function renderTable() {
-    let html = "";
-    if(!dataRekap || dataRekap.length === 0) {
-        html = "<tr><td colspan='6' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
-    } else {
-        dataRekap.forEach((item, index) => {
-            let totalTeks = item.hadir === TOTAL_PERTEMUAN 
-                ? `<span class="total-lengkap">LENGKAP</span>` 
-                : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;
-
-            let nomorWA = item.no_hp || ""; 
-            if (nomorWA.startsWith('0')) {
-                nomorWA = '62' + nomorWA.slice(1);
-            }
-
-            // Pesan WA Standar
-            let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nTotal Hadir: *${item.hadir}* Pertemuan\nTidak Hadir: *${item.tidakHadir}* Pertemuan\nStatus Target: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan: _${item.catatan || '-'}_\n\nTerima kasih.`;
-            let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`;
-
-            html += `
-            <tr>
-                <td style="font-weight: 500;">${item.nama}</td>
-                <td>
-                    <div class="counter-box">
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', -1)">-</button>
-                        <span class="counter-val hadir-val">${item.hadir}</span>
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', 1)">+</button>
-                    </div>
-                </td>
-                <td>
-                    <div class="counter-box">
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', -1)">-</button>
-                        <span class="counter-val tidak-val">${item.tidakHadir}</span>
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', 1)">+</button>
-                    </div>
-                </td>
-                <td>${totalTeks}</td>
-                <td style="color: #475569; font-size: 14px;">${item.tanggalRealtime}</td>
-                <td>
-                    <div class="actions-cell">
-                        <a href="${linkWA}" target="_blank" class="btn-action btn-wa" title="Kirim Laporan Teks via WhatsApp">
-                            <i class="fab fa-whatsapp"></i>
-                        </a>
-                        <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})">
-                            <i class="fa fa-file-pdf"></i>
-                        </button>
-                        
-                        <button class="btn-action btn-wa-pdf" title="Kirim Dokumen PDF Asli ke WA Orang Tua" id="btnWaPdf-${index}" onclick="uploadDanKirimPdfWA(${index})">
-                            <i class="fa fa-share-nodes"></i> Kirim PDF ke WA
-                        </button>
-                        
-                        <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})">
-                            <i class="fa fa-file-excel"></i>
-                        </button>
-                        <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                        <button class="btn-action btn-kick" title="Keluarkan Siswa" onclick="keluarkanSiswa('${item.nama}')">
-                            <i class="fa fa-user-minus"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>`;
-        });
-    }
-    document.getElementById("tbody").innerHTML = html;
-    document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
-}
-
-async function updateCounter(index, tipe, value) {
-    const targetSiswa = dataRekap[index];
-    const namaSiswa = targetSiswa.nama;
-    let catatanKetik = "";
-    
-    let baruHadir = targetSiswa.hadir;
-    let baruTidakHadir = targetSiswa.tidakHadir;
-
-    if (value > 0) {
-        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update manual via counter`);
-        if (inputCatatan === null) return; 
-        catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
-        
-        if (tipe === 'hadir') baruHadir += 1;
-        else baruTidakHadir += 1;
-    } else {
-        if (tipe === 'hadir') {
-            if (baruHadir === 0) return;
-            baruHadir -= 1;
-        } else {
-            if (baruTidakHadir === 0) return;
-            baruTidakHadir -= 1;
-        }
-        catatanKetik = `Pengurangan manual via counter`;
-    }
-
-    if (baruHadir === 0 && baruTidakHadir === 0) {
-        alert(`Rekap data ${namaSiswa} bernilai 0. Siswa akan otomatis dihapus dari sistem.`);
-        await deleteRow(index);
-        return;
-    }
-
-    const waktuSekarangISO = new Date().toISOString();
-
-    try {
-        const { error } = await supabaseClient
-            .from("absensinsc")
-            .upsert({
-                absensi: namaSiswa,
-                nama: namaSiswa,
-                Hadir: baruHadir.toString(),
-                "Tidak Hadir": baruTidakHadir.toString(),
-                Catatan: catatanKetik,
-                "Tanggal Terbaru": waktuSekarangISO,
-                no_hp: targetSiswa.no_hp
-            }, {
-                onConflict: "absensi"
-            });
-
-        if (error) throw error;
-        
-        dataRekap[index].hadir = baruHadir;
-        dataRekap[index].tidakHadir = baruTidakHadir;
-        dataRekap[index].catatan = catatanKetik;
-        dataRekap[index].tanggalRealtime = formatTanggalIndonesia(waktuSekarangISO);
-        dataRekap[index].rawDate = waktuSekarangISO;
-        
-        renderTable();
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-    } catch (err) {
-        alert("Gagal memperbarui data ke Supabase: " + err.message);
-    }
-}
-
-async function deleteRow(index) {
-    const namaSiswa = dataRekap[index].nama;
-    if (!confirm(`Hapus data rekap ${namaSiswa} dari sistem Supabase?`)) return;
-    
-    const btnDelete = document.getElementById(`btnDelete-${index}`);
-    if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-
-    try {
-        const { error } = await supabaseClient
-            .from('absensinsc')
-            .delete()
-            .eq('absensi', namaSiswa);
-
-        if (error) throw error;
-
-        dataRekap.splice(index, 1);
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        renderTable();
-    } catch (err) {
-        alert("Gagal menghapus data dari Supabase: " + err.message);
-        if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-trash"></i>';
-    }
-}
-
-async function simpan() {
-    let nama = "";
-    if (selectNamaControl) { nama = selectNamaControl.getValue(); }
-    if (!nama) { nama = document.getElementById("nama").value; }
-    if (!nama) { alert("Silakan pilih nama siswa terlebih dahulu!"); return; }
-
-    const status = document.getElementById("status").value;
-    const catatan = document.getElementById("catatan").value;
-    const nomorHpInput = document.getElementById("no_hp").value.trim();
-    const btnSimpan = document.getElementById("btnSimpan");
-
-    nama = nama.trim().toUpperCase();
-    btnSimpan.disabled = true;
-    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
-
-    const catatanTeks = catatan.trim() !== "" ? catatan.trim() : "Absensi tercatat";
-    if (!Array.isArray(dataRekap)) { dataRekap = []; }
-
-    let siswaExist = dataRekap.find(s => s && s.nama === nama);
-    let nHadir = status === "Hadir" ? 1 : 0;
-    let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
-    let noHpFinal = nomorHpInput !== "" ? nomorHpInput : (siswaExist ? siswaExist.no_hp : "");
-
-    if (siswaExist) {
-        nHadir = (siswaExist.hadir || 0) + (status === "Hadir" ? 1 : 0);
-        nTidakHadir = (siswaExist.tidakHadir || 0) + (status === "Tidak Hadir" ? 1 : 0);
-    }
-
-    const waktuSekarangISO = new Date().toISOString();
-
-    try {
-        const { error: errorRekap } = await supabaseClient
-            .from("absensinsc")
-            .upsert({
-                absensi: nama,
-                nama: nama,
-                Hadir: nHadir.toString(),
-                "Tidak Hadir": nTidakHadir.toString(),
-                Catatan: catatanTeks,
-                "Tanggal Terbaru": waktuSekarangISO,
-                no_hp: noHpFinal
-            }, {
-                onConflict: "absensi"
-            });
-
-        if (errorRekap) throw errorRekap;
-
-        const realtimeSekarang = formatTanggalIndonesia(waktuSekarangISO);
-
-        if (siswaExist) {
-            siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTidakHadir;
-            siswaExist.catatan = catatanTeks;
-            siswaExist.tanggalRealtime = realtimeSekarang;
-            siswaExist.rawDate = waktuSekarangISO;
-            siswaExist.no_hp = noHpFinal;
-        } else {
-            dataRekap.push({
-                nama: nama, hadir: nHadir, tidakHadir: nTidakHadir,
-                catatan: catatanTeks, tanggalRealtime: realtimeSekarang, rawDate: waktuSekarangISO, no_hp: noHpFinal
-            });
-        }
-
-        renderTable();
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-
-        if (selectNamaControl) { selectNamaControl.clear(true); } 
-        else { document.getElementById("nama").value = ""; }
-
-        document.getElementById("catatan").value = "";
-        document.getElementById("no_hp").value = "";
-        alert("Data berhasil disimpan ke Rekap Cloud!");
-    } catch (err) {
-        console.error(err);
-        alert("Gagal menyimpan ke Supabase: " + err.message);
-    } finally {
-        btnSimpan.disabled = false;
-        btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
-    }
-}
-
-function showTab(tab, btn) {
-    document.getElementById("input").classList.add("hidden");
-    document.getElementById("rekap").classList.add("hidden");
-    document.getElementById(tab).classList.remove("hidden");
-    document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
-    btn.classList.add("active");
-}
-
-function prosesUnduhFile(blob, namaFile) {
-    try {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = namaFile;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 300);
-    } catch (e) {
-        alert("Gagal mengunduh file.");
-    }
-}
-
-function exportSiswaExcel(index) {
-    const item = dataRekap[index];
-    const worksheetData = [
-        ["LAPORAN ABSENSI INDIVIDU SISWA"],
-        ["Nona Swimming Course (NSC)"],
-        [],
-        ["Komponen", "Keterangan"],
-        ["Nama Siswa", item.nama],
-        ["Jumlah Kehadiran", `${item.hadir} Pertemuan`],
-        ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-        ["Status Target", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-        ["Tanggal Terakhir Update", item.tanggalRealtime],
-        ["Catatan Terakhir", item.catatan || "-"]
-    ];
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(wb, ws, "Absensi Siswa");
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
-    prosesUnduhFile(blob, `Absensi_${item.nama}.xlsx`);
-}
-
-function exportTotalExcel() {
-    if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
-    const worksheetData = [
-        ["LAPORAN REKAP TOTAL KEHADIRAN SISWA"],
-        ["Nona Swimming Course (NSC)"],
-        [],
-        ["Nama Siswa", "Hadir", "Tidak Hadir", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]
-    ];
-    
-    dataRekap.forEach(item => {
-        worksheetData.push([
-            item.nama, item.hadir, item.tidakHadir,
-            item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-            item.tanggalRealtime, item.catatan || "-"
-        ]);
-    });
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(wb, ws, "Total Absensi");
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
-    prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.xlsx");
-}
-
-function exportSiswaPDF(index) {
-    const item = dataRekap[index];
-    const { jsPDF } = window.jspdf;
-    
-    const img = new Image();
-    img.src = 'Logo percobaan.png'; 
-
-    img.onload = function() {
-        const doc = new jsPDF();
-        try {
-            doc.addImage(img, "PNG", 14, 10, 18, 25);
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(14);
-            doc.setTextColor(35, 74, 132);
-            doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 23); 
-            
-            doc.setFontSize(10);
-            doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184);
-            doc.text("Nona Swimming Course (NSC)", 38, 30);
-            
-            doc.setDrawColor(241, 245, 249);
-            doc.line(14, 40, 196, 40);
-
-            const rows = [
-                ["Nama Siswa", item.nama],
-                ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-                ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-                ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-                ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-                ["Catatan Khusus", item.catatan || "-"]
-            ];
-
-            doc.autoTable({ 
-                startY: 46, 
-                head: [["Komponen Data", "Detail Keterangan"]], 
-                body: rows, 
-                theme: "striped",
-                headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 10 },
-                styles: { textColor: [71, 85, 105], fontSize: 10, cellPadding: 4 },
-                alternateRowStyles: { fillColor: [248, 250, 252] },
-                columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
-            });
-            doc.save(`Absensi_${item.nama}.pdf`);
-        } catch(e) {
-            console.error("Gagal memproses pembuatan PDF:", e);
-            alert("Terjadi kesalahan saat menyusun layout PDF.");
-        }
-    };
-
-    img.onerror = function() {
-        console.warn("File 'Logo percobaan.png' tidak ditemukan. Mencetak tanpa logo...");
-        const docBiasa = new jsPDF();
-        docBiasa.setFont("Helvetica", "bold");
-        docBiasa.setFontSize(14);
-        docBiasa.setTextColor(35, 74, 132);
-        docBiasa.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
-        
-        const rowsFallback = [
-            ["Nama Siswa", item.nama],
-            ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-            ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-            ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-            ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-            ["Catatan Khusus", item.catatan || "-"]
-        ];
-
-        docBiasa.autoTable({ startY: 28, head: [["Komponen Data", "Detail Keterangan"]], body: rowsFallback });
-        docBiasa.save(`Absensi_${item.nama}.pdf`);
-    };
-}
-
-function exportTotalPDF() {
-    if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
-    const { jsPDF } = window.jspdf;
-    
-    const img = new Image();
-    img.src = 'Logo percobaan.png'; 
-
-    img.onload = function() {
-        const doc = new jsPDF();
-        try {
-            doc.addImage(img, "PNG", 14, 10, 18, 25);
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(14); 
-            doc.setTextColor(35, 74, 132);
-            doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 23);
-            
-            doc.setFontSize(10);
-            doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184);
-            doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 30);
-            
-            doc.setDrawColor(241, 245, 249);
-            doc.line(14, 40, 196, 40);
-            
-            const tableRows = [];
-            dataRekap.forEach(item => {
-                tableRows.push([
-                    item.nama, item.hadir, item.tidakHadir,
-                    item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                    item.tanggalRealtime, item.catatan || '-'
-                ]);
-            });
-            
-            doc.autoTable({
-                startY: 46,
-                head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-                body: tableRows,
-                theme: "striped",
-                headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
-                styles: { fontSize: 9, padding: 5, valign: "middle" },
-                columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
-            });
-            
-            doc.save("Rekap_Total_Absensi_NSC.pdf");
-        } catch(e) {
-            console.error("Gagal memproses pembuatan PDF Total:", e);
-            alert("Terjadi kesalahan saat menyusun layout PDF Total.");
-        }
-    };
-    
-    img.onerror = function() {
-        console.warn("File 'Logo percobaan.png' tidak ditemukan. Mencetak tanpa logo...");
-        const docBiasa = new jsPDF();
-        docBiasa.setFont("Helvetica", "bold");
-        docBiasa.setFontSize(14);
-        docBiasa.setTextColor(35, 74, 132);
-        docBiasa.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
-        
-        const tableRowsFallback = [];
-        dataRekap.forEach(item => {
-            tableRowsFallback.push([
-                item.nama, item.hadir, item.tidakHadir,
-                item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                item.tanggalRealtime, item.catatan || '-'
-            ]);
-        });
-
-        docBiasa.autoTable({
-            startY: 28,
-            head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-            body: tableRowsFallback
-        });
-        docBiasa.save("Rekap_Total_Absensi_NSC.pdf");
-    };
-}
-
-// FUNGSI BARU UTAMA: Menghasilkan dokumen PDF asli, mengupload ke storage "laporan-pdf", dan mengirimkan tautan unduhan via WA
-async function uploadDanKirimPdfWA(index) {
-    const item = dataRekap[index];
-    const { jsPDF } = window.jspdf;
-    
-    // Memberi efek loading text pada tombol baris terkait saat proses upload
-    const tombol = document.getElementById(`btnWaPdf-${index}`);
-    const teksAsli = tombol.innerHTML;
-    tombol.disabled = true;
-    tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading PDF...';
-
-    const img = new Image();
-    img.src = 'Logo percobaan.png'; 
-
-    const eksekusiUploadPDF = async (pakeLogo) => {
-        const doc = new jsPDF();
-        try {
-            if (pakeLogo) {
-                doc.addImage(img, "PNG", 14, 10, 18, 25);
-                doc.setFont("Helvetica", "bold");
-                doc.setFontSize(14);
-                doc.setTextColor(35, 74, 132); 
-                doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 23); 
-                doc.setFontSize(10);
-                doc.setFont("Helvetica", "normal");
-                doc.setTextColor(148, 163, 184); 
-                doc.text("Nona Swimming Course (NSC)", 38, 30);
-                doc.setDrawColor(241, 245, 249); 
-                doc.line(14, 40, 196, 40);
-            } else {
-                doc.setFont("Helvetica", "bold");
-                doc.setFontSize(14);
-                doc.setTextColor(35, 74, 132);
-                doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
-            }
-
-            const rows = [
-                ["Nama Siswa", item.nama],
-                ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-                ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-                ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-                ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-                ["Catatan Khusus", item.catatan || "-"]
-            ];
-
-            doc.autoTable({ 
-                startY: pakeLogo ? 46 : 28, 
-                head: [["Komponen Data", "Detail Keterangan"]], 
-                body: rows, 
-                theme: "striped",
-                headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 10 },
-                styles: { textColor: [71, 85, 105], fontSize: 10, cellPadding: 4 },
-                alternateRowStyles: { fillColor: [248, 250, 252] },
-                columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
-            });
-
-            // 1. Konversi dokumen jsPDF ke bentuk Binary Blob Data
-            const pdfBlob = doc.output('blob');
-
-            // 2. Berikan nama file unik bebas spasi untuk diunggah ke storage cloud
-            const namaFileClean = item.nama.replace(/\s+/g, '_');
-            const pathFile = `absensi_${namaFileClean}.pdf`;
-
-            // 3. Upload file pdf ke bucket 'laporan-pdf' di Supabase Storage
-            // Menggunakan opsi upsert: true agar jika data siswa di-update di masa depan, file lama otomatis tertimpa yang baru
-            const { data, error } = await supabaseClient
-                .storage
-                .from('laporan-pdf')
-                .upload(pathFile, pdfBlob, {
-                    cacheControl: '0',
-                    upsert: true,
-                    contentType: 'application/pdf'
-                });
-
-            if (error) throw error;
-
-            // 4. Dapatkan Tautan Publik Unduhan PDF Asli
-            const { data: urlData } = supabaseClient
-                .storage
-                .from('laporan-pdf')
-                .getPublicUrl(pathFile);
-
-            const publicUrl = urlData.publicUrl;
-
-            // 5. Susun format penulisan pesan teks WhatsApp resmi
-            let nomorWA = item.no_hp || ""; 
-            if (nomorWA.startsWith('0')) {
-                nomorWA = '62' + nomorWA.slice(1);
-            }
-
-            let pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan tautan resmi Dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nStatus Akhir Kehadiran: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan Evaluasi: _${item.catatan || '-'}_\n\nSilakan klik link di bawah ini untuk melihat/mengunduh dokumen PDF asli langsung dari cloud server kami:\n${publicUrl}\n\nTerima kasih.`;
-            let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWAPDF)}`;
-            
-            // Buka API WhatsApp di tab peramban baru
-            window.open(linkWA, '_blank');
-
-        } catch (err) {
-            console.error("Gagal melakukan upload dokumen PDF ke Supabase Storage:", err);
-            alert("Aplikasi mengalami galat sistem saat mengunggah PDF: " + err.message);
-        } finally {
-            // Mengembalikan tombol ke keadaan fungsional normal semula
-            tombol.disabled = false;
-            tombol.innerHTML = teksAsli;
-        }
-    };
-
-    img.onload = () => eksekusiUploadPDF(true);
-    img.onerror = () => {
-        console.warn("Berkas 'Logo percobaan.png' absen. Membuat layout PDF dasar...");
-        eksekusiUploadPDF(false);
-    };
-}
-
-async function resetSemuaData() {
-    if (!confirm("Apakah Anda yakin ingin menghapus total semua data dari database cloud Supabase?")) return;
-    if (!confirm("Konfirmasi terakhir: Data yang dihapus tidak bisa dikembalikan!")) return;
-
-    const btnReset = document.getElementById("btnResetAll");
-    if (btnReset) {
-        btnReset.disabled = true;
-        btnReset.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mereset...';
-    }
-
-    try {
-        const { data: listSiswa, error: fetchError } = await supabaseClient
-            .from('absensinsc')
-            .select('absensi');
-
-        if (fetchError) throw fetchError;
-
-        if (listSiswa && listSiswa.length > 0) {
-            const listNama = listSiswa.map(s => s.absensi);
-            const { error: errorDeleteRekap } = await supabaseClient
-                .from('absensinsc')
-                .delete()
-                .in('absensi', listNama);
-            if (errorDeleteRekap) throw errorDeleteRekap;
-        }
-
-        dataRekap = [];
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        renderTable();
-        alert("Database Absensi Berhasil Dikosongkan!");
-    } catch (err) {
-        alert("Gagal mereset: " + err.message);
-    } finally {
-        if (btnReset) {
-            btnReset.disabled = false;
-            btnReset.innerHTML = '<i class="fa fa-trash-can"></i> Reset';
-        }
-    }
-}
-
-function keluarkanSiswa(nama) {
-    if(!confirm("Keluarkan siswa " + nama + " dari les renang?\n\nData absensi tetap tersimpan.")) return;
-    dataRekap = dataRekap.filter(x => x.nama !== nama);
-    localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-    renderTable();
-    alert(nama + " sudah dikeluarkan dari daftar siswa aktif.");
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background: #f4f6f9; min-height: 100vh; }
+
+.login-wrapper { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: #eef2f7; }
+.login-card { background: white; padding: 35px; border-radius: 20px; width: 100%; max-width: 420px; text-align: center; }
+.login-logo-container { margin-bottom: 25px; display: flex; justify-content: center; }
+.login-logo { width: 120px; height: auto; object-fit: contain; }
+.login-card h2 { color: #1e3a63; font-size: 26px; margin-bottom: 8px; font-weight: 700; }
+.login-card p { color: #64748b; font-size: 14px; margin-bottom: 30px; }
+.login-form-group { margin-bottom: 20px; text-align: left; }
+
+.password-container { position: relative; display: flex; align-items: center; }
+.password-container input { width: 100%; padding-right: 45px; }
+.toggle-password-btn { position: absolute; right: 15px; background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px; }
+.toggle-password-btn:hover { color: #1e3a63; }
+
+label { display: block; font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 8px; }
+input, select, textarea { width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 15px; transition: all 0.3s; background: #f8fafc; }
+input:focus, select:focus, textarea:focus { border-color: #234a84; background: white; outline: none; box-shadow: 0 0 0 4px rgba(35, 74, 132, 0.1); }
+textarea { resize: none; }
+
+.login-btn { width: 100%; padding: 14px; background: #234a84; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
+.login-btn:hover { background: #1a3763; }
+.login-footer { margin-top: 30px; font-size: 12px; color: #94a3b8; }
+
+.header { display: flex; align-items: center; justify-content: space-between; padding: 20px 30px; background: #234a84; color: white; border-bottom: 4px solid #1a3763; }
+.header-left { display: flex; align-items: center; gap: 20px; }
+.header-logo { width: 55px; height: auto; }
+.header-text h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin: 0; line-height: 1.2; }
+.header-text p { font-size: 14px; opacity: 0.85; margin: 3px 0 0 0; }
+
+.header-right { text-align: right; color: white; display: flex; flex-direction: column; justify-content: center; }
+.header-right .jam { font-size: 24px; font-weight: 800; line-height: 1.1; letter-spacing: 0.5px; }
+.header-right .tanggal { font-size: 13px; opacity: 0.85; margin-top: 4px; font-weight: 500; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+.nav-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; }
+.tabs { display: flex; gap: 10px; background: #e2e8f0; padding: 6px; border-radius: 14px; }
+.tab-btn { display: flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; background: transparent; border-radius: 10px; font-size: 15px; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.3s; }
+.tab-btn.active { background: white; color: #234a84; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+.logout-main-btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: #ef4444; color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
+.logout-main-btn:hover { background: #dc2626; }
+
+.card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 25px; border: 1px solid #e2e8f0; }
+.card h2 { color: #1e3a63; font-size: 20px; margin-bottom: 20px; font-weight: 700; border-left: 4px solid #234a84; padding-left: 12px; line-height: 1; }
+.row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; border: none; }
+.btn-primary { background: #234a84; color: white; width: auto; margin-top: 20px; }
+.btn-primary:hover { background: #1a3763; }
+.btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+
+.rekap-header-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0; }
+.rekap-header-wrapper p { color: #64748b; font-size: 14px; }
+.rekap-controls-area { display: flex; align-items: center; }
+.export { display: flex; gap: 8px; }
+.export .btn { padding: 10px 16px; font-size: 14px; border-radius: 10px; }
+.excel-btn { background: #107c41; color: white; }
+.excel-btn:hover { background: #0b592e; }
+.pdf-btn { background: #e02424; color: white; }
+.pdf-btn:hover { background: #b81d1d; }
+.btn.reset { background: #64748b; color: white; }
+.btn.reset:hover { background: #475569; }
+.btn.reset:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+.table-wrapper { overflow-x: auto; background: white; border-radius: 14px; border: 1px solid #e2e8f0; }
+.table { width: 100%; border-collapse: collapse; text-align: left; font-size: 15px; }
+.table th { background: #f8fafc; padding: 16px; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+.table td { padding: 16px; border-bottom: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; }
+.table tr:hover { background: #f8fafc; }
+
+.counter-box { display: inline-flex; align-items: center; background: #f1f5f9; padding: 4px; border-radius: 10px; border: 1px solid #e2e8f0; }
+.counter-btn { width: 32px; height: 32px; border: none; background: white; color: #1e293b; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.counter-btn:hover { background: #e2e8f0; color: #234a84; }
+.counter-val { font-size: 15px; font-weight: 700; min-width: 40px; text-align: center; }
+.hadir-val { color: #107c41; }
+.tidak-val { color: #e02424; }
+
+.total-lengkap { background: #dcfce7; color: #15803d; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; }
+.total-fraction { font-weight: 700; color: #1e3a63; background: #e0f2fe; padding: 6px 12px; border-radius: 8px; font-size: 13px; }
+
+.actions-cell { display: flex; gap: 6px; align-items: center; }
+.btn-action { height: 36px; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 14px; padding: 0 10px; font-weight: 500; }
+.btn-excel { background: #e6f4ea; color: #137333; width: 36px; padding: 0; }
+.btn-excel:hover { background: #137333; color: white; }
+.btn-wa { background: #e6f9ed; color: #128c7e; text-decoration: none; width: 36px; padding: 0; }
+.btn-wa:hover { background: #128c7e; color: white; }
+.btn-pdf { background: #fce8e6; color: #c5221f; width: 36px; padding: 0; }
+.btn-pdf:hover { background: #c5221f; color: white; }
+
+/* Tombol Khusus Kirim Notifikasi PDF via WA */
+.btn-wa-pdf { background: #128c7e; color: white; text-decoration: none; gap: 6px; font-size: 13px; padding: 0 14px; }
+.btn-wa-pdf:hover { background: #0b665c; box-shadow: 0 2px 6px rgba(18,140,126,0.3); }
+
+.btn-delete { background: #fef2f2; color: #dc2626; width: 36px; padding: 0; }
+.btn-delete:hover { background: #dc2626; color: white; }
+.btn-kick { background: #ffedd5; color: #ea580c; width: 36px; padding: 0; }
+.btn-kick:hover { background: #ea580c; color: white; }
+
+.hidden { display: none !important; }
+
+@media (max-width: 768px) {
+    .header { padding: 15px; gap: 12px; flex-direction: column; text-align: center; }
+    .header-left { flex-direction: column; gap: 10px; }
+    .header-right { text-align: center; margin-top: 5px; }
+    .header-logo { width: 55px; }
+    .header-text h1 { font-size: 22px; }
+    .container { padding: 15px; }
+    .row { grid-template-columns: 1fr; gap: 15px; }
+    .nav-bar { flex-direction: column; align-items: stretch; gap: 12px; }
+    .tabs { width: 100%; }
+    .tab-btn { flex: 1; justify-content: center; font-size: 14px; padding: 10px 15px; }
+    .logout-main-btn { width: 100%; justify-content: center; }
+    .rekap-header-wrapper { flex-direction: column; align-items: flex-start; gap: 15px; }
+    .export { width: 100%; }
+    .export .btn { flex: 1 1 auto; justify-content: center; font-size: 13px; padding: 10px 12px; }
+    .actions-cell { flex-wrap: wrap; }
 }
