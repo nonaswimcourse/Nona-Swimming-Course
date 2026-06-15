@@ -462,8 +462,8 @@ function exportSiswaPDF(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
     
-    // Perbaikan: Gambar dimuat murni di memori, tidak disisipkan ke DOM body HTML
-    const img = document.createElement('img');
+    // Perbaikan Mutlak: Objek gambar murni di memori (tidak berinteraksi dengan DOM HTML)
+    const img = new Image();
     img.src = 'Logo percobaan.png'; 
 
     img.onload = function() {
@@ -534,7 +534,7 @@ function exportTotalPDF() {
     if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
     const { jsPDF } = window.jspdf;
     
-    const img = document.createElement('img');
+    const img = new Image();
     img.src = 'Logo percobaan.png'; 
 
     img.onload = function() {
@@ -614,8 +614,8 @@ async function uploadDanKirimPdfWA(index) {
     tombol.disabled = true;
     tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading PDF...';
 
-    // Perbaikan: Menggunakan createElement('img') murni di memori, web tidak akan rusak lagi
-    const img = document.createElement('img');
+    // Perbaikan Mutlak: Menggunakan constructor murni memori tanpa merusak DOM HTML
+    const img = new Image();
     img.src = 'Logo percobaan.png'; 
 
     const eksekusiUploadPDF = async (pakeLogo) => {
