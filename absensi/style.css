@@ -166,14 +166,7 @@ function renderTable() {
             }
 
             // Pesan WA Standar
-            let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
-
-Total Hadir: *${item.hadir}* Pertemuan
-Tidak Hadir: *${item.tidakHadir}* Pertemuan
-Status Target: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*
-Catatan: _${item.catatan || '-'}_
-
-Terima kasih.`;
+            let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nTotal Hadir: *${item.hadir}* Pertemuan\nTidak Hadir: *${item.tidakHadir}* Pertemuan\nStatus Target: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan: _${item.catatan || '-'}_\n\nTerima kasih.`;
             let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`;
 
             html += `
@@ -479,18 +472,17 @@ function exportSiswaPDF(index) {
         const doc = new jsPDF();
         try {
             doc.addImage(img, "PNG", 14, 10, 18, 25);
-            
             doc.setFont("Helvetica", "bold");
             doc.setFontSize(14);
-            doc.setTextColor(35, 74, 132); 
+            doc.setTextColor(35, 74, 132);
             doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 23); 
-
+            
             doc.setFontSize(10);
             doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184); 
+            doc.setTextColor(148, 163, 184);
             doc.text("Nona Swimming Course (NSC)", 38, 30);
             
-            doc.setDrawColor(241, 245, 249); 
+            doc.setDrawColor(241, 245, 249);
             doc.line(14, 40, 196, 40);
 
             const rows = [
@@ -512,7 +504,6 @@ function exportSiswaPDF(index) {
                 alternateRowStyles: { fillColor: [248, 250, 252] },
                 columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
             });
-
             doc.save(`Absensi_${item.nama}.pdf`);
         } catch(e) {
             console.error("Gagal memproses pembuatan PDF:", e);
@@ -523,7 +514,6 @@ function exportSiswaPDF(index) {
     img.onerror = function() {
         console.warn("File 'Logo percobaan.png' tidak ditemukan. Mencetak tanpa logo...");
         const docBiasa = new jsPDF();
-        
         docBiasa.setFont("Helvetica", "bold");
         docBiasa.setFontSize(14);
         docBiasa.setTextColor(35, 74, 132);
@@ -554,18 +544,17 @@ function exportTotalPDF() {
         const doc = new jsPDF();
         try {
             doc.addImage(img, "PNG", 14, 10, 18, 25);
-            
             doc.setFont("Helvetica", "bold");
             doc.setFontSize(14); 
-            doc.setTextColor(35, 74, 132); 
+            doc.setTextColor(35, 74, 132);
             doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 23);
             
             doc.setFontSize(10);
             doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184); 
+            doc.setTextColor(148, 163, 184);
             doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 30);
             
-            doc.setDrawColor(241, 245, 249); 
+            doc.setDrawColor(241, 245, 249);
             doc.line(14, 40, 196, 40);
             
             const tableRows = [];
@@ -587,8 +576,7 @@ function exportTotalPDF() {
                 columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
             });
             
-            const blob = doc.output("blob");
-            prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
+            doc.save("Rekap_Total_Absensi_NSC.pdf");
         } catch(e) {
             console.error("Gagal memproses pembuatan PDF Total:", e);
             alert("Terjadi kesalahan saat menyusun layout PDF Total.");
@@ -598,7 +586,6 @@ function exportTotalPDF() {
     img.onerror = function() {
         console.warn("File 'Logo percobaan.png' tidak ditemukan. Mencetak tanpa logo...");
         const docBiasa = new jsPDF();
-        
         docBiasa.setFont("Helvetica", "bold");
         docBiasa.setFontSize(14);
         docBiasa.setTextColor(35, 74, 132);
@@ -622,22 +609,21 @@ function exportTotalPDF() {
     };
 }
 
-// FUNGSI BARU: Generate PDF Berlogo -> Upload Otomatis ke Bucket "laporan-pdf" -> Kirim URL Dokumen ke WhatsApp
+// FUNGSI BARU UTAMA: Menghasilkan dokumen PDF asli, mengupload ke storage "laporan-pdf", dan mengirimkan tautan unduhan via WA
 async function uploadDanKirimPdfWA(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
     
-    // Beri indikasi loading pada tombol supaya user tahu proses sedang berjalan
+    // Memberi efek loading text pada tombol baris terkait saat proses upload
     const tombol = document.getElementById(`btnWaPdf-${index}`);
     const teksAsli = tombol.innerHTML;
     tombol.disabled = true;
-    tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading...';
+    tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading PDF...';
 
     const img = new Image();
     img.src = 'Logo percobaan.png'; 
 
-    // Helper fungsi eksekusi pembuatan dan upload PDF
-    const prosesInti = async (pakeLogo) => {
+    const eksekusiUploadPDF = async (pakeLogo) => {
         const doc = new jsPDF();
         try {
             if (pakeLogo) {
@@ -679,15 +665,15 @@ async function uploadDanKirimPdfWA(index) {
                 columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
             });
 
-            // 1. Ubah output jsPDF menjadi format Blob objek binary
+            // 1. Konversi dokumen jsPDF ke bentuk Binary Blob Data
             const pdfBlob = doc.output('blob');
 
-            // Format nama file agar bersih dari spasi liar di sistem cloud
+            // 2. Berikan nama file unik bebas spasi untuk diunggah ke storage cloud
             const namaFileClean = item.nama.replace(/\s+/g, '_');
             const pathFile = `absensi_${namaFileClean}.pdf`;
 
-            // 2. Upload file blob ke Bucket 'laporan-pdf' di Supabase Storage
-            // Menggunakan opsi upsert: true agar jika data siswa diupdate, dokumen lamanya tertimpa dengan yang baru
+            // 3. Upload file pdf ke bucket 'laporan-pdf' di Supabase Storage
+            // Menggunakan opsi upsert: true agar jika data siswa di-update di masa depan, file lama otomatis tertimpa yang baru
             const { data, error } = await supabaseClient
                 .storage
                 .from('laporan-pdf')
@@ -699,7 +685,7 @@ async function uploadDanKirimPdfWA(index) {
 
             if (error) throw error;
 
-            // 3. Ambil URL Publik Dokumen PDF yang berhasil di-upload
+            // 4. Dapatkan Tautan Publik Unduhan PDF Asli
             const { data: urlData } = supabaseClient
                 .storage
                 .from('laporan-pdf')
@@ -707,30 +693,32 @@ async function uploadDanKirimPdfWA(index) {
 
             const publicUrl = urlData.publicUrl;
 
-            // 4. Integrasi pengiriman link download PDF ke WhatsApp orang tua siswa
+            // 5. Susun format penulisan pesan teks WhatsApp resmi
             let nomorWA = item.no_hp || ""; 
             if (nomorWA.startsWith('0')) {
                 nomorWA = '62' + nomorWA.slice(1);
             }
 
-            let pesanWAPDF = `Halo Bapak/Ibu, pemberitahuan resmi mengenai Dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nStatus Kehadiran Akhir: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan Evaluasi: _${item.catatan || '-'}_\n\nSilakan klik tautan resmi di bawah ini untuk melihat/mengunduh dokumen PDF aslinya:\n${publicUrl}\n\nTerima kasih.`;
+            let pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan tautan resmi Dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nStatus Akhir Kehadiran: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan Evaluasi: _${item.catatan || '-'}_\n\nSilakan klik link di bawah ini untuk melihat/mengunduh dokumen PDF asli langsung dari cloud server kami:\n${publicUrl}\n\nTerima kasih.`;
             let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWAPDF)}`;
             
+            // Buka API WhatsApp di tab peramban baru
             window.open(linkWA, '_blank');
 
         } catch (err) {
-            console.error("Gagal mengunggah file PDF ke Supabase Storage:", err);
-            alert("Gagal mengunggah dokumen PDF ke Cloud: " + err.message);
+            console.error("Gagal melakukan upload dokumen PDF ke Supabase Storage:", err);
+            alert("Aplikasi mengalami galat sistem saat mengunggah PDF: " + err.message);
         } finally {
+            // Mengembalikan tombol ke keadaan fungsional normal semula
             tombol.disabled = false;
             tombol.innerHTML = teksAsli;
         }
     };
 
-    img.onload = () => prosesInti(true);
+    img.onload = () => eksekusiUploadPDF(true);
     img.onerror = () => {
-        console.warn("Logo tidak ditemukan, mencetak PDF standar tanpa logo ke cloud...");
-        prosesInti(false);
+        console.warn("Berkas 'Logo percobaan.png' absen. Membuat layout PDF dasar...");
+        eksekusiUploadPDF(false);
     };
 }
 
