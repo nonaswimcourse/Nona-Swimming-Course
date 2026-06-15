@@ -479,172 +479,68 @@ function exportTotalExcel() {
 function exportSiswaPDF(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(35, 74, 132);
+    doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
     
-    const img = new Image();
-    img.src = 'logo_percobaan.png'; 
+    doc.setFontSize(10);
+    doc.setFont("Helvetica", "normal");
+    doc.text("Nona Swimming Course (NSC)", 14, 26);
 
-    img.onload = function() {
-        const doc = new jsPDF();
+    const rows = [
+        ["Nama Siswa", item.nama],
+        ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
+        ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
+        ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+        ["Tanggal Terakhir Diinput", item.tanggalRealtime],
+        ["Catatan Khusus", item.catatan || "-"]
+    ];
 
-        try {
-            doc.addImage(img, "PNG", 14, 10, 18, 25);
-            
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(14);
-            doc.setTextColor(35, 74, 132); 
-            doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 23); 
-
-            doc.setFontSize(10);
-            doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184); 
-            doc.text("Nona Swimming Course (NSC)", 38, 30);
-            
-            doc.setDrawColor(241, 245, 249); 
-            doc.line(14, 40, 196, 40);
-
-            const rows = [
-                ["Nama Siswa", item.nama],
-                ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-                ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-                ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-                ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-                ["Catatan Khusus", item.catatan || "-"]
-            ];
-
-            doc.autoTable({ 
-                startY: 46, 
-                head: [["Komponen Data", "Detail Keterangan"]], 
-                body: rows, 
-                theme: "striped",
-                headStyles: { 
-                    fillColor: [35, 74, 132], 
-                    textColor: [255, 255, 255], 
-                    fontStyle: "bold",
-                    fontSize: 10
-                },
-                styles: {
-                    textColor: [71, 85, 105], 
-                    fontSize: 10,
-                    cellPadding: 4
-                },
-                alternateRowStyles: {
-                    fillColor: [248, 250, 252] 
-                },
-                columnStyles: {
-                    0: { cellWidth: 60 }, 
-                    1: { cellWidth: "auto" }
-                }
-            });
-
-            doc.save(`Absensi_${item.nama}.pdf`);
-        } catch(e) {
-            console.error("Gagal memproses pembuatan PDF:", e);
-            alert("Terjadi kesalahan saat menyusun layout PDF.");
-        }
-    };
-
-    img.onerror = function() {
-        const docBiasa = new jsPDF();
-        
-        docBiasa.setFont("Helvetica", "bold");
-        docBiasa.setFontSize(14);
-        docBiasa.setTextColor(35, 74, 132);
-        docBiasa.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
-        
-        const rowsFallback = [
-            ["Nama Siswa", item.nama],
-            ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-            ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-            ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-            ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-            ["Catatan Khusus", item.catatan || "-"]
-        ];
-
-        docBiasa.autoTable({ startY: 28, head: [["Komponen Data", "Detail Keterangan"]], body: rowsFallback });
-        docBiasa.save(`Absensi_${item.nama}.pdf`);
-    };
+    doc.autoTable({ 
+        startY: 32, 
+        head: [["Komponen Data", "Detail Keterangan"]], 
+        body: rows, 
+        theme: "striped",
+        headStyles: { fillColor: [35, 74, 132] }
+    });
+    doc.save(`Absensi_${item.nama}.pdf`);
 }
 
 function exportTotalPDF() {
     if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
     const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
     
-    const img = new Image();
-    img.src = 'logo_percobaan.png'; 
-
-    img.onload = function() {
-        const doc = new jsPDF();
-        
-        try {
-            doc.addImage(img, "PNG", 14, 10, 18, 25);
-            
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(14); 
-            doc.setTextColor(35, 74, 132); 
-            doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 23);
-            
-            doc.setFontSize(10);
-            doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184); 
-            doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 30);
-            
-            doc.setDrawColor(241, 245, 249); 
-            doc.line(14, 40, 196, 40);
-            
-            const tableRows = [];
-            dataRekap.forEach(item => {
-                tableRows.push([
-                    item.nama, item.hadir, item.tidakHadir,
-                    item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                    item.tanggalRealtime, item.catatan || '-'
-                ]);
-            });
-            
-            doc.autoTable({
-                startY: 46,
-                head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-                body: tableRows,
-                theme: "striped",
-                headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
-                styles: { fontSize: 9, padding: 5, valign: "middle" },
-                columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
-            });
-            
-            const blob = doc.output("blob");
-            prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
-        } catch(e) {
-            console.error("Gagal memproses pembuatan PDF Total:", e);
-            alert("Terjadi kesalahan saat menyusun layout PDF Total.");
-        }
-    };
-
-    img.onerror = function() {
-        const docBiasa = new jsPDF();
-        
-        docBiasa.setFont("Helvetica", "bold");
-        docBiasa.setFontSize(14);
-        docBiasa.setTextColor(35, 74, 132);
-        docBiasa.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
-        
-        const tableRowsFallback = [];
-        dataRekap.forEach(item => {
-            tableRowsFallback.push([
-                item.nama, item.hadir, item.tidakHadir,
-                item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                item.tanggalRealtime, item.catatan || '-'
-            ]);
-        });
-        
-        docBiasa.autoTable({
-            startY: 28,
-            head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-            body: tableRowsFallback,
-            theme: "striped"
-        });
-        
-        const blob = docBiasa.output("blob");
-        prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.pdf");
-    };
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(14); 
+    doc.setTextColor(35, 74, 132);
+    doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setFont("Helvetica", "normal");
+    doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 14, 26);
+    
+    const tableRows = [];
+    dataRekap.forEach(item => {
+        tableRows.push([
+            item.nama, item.hadir, item.tidakHadir,
+            item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
+            item.tanggalRealtime, item.catatan || '-'
+        ]);
+    });
+    
+    doc.autoTable({
+        startY: 32,
+        head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
+        body: tableRows,
+        theme: "striped",
+        headStyles: { fillColor: [35, 74, 132] }
+    });
+    
+    doc.save("Rekap_Total_Absensi_NSC.pdf");
 }
 
 async function resetSemuaData() {
