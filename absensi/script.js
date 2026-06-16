@@ -516,9 +516,9 @@ async function muatDataDariCloud() {
     const urlPdfUntukWA = publicUrlData.publicUrl;
     console.log("Link PDF untuk dikirim ke WA:", urlPdfUntukWA);
 
-} catch (error) {
+} catch (error) 
     console.error("Gagal mengunggah PDF:", error.message);
-}
+
 
         dataRekap = (data || []).map(normalizeDbRow).sort((a, b) => a.nama.localeCompare(b.nama, "id"));
         saveCache();
