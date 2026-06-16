@@ -615,6 +615,44 @@ function exportTotalPDF() {
 }
 
 
+// ==========================================
+// FUNGSI UNTUK MENGELUARKAN SISWA (BARU)
+// ==========================================
+async function keluarkanSiswa(namaSiswa) {
+    if (!confirm(`Apakah Anda yakin ingin mengeluarkan siswa ${namaSiswa} dari daftar aktif?`)) return;
+
+    try {
+        // Mencari index siswa berdasarkan nama di dataRekap
+        const index = dataRekap.findIndex(item => item.nama === namaSiswa);
+        if (index === -1) {
+            alert("Data siswa tidak ditemukan.");
+            return;
+        }
+
+        // Menghapus data dari Cloud Supabase
+        const { error } = await supabaseClient
+            .from('absensinsc')
+            .delete()
+            .eq('absensi', namaSiswa);
+
+        if (error) throw error;
+
+        // Menghapus data dari local storage / state aplikasi
+        dataRekap.splice(index, 1);
+        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
+        
+        // Render ulang tabel absensi terbaru
+        renderTable();
+        alert(`Siswa ${namaSiswa} berhasil dikeluarkan dari sistem.`);
+    } catch (err) {
+        console.error("Gagal mengeluarkan siswa:", err);
+        alert("Gagal mengeluarkan siswa dari Supabase: " + err.message);
+    }
+}
+
+// ==========================================
+// FUNGSI KIRIM WA (SUDAH DIPERBAIKI LOGIKA ERRORNYA)
+// ==========================================
 async function uploadDanKirimPdfWA(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
@@ -701,12 +739,18 @@ async function uploadDanKirimPdfWA(index) {
 
         const result = await res.json();
 
-        if (!result.status) throw new Error(result.reason || "Gagal kirim");
+        // Validasi respons spesifik untuk error Fonnte di IMG_0840.png
+        if (!result.status) {
+            if (result.reason && result.reason.includes("disconnected")) {
+                throw new Error("Nomor WA Pengirim di Dashboard Fonnte terputus (Disconnected). Silakan scan ulang QR Code di akun Fonnte Anda.");
+            }
+            throw new Error(result.reason || "Gagal mengirim data melalui WA gateway.");
+        }
 
         alert("Berhasil kirim PDF ke WhatsApp");
 
     } catch (err) {
-        alert("Error: " + err.message);
+        alert("Sistem Error:\n" + err.message);
     } finally {
         tombol.disabled = false;
         tombol.innerHTML = teksAsli;
