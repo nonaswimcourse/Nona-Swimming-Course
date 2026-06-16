@@ -1,58 +1,3 @@
-Setelah memeriksa seluruh kode JavaScript yang kamu kirimkan, secara umum struktur logikanya sudah sangat baik dan rapi. Namun, ada **satu kesalahan fatal (siluman)** di bagian paling akhir, serta beberapa **potensi celah/bug** yang bisa membuat aplikasi kamu *error* saat dijalankan di *production*.
-
-Berikut adalah analisis detail bagian kode yang bermasalah dan cara memperbaikinya:
-
----
-
-## 1. Kode Siluman / Salah Fatal
-
-### 🔴 Kurung Kurawal Penutup (`}`) Hilang di Akhir File
-
-Pada fungsi paling bawah (`uploadDanKirimPdfWA`), kamu membuka blok `try-catch-finally`, tetapi **kamu lupa menutup fungsi utamanya**. Di baris terakhir hanya ada penutup blok `finally`:
-
-```javascript
-    } finally {
-        tombol.disabled = false;
-        tombol.innerHTML = teksAsli;
-    } // <--- Fungsi uploadDanKirimPdfWA() belum ditutup dengan "}"
-
-```
-
-**Dampaknya:** Kode akan mengalami *SyntaxError: Unexpected end of input* dan menyebabkan **seluruh file JavaScript ini mogok/tidak berfungsi sama sekali**.
-
----
-
-## 2. Celah Keamanan & Potensi Bug Lainnya
-
-### ⚠️ Kebocoran *Credentials* (Supabase Anon Key & Fonnte Token)
-
-Kamu menaruh `SUPABASE_ANON_KEY` dan `WA_GATEWAY_TOKEN` ("PwjXTSrq1es39cyPbYNC") langsung di dalam kode *frontend* secara blak-blakan.
-
-* *Saran:* Jika aplikasi ini diakses publik, siapa pun bisa melihat token Fonnte kamu melalui *Inspect Element* dan menyalahgunakannya untuk mengirim pesan berbayar kamu. Pertimbangkan untuk memindahkannya ke *environment variables* atau *backend middleware* jika aplikasi ini semakin besar.
-
-### ⚠️ Penanganan String Kosong pada Validasi Login
-
-Di fungsi `handleLogin`:
-
-```javascript
-const email = emailEl.value.trim().toLowerCase();
-
-```
-
-Jika user langsung menekan tombol login tanpa mengisi apa pun, kode akan tetap berjalan mengecek *hash* password kosong. Sebaiknya beri validasi awal:
-
-```javascript
-if (!email || !password) { alert("Email dan password wajib diisi!"); return; }
-
-```
-
----
-
-## 🛠️ Perbaikan Kode Lengkap (Siap Pakai)
-
-Berikut adalah kode yang sudah diperbaiki, ditambahkan kurung penutup yang hilang, dan dirapikan strukturnya agar tidak ada *error siluman* lagi:
-
-```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -176,14 +121,18 @@ async function generateSHA256(string) {
 }
 
 async function handleLogin(event) {
-    if (event) event.preventDefault();
+    // Kunci utama menahan form submit browser agar halaman tidak ter-refresh otomatis
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
     
     const emailEl = document.getElementById("loginEmail");
     const passwordEl = document.getElementById("loginPassword");
     
     if (!emailEl || !passwordEl) {
         alert("Sistem Error: Elemen input login tidak ditemukan di HTML!");
-        return;
+        return false;
     }
 
     const email = emailEl.value.trim().toLowerCase();
@@ -191,7 +140,7 @@ async function handleLogin(event) {
 
     if (!email || !password) {
         alert("Email dan Password wajib diisi!");
-        return;
+        return false;
     }
 
     try {
@@ -200,18 +149,27 @@ async function handleLogin(event) {
             hashedInput = await generateSHA256(password);
         }
 
+        // Jalur validasi akun NSC
         if (email === "nonaswimmingcourse@gmail.com" && hashedInput === "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
+            
+            // 1. Simpan status login ke browser secara permanen
             localStorage.setItem("isLoggedIn", "true");
             
+            // 2. Buka akses halaman utama dan sembunyikan kotak login
             const loginSection = document.getElementById("loginSection");
             const mainAppSection = document.getElementById("mainAppSection");
             
             if (loginSection) loginSection.classList.add("hidden");
             if (mainAppSection) mainAppSection.classList.remove("hidden");
             
-            if (typeof muatDataDariCloud === "function") {
-                muatDataDariCloud();
-            }
+            // 3. Beri jeda kecil agar DOM stabil sebelum menarik data Supabase
+            setTimeout(() => {
+                if (typeof muatDataDariCloud === "function") {
+                    muatDataDariCloud();
+                }
+            }, 200);
+
+            return false;
             
         } else {
             alert("Akses ditolak! Email atau Password salah.");
@@ -219,6 +177,7 @@ async function handleLogin(event) {
     } catch (err) {
         alert("Terjadi masalah sistem saat masuk: " + err.message);
     }
+    return false;
 }
 
 function handleLogout() {
@@ -827,6 +786,4 @@ async function uploadDanKirimPdfWA(index) {
         tombol.disabled = false;
         tombol.innerHTML = teksAsli;
     }
-} // <--- SEKARANG SUDAH DITUTUP DENGAN AMAN!
-
-```
+}
