@@ -622,20 +622,22 @@ async function uploadDanKirimPdfWA(index) {
     if (!tombol) return;
     const teksAsli = tombol.innerHTML;
 
-    // Ganti dengan API Token resmi dari dashboard vendor WA Gateway Anda
     const WA_GATEWAY_TOKEN = "PwjXTSrq1es39cyPbYNC"; 
 
     tombol.disabled = true;
     tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Membuat & Mengirim PDF...';
 
+    // SOLUSI UTAMA: Gunakan blok try-catch yang lebih aman untuk memuat gambar
     const img = new Image();
+    // Tambahkan crossOrigin jika logo Anda ditaruh di hosting/storage eksternal
+    img.crossOrigin = "Anonymous"; 
     img.src = 'Logo percobaan.png'; 
 
     const eksekusiUploadPDF = async (pakeLogo) => {
         const doc = new jsPDF();
         try {
-            // --- 1. PROSES PEMBUATAN LAYOUT PDF ---
             if (pakeLogo) {
+                // Pastikan koordinat dan dimensi addImage sesuai
                 doc.addImage(img, "PNG", 14, 10, 18, 25);
                 doc.setFont("Helvetica", "bold");
                 doc.setFontSize(14);
@@ -668,17 +670,17 @@ async function uploadDanKirimPdfWA(index) {
                 head: [["Komponen Data", "Detail Keterangan"]], 
                 body: rows, 
                 theme: "striped",
-                headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 10 },
-                styles: { textColor: [71, 85, 105], fontSize: 10, cellPadding: 4 },
+                headStyles: { fillColor:, textColor:, fontStyle: "bold", fontSize: 10 },
+                styles: { textColor:, fontSize: 10, cellPadding: 4 },
                 alternateRowStyles: { fillColor: [248, 250, 252] },
                 columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
             });
 
-            // --- 2. UPLOAD KE SUPABASE STORAGE ---
             const pdfBlob = doc.output('blob');
             const namaFileClean = item.nama.replace(/\s+/g, '_');
             const pathFile = `absensi_${namaFileClean}.pdf`;
 
+            // Proses Upload Supabase
             const { data, error } = await supabaseClient
                 .storage
                 .from('laporan-pdf')
@@ -688,7 +690,7 @@ async function uploadDanKirimPdfWA(index) {
                     contentType: 'application/pdf'
                 });
 
-            if (error) throw error;
+            if (error) throw new Error("Gagal unggah ke Supabase: " + error.message);
 
             const { data: urlData } = supabaseClient
                 .storage
@@ -697,40 +699,40 @@ async function uploadDanKirimPdfWA(index) {
 
             const publicUrl = urlData.publicUrl;
 
-            // --- 3. SANITASI NOMOR TUJUAN ---
             let nomorWA = (item.no_hp || "").replace(/\D/g, ''); 
             if (nomorWA.startsWith('0')) {
                 nomorWA = '62' + nomorWA.slice(1);
             }
 
-            // --- 4. FORMAT PESAN OTOMATIS ---
             let pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nStatus Kehadiran: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan Evaluasi: _${item.catatan || '-'}_\n\nTerima kasih.`;
 
-            // --- 5. PENGIRIMAN OTOMATIS VIA API GATEWAY ---
             const formData = new FormData();
             formData.append('target', nomorWA);
             formData.append('message', pesanWAPDF);
-            formData.append('url', publicUrl); // Menyertakan URL PDF dari Supabase agar terkirim sebagai file dokumen asli
+            formData.append('url', publicUrl); 
             formData.append('filename', `Absensi_${namaFileClean}.pdf`);
 
+            // Tambahkan timeout atau tangkap error fetch secara spesifik
             const responWA = await fetch('https://fonnte.com', {
                 method: 'POST',
                 headers: {
                     'Authorization': WA_GATEWAY_TOKEN
                 },
                 body: formData
+            }).catch(fetchErr => {
+                throw new Error("Gagal menghubungi server Fonnte (Masalah Jaringan/CORS)");
             });
 
             const hasilRespon = await responWA.json();
 
             if (hasilRespon.status === true) {
-                alert(`✅ Laporan PDF Ananda ${item.nama} berhasil dikirim langsung ke WhatsApp tujuan!`);
+                alert(`✅ Laporan PDF Ananda ${item.nama} berhasil dikirim langsung ke WhatsApp!`);
             } else {
-                throw new Error(hasilRespon.reason || "Gagal meneruskan pesan lewat Gateway.");
+                throw new Error(hasilRespon.reason || "Ditolak oleh Gateway WA.");
             }
 
         } catch (err) {
-            console.error("Gagal melakukan proses otomatisasi:", err);
+            console.error("Detail Error:", err);
             alert("Terjadi kesalahan sistem: " + err.message);
         } finally {
             tombol.disabled = false;
@@ -739,11 +741,13 @@ async function uploadDanKirimPdfWA(index) {
     };
 
     img.onload = () => eksekusiUploadPDF(true);
-    img.onerror = () => {
-        console.warn("Berkas 'Logo percobaan.png' absen. Membuat layout PDF dasar...");
+    img.onerror = (e) => {
+        console.warn("Berkas 'Logo percobaan.png' gagal dimuat atau tidak ditemukan. Menggunakan layout dasar...");
+        // Tetap jalankan PDF tanpa logo agar aplikasi tidak macet/hang
         eksekusiUploadPDF(false);
     };
 }
+
 
 async function resetSemuaData() {
     if (!confirm("Apakah Anda yakin ingin menghapus total semua data dari database cloud Supabase?")) return;
