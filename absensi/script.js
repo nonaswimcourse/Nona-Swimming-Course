@@ -622,130 +622,118 @@ async function uploadDanKirimPdfWA(index) {
     if (!tombol) return;
     const teksAsli = tombol.innerHTML;
 
+    // Token Fonnte Anda langsung ditanam di sini
     const WA_GATEWAY_TOKEN = "PwjXTSrq1es39cyPbYNC"; 
 
     tombol.disabled = true;
     tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Membuat & Mengirim PDF...';
 
-    // SOLUSI UTAMA: Gunakan blok try-catch yang lebih aman untuk memuat gambar
-    const img = new Image();
-    // Tambahkan crossOrigin jika logo Anda ditaruh di hosting/storage eksternal
-    img.crossOrigin = "Anonymous"; 
-    img.src = 'Logo percobaan.png'; 
-
-    const eksekusiUploadPDF = async (pakeLogo) => {
+    try {
         const doc = new jsPDF();
-        try {
-            if (pakeLogo) {
-                // Pastikan koordinat dan dimensi addImage sesuai
-                doc.addImage(img, "PNG", 14, 10, 18, 25);
-                doc.setFont("Helvetica", "bold");
-                doc.setFontSize(14);
-                doc.setTextColor(35, 74, 132); 
-                doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 23); 
-                doc.setFontSize(10);
-                doc.setFont("Helvetica", "normal");
-                doc.setTextColor(148, 163, 184); 
-                doc.text("Nona Swimming Course (NSC)", 38, 30);
-                doc.setDrawColor(241, 245, 249); 
-                doc.line(14, 40, 196, 40);
-            } else {
-                doc.setFont("Helvetica", "bold");
-                doc.setFontSize(14);
-                doc.setTextColor(35, 74, 132);
-                doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
-            }
+        
+        // Pembuatan layout standar PDF
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(14);
+        doc.setTextColor(35, 74, 132);
+        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
+        doc.setFontSize(10);
+        doc.setFont("Helvetica", "normal");
+        doc.setTextColor(148, 163, 184); 
+        doc.text("Nona Swimming Course (NSC)", 14, 27);
+        doc.setDrawColor(241, 245, 249); 
+        doc.line(14, 33, 196, 33);
 
-            const rows = [
-                ["Nama Siswa", item.nama],
-                ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-                ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-                ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-                ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-                ["Catatan Khusus", item.catatan || "-"]
-            ];
+        const rows = [
+            ["Nama Siswa", item.nama],
+            ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
+            ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
+            ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+            ["Tanggal Terakhir Diinput", item.tanggalRealtime],
+            ["Catatan Khusus", item.catatan || "-"]
+        ];
 
-            doc.autoTable({ 
-                startY: pakeLogo ? 46 : 28, 
-                head: [["Komponen Data", "Detail Keterangan"]], 
-                body: rows, 
-                theme: "striped",
-                headStyles: { fillColor:, textColor:, fontStyle: "bold", fontSize: 10 },
-                styles: { textColor:, fontSize: 10, cellPadding: 4 },
-                alternateRowStyles: { fillColor: [248, 250, 252] },
-                columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
+        doc.autoTable({ 
+            startY: 38, 
+            head: [["Komponen Data", "Detail Keterangan"]], 
+            body: rows, 
+            theme: "striped",
+            headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 10 },
+            styles: { textColor: [71, 85, 105], fontSize: 10, cellPadding: 4 },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
+        });
+
+        // Konversi aman untuk mengantisipasi error "Load failed" di iOS/Safari
+        const pdfArrayBuffer = doc.output('arraybuffer');
+        const namaFileClean = item.nama.replace(/\s+/g, '_');
+        const namaBerkasPDF = `absensi_${namaFileClean}.pdf`;
+        const pdfFileMurni = new File([pdfArrayBuffer], namaBerkasPDF, { type: 'application/pdf' });
+
+        // 1. UNGHAH KE SUPABASE STORAGE
+        const { data: uploadData, error: uploadError } = await supabaseClient
+            .storage
+            .from('laporan-pdf')
+            .upload(namaBerkasPDF, pdfFileMurni, {
+                cacheControl: '0',
+                upsert: true,
+                contentType: 'application/pdf'
             });
 
-            const pdfBlob = doc.output('blob');
-            const namaFileClean = item.nama.replace(/\s+/g, '_');
-            const pathFile = `absensi_${namaFileClean}.pdf`;
-
-            // Proses Upload Supabase
-            const { data, error } = await supabaseClient
-                .storage
-                .from('laporan-pdf')
-                .upload(pathFile, pdfBlob, {
-                    cacheControl: '0',
-                    upsert: true,
-                    contentType: 'application/pdf'
-                });
-
-            if (error) throw new Error("Gagal unggah ke Supabase: " + error.message);
-
-            const { data: urlData } = supabaseClient
-                .storage
-                .from('laporan-pdf')
-                .getPublicUrl(pathFile);
-
-            const publicUrl = urlData.publicUrl;
-
-            let nomorWA = (item.no_hp || "").replace(/\D/g, ''); 
-            if (nomorWA.startsWith('0')) {
-                nomorWA = '62' + nomorWA.slice(1);
-            }
-
-            let pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nStatus Kehadiran: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan Evaluasi: _${item.catatan || '-'}_\n\nTerima kasih.`;
-
-            const formData = new FormData();
-            formData.append('target', nomorWA);
-            formData.append('message', pesanWAPDF);
-            formData.append('url', publicUrl); 
-            formData.append('filename', `Absensi_${namaFileClean}.pdf`);
-
-            // Tambahkan timeout atau tangkap error fetch secara spesifik
-            const responWA = await fetch('https://fonnte.com', {
-                method: 'POST',
-                headers: {
-                    'Authorization': WA_GATEWAY_TOKEN
-                },
-                body: formData
-            }).catch(fetchErr => {
-                throw new Error("Gagal menghubungi server Fonnte (Masalah Jaringan/CORS)");
-            });
-
-            const hasilRespon = await responWA.json();
-
-            if (hasilRespon.status === true) {
-                alert(`✅ Laporan PDF Ananda ${item.nama} berhasil dikirim langsung ke WhatsApp!`);
-            } else {
-                throw new Error(hasilRespon.reason || "Ditolak oleh Gateway WA.");
-            }
-
-        } catch (err) {
-            console.error("Detail Error:", err);
-            alert("Terjadi kesalahan sistem: " + err.message);
-        } finally {
-            tombol.disabled = false;
-            tombol.innerHTML = teksAsli;
+        if (uploadError) {
+            throw new Error(`[Supabase Error]: ${uploadError.message}. Pastikan bucket 'laporan-pdf' diatur ke PUBLIC!`);
         }
-    };
 
-    img.onload = () => eksekusiUploadPDF(true);
-    img.onerror = (e) => {
-        console.warn("Berkas 'Logo percobaan.png' gagal dimuat atau tidak ditemukan. Menggunakan layout dasar...");
-        // Tetap jalankan PDF tanpa logo agar aplikasi tidak macet/hang
-        eksekusiUploadPDF(false);
-    };
+        const { data: urlData } = supabaseClient
+            .storage
+            .from('laporan-pdf')
+            .getPublicUrl(namaBerkasPDF);
+
+        const publicUrl = urlData.publicUrl;
+
+        // 2. SANITASI NOMOR WHATSAPP
+        let nomorWA = (item.no_hp || "").replace(/\D/g, ''); 
+        if (nomorWA.startsWith('0')) {
+            nomorWA = '62' + nomorWA.slice(1);
+        }
+
+        if (!nomorWA) {
+            throw new Error("Nomor HP Siswa tidak valid atau kosong.");
+        }
+
+        // 3. KIRIM PESAN & DOKUMEN OTOMATIS VIA FONNTE
+        let pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nStatus Kehadiran: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan Evaluasi: _${item.catatan || '-'}_\n\nTerima kasih.`;
+
+        const payloadFonnte = new FormData();
+        payloadFonnte.append('target', nomorWA);
+        payloadFonnte.append('message', pesanWAPDF);
+        payloadFonnte.append('url', publicUrl);
+        payloadFonnte.append('filename', `Absensi_${namaFileClean}.pdf`);
+
+        const responFonnte = await fetch('https://api.fonnte.com/send', {
+            method: 'POST',
+            headers: {
+                'Authorization': WA_GATEWAY_TOKEN // Sesuai aturan Fonnte: Hanya token tanpa kata tambahan
+            },
+            body: payloadFonnte
+        }).catch(() => {
+            throw new Error("[Koneksi Fonnte Gagal]: Browser diblokir saat menghubungi api.fonnte.com");
+        });
+
+        const hasilRespon = await responFonnte.json();
+
+        if (hasilRespon.status === true) {
+            alert(`✅ Sukses! PDF Laporan Absensi Ananda ${item.nama} telah terkirim otomatis.`);
+        } else {
+            throw new Error(`[Ditolak Fonnte API]: ${hasilRespon.reason || 'Token salah atau Kuota harian habis'}`);
+        }
+
+    } catch (err) {
+        console.error("Log Error:", err);
+        alert("Sistem Menolak Aktivitas:\n" + err.message);
+    } finally {
+        tombol.disabled = false;
+        tombol.innerHTML = teksAsli;
+    }
 }
 
 
