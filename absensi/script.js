@@ -903,10 +903,13 @@ async function uploadDanKirimPdfWA(index) {
         }
 
         // 5. Susun pesan WhatsApp.
-        const pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.
+        const pesanWAPDF = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
 
 Status Kehadiran: *${item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`}*
 Catatan Evaluasi: _${item.catatan || "-"}_
+
+Silakan buka PDF laporan melalui link berikut:
+${publicUrl}
 
 Terima kasih.`;
 
