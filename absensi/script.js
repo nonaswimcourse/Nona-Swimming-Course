@@ -120,43 +120,71 @@ async function generateSHA256(string) {
     return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Taruh fungsi ini di bagian paling atas file JavaScript kamu, 
+// atau pisahkan untuk pengujian sementara
+
 async function handleLogin(event) {
-    if (event) event.preventDefault(); 
+    if (event) event.preventDefault();
     
-    // Menggunakan fallback jika ID elemen di HTML kamu berbeda
+    // Test awal apakah fungsi terpanggil
+    alert("Tombol Login merespons! Memulai validasi...");
+
     const emailEl = document.getElementById("loginEmail") || document.getElementById("email");
     const passwordEl = document.getElementById("loginPassword") || document.getElementById("password");
     
     if (!emailEl || !passwordEl) {
-        alert("Sistem Error: Elemen input Email atau Password tidak ditemukan di halaman HTML!");
+        alert("Sistem Error: ID elemen input email/password di HTML tidak cocok! Harap cek id='loginEmail' atau id='email'.");
         return;
     }
 
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
 
-    // Menghasilkan hash SHA-256 dari password yang diinput
-    const hashedInput = await generateSHA256(password);
-    
-    // Validasi kecocokan email dan hash password
-    if (email !== "nonaswimmingcourse@gmail.com" || hashedInput !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
-        alert("Akses ditolak! Akun atau Password salah.");
-        return; 
+    if (email === "") {
+        alert("Email tidak boleh kosong!");
+        return;
     }
-    
-    // Jika berhasil
-    localStorage.setItem("isLoggedIn", "true");
-    
-    // Menyembunyikan form login dan menampilkan aplikasi utama
-    const loginSection = document.getElementById("loginSection") || document.getElementById("login-section");
-    const mainAppSection = document.getElementById("mainAppSection") || document.getElementById("main-section");
-    
-    if (loginSection) loginSection.classList.add("hidden");
-    if (mainAppSection) mainAppSection.classList.remove("hidden");
-    
-    muatDataDariCloud();
-}
+    if (password === "") {
+        alert("Password tidak boleh kosong!");
+        return;
+    }
 
+    try {
+        // Coba generate hash SHA-256
+        let hashedInput = "";
+        if (typeof generateSHA256 === "function") {
+            hashedInput = await generateSHA256(password);
+        } else {
+            // Jika fungsi generateSHA256 tidak ditemukan di file JS kamu
+            alert("Fungsi generateSHA256 tidak ditemukan di file skrip! Mencoba bypass teks biasa...");
+        }
+        
+        // Validasi kecocokan (Ganti KATA_SANDI_ASLI jika enkripsi mati)
+        if (
+            (email === "nonaswimmingcourse@gmail.com" && hashedInput === "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") ||
+            (email === "nonaswimmingcourse@gmail.com" && password === "Rombel007@")
+        ) {
+            alert("Login Sukses! Membuka aplikasi...");
+            localStorage.setItem("isLoggedIn", "true");
+            
+            const loginSection = document.getElementById("loginSection") || document.getElementById("login-section") || document.getElementById("loginForm");
+            const mainAppSection = document.getElementById("mainAppSection") || document.getElementById("main-section");
+            
+            if (loginSection) loginSection.classList.add("hidden");
+            if (mainAppSection) mainAppSection.classList.remove("hidden");
+            
+            if (typeof muatDataDariCloud === "function") {
+                muatDataDariCloud();
+            } else {
+                alert("Peringatan: Fungsi muatDataDariCloud tidak ditemukan.");
+            }
+        } else {
+            alert("Akses ditolak! Email atau Password salah.");
+        }
+    } catch (err) {
+        alert("Terjadi error saat memproses login: " + err.message);
+    }
+}
 function handleLogout() {
     if(confirm("Apakah Anda yakin ingin keluar?")) {
         localStorage.removeItem("isLoggedIn"); 
