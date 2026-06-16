@@ -126,63 +126,46 @@ async function generateSHA256(string) {
 async function handleLogin(event) {
     if (event) event.preventDefault();
     
-    // Test awal apakah fungsi terpanggil
-    alert("Tombol Login merespons! Memulai validasi...");
-
-    const emailEl = document.getElementById("loginEmail") || document.getElementById("email");
-    const passwordEl = document.getElementById("loginPassword") || document.getElementById("password");
+    const emailEl = document.getElementById("loginEmail");
+    const passwordEl = document.getElementById("loginPassword");
     
     if (!emailEl || !passwordEl) {
-        alert("Sistem Error: ID elemen input email/password di HTML tidak cocok! Harap cek id='loginEmail' atau id='email'.");
+        alert("Sistem Error: Elemen input login tidak ditemukan di HTML!");
         return;
     }
 
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
 
-    if (email === "") {
-        alert("Email tidak boleh kosong!");
-        return;
-    }
-    if (password === "") {
-        alert("Password tidak boleh kosong!");
-        return;
-    }
-
     try {
-        // Coba generate hash SHA-256
         let hashedInput = "";
         if (typeof generateSHA256 === "function") {
             hashedInput = await generateSHA256(password);
-        } else {
-            // Jika fungsi generateSHA256 tidak ditemukan di file JS kamu
-            alert("Fungsi generateSHA256 tidak ditemukan di file skrip! Mencoba bypass teks biasa...");
         }
-        
-        // Validasi kecocokan (Ganti KATA_SANDI_ASLI jika enkripsi mati)
-        if (
-            (email === "nonaswimmingcourse@gmail.com" && hashedInput === "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") ||
-            (email === "nonaswimmingcourse@gmail.com" && password === "Rombel007@")
-        ) {
-            alert("Login Sukses! Membuka aplikasi...");
+
+        // Jalur validasi akun NSC
+        if (email === "nonaswimmingcourse@gmail.com" && hashedInput === "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
+            
+            // 1. Simpan status login ke browser secara permanen
             localStorage.setItem("isLoggedIn", "true");
             
-            const loginSection = document.getElementById("loginSection") || document.getElementById("login-section") || document.getElementById("loginForm");
-            const mainAppSection = document.getElementById("mainAppSection") || document.getElementById("main-section");
+            // 2. Buka akses halaman utama dan sembunyikan kotak login
+            const loginSection = document.getElementById("loginSection");
+            const mainAppSection = document.getElementById("mainAppSection");
             
             if (loginSection) loginSection.classList.add("hidden");
             if (mainAppSection) mainAppSection.classList.remove("hidden");
             
+            // 3. Muat data dari database Supabase
             if (typeof muatDataDariCloud === "function") {
                 muatDataDariCloud();
-            } else {
-                alert("Peringatan: Fungsi muatDataDariCloud tidak ditemukan.");
             }
+            
         } else {
             alert("Akses ditolak! Email atau Password salah.");
         }
     } catch (err) {
-        alert("Terjadi error saat memproses login: " + err.message);
+        alert("Terjadi masalah sistem saat masuk: " + err.message);
     }
 }
 function handleLogout() {
