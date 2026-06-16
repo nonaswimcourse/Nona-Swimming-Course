@@ -725,14 +725,17 @@ async function uploadDanKirimPdfWA(index) {
 
     const tombol = document.getElementById(`btnWaPdf-${index}`);
     if (!tombol) return;
-    const teksAsli = tombol.innerHTML;
 
+    const teksAsli = tombol.innerHTML;
     const WA_GATEWAY_TOKEN = "PwjXTSrq1es39cyPbYNC";
 
     tombol.disabled = true;
     tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Membuat & Mengirim PDF...';
 
     try {
+        // =========================
+        // 1. GENERATE PDF
+        // =========================
         const doc = new jsPDF();
 
         doc.setFont("Helvetica", "bold");
@@ -762,35 +765,64 @@ async function uploadDanKirimPdfWA(index) {
             head: [["Komponen", "Detail"]],
             body: rows,
             theme: "striped",
-            headStyles: { fillColor: [35, 74, 132], textColor: [255,255,255], fontStyle: "bold", fontSize: 10 },
-            styles: { textColor: [71,85,105], fontSize: 10, cellPadding: 4 },
-            alternateRowStyles: { fillColor: [248,250,252] },
-            columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
+            headStyles: {
+                fillColor: [35, 74, 132],
+                textColor: [255, 255, 255],
+                fontStyle: "bold",
+                fontSize: 10
+            },
+            styles: {
+                textColor: [71, 85, 105],
+                fontSize: 10,
+                cellPadding: 4
+            }
         });
 
+        // =========================
+        // 2. PDF → BLOB
+        // =========================
         const pdfDataUri = doc.output("datauristring");
-        const pdfRes = await fetch(pdfDataUri);
-        const pdfBlob = await pdfRes.blob();
+        const pdfBlob = await (await fetch(pdfDataUri)).blob();
 
+        // =========================
+        // 3. FILE UNIK (ANTI OVERWRITE)
+        // =========================
         const namaFileClean = item.nama.trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
-        const namaFile = `absensi_${namaFileClean}.pdf`;
+        const namaFile = `absensi_${namaFileClean}_${Date.now()}.pdf`;
 
         const file = new File([pdfBlob], namaFile, { type: "application/pdf" });
 
         const { error: uploadError } = await supabaseClient.storage
             .from("laporan-pdf")
-            .upload(namaFile, file, { upsert: true });
+            .upload(namaFile, file, { upsert: false });
 
         if (uploadError) throw uploadError;
 
-        const { data } = supabaseClient.storage.from("laporan-pdf").getPublicUrl(namaFile);
-        const url = data.publicUrl;
+        // =========================
+        // 4. SIGNED URL (ANTI CACHE + WAJIB FONNTE)
+        // =========================
+        const { data: signedData, error: signError } =
+            await supabaseClient.storage
+                .from("laporan-pdf")
+                .createSignedUrl(namaFile, 60);
 
+        if (signError) throw signError;
+
+        const url = signedData.signedUrl;
+
+        console.log("PDF URL:", url);
+
+        // =========================
+        // 5. FORMAT NOMOR
+        // =========================
         let nomor = (item.no_hp || "").replace(/\D/g, "");
         if (nomor.startsWith("0")) nomor = "62" + nomor.slice(1);
 
-        if (!nomor) throw new Error("Nomor tidak valid");
+        if (!nomor) throw new Error("Nomor WhatsApp tidak valid");
 
+        // =========================
+        // 6. KIRIM KE FONNTE
+        // =========================
         const pesan = `Laporan Absensi ${item.nama}`;
 
         const form = new FormData();
@@ -799,35 +831,34 @@ async function uploadDanKirimPdfWA(index) {
         form.append("url", url);
         form.append("filename", namaFile);
 
-       const res = await fetch("https://api.fonnte.com/send", {
-    method: "POST",
-    headers: {
-        Authorization: WA_GATEWAY_TOKEN
-    },
-    body: form
-});
+        const res = await fetch("https://api.fonnte.com/send", {
+            method: "POST",
+            headers: {
+                Authorization: WA_GATEWAY_TOKEN
+            },
+            body: form
+        });
 
         const text = await res.text();
-console.log("Fonnte raw response:", text);
+        console.log("Fonnte response:", text);
 
-let result;
-try {
-    result = JSON.parse(text);
-} catch (e) {
-    throw new Error("Response Fonnte bukan JSON: " + text);
-}
+        let result;
+        try {
+            result = JSON.parse(text);
+        } catch (e) {
+            throw new Error("Fonnte bukan JSON: " + text);
+        }
 
-if (!result.status) {
-    if (result.reason && result.reason.includes("disconnected")) {
-        throw new Error("Nomor WA Pengirim di Dashboard Fonnte terputus (Disconnected). Silakan scan ulang QR Code di akun Fonnte Anda.");
-    }
-    throw new Error(result.reason || "Gagal mengirim data melalui WA gateway.");
-}
+        if (!result.status) {
+            throw new Error(result.reason || "Gagal kirim PDF via Fonnte");
+        }
 
         alert("Berhasil kirim PDF ke WhatsApp");
 
     } catch (err) {
-        alert("Sistem Error:\n" + err.message);
+        console.error(err);
+        alert("ERROR:\n" + err.message);
+
     } finally {
         tombol.disabled = false;
         tombol.innerHTML = teksAsli;
