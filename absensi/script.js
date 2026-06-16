@@ -1,3 +1,58 @@
+Setelah memeriksa seluruh kode JavaScript yang kamu kirimkan, secara umum struktur logikanya sudah sangat baik dan rapi. Namun, ada **satu kesalahan fatal (siluman)** di bagian paling akhir, serta beberapa **potensi celah/bug** yang bisa membuat aplikasi kamu *error* saat dijalankan di *production*.
+
+Berikut adalah analisis detail bagian kode yang bermasalah dan cara memperbaikinya:
+
+---
+
+## 1. Kode Siluman / Salah Fatal
+
+### 🔴 Kurung Kurawal Penutup (`}`) Hilang di Akhir File
+
+Pada fungsi paling bawah (`uploadDanKirimPdfWA`), kamu membuka blok `try-catch-finally`, tetapi **kamu lupa menutup fungsi utamanya**. Di baris terakhir hanya ada penutup blok `finally`:
+
+```javascript
+    } finally {
+        tombol.disabled = false;
+        tombol.innerHTML = teksAsli;
+    } // <--- Fungsi uploadDanKirimPdfWA() belum ditutup dengan "}"
+
+```
+
+**Dampaknya:** Kode akan mengalami *SyntaxError: Unexpected end of input* dan menyebabkan **seluruh file JavaScript ini mogok/tidak berfungsi sama sekali**.
+
+---
+
+## 2. Celah Keamanan & Potensi Bug Lainnya
+
+### ⚠️ Kebocoran *Credentials* (Supabase Anon Key & Fonnte Token)
+
+Kamu menaruh `SUPABASE_ANON_KEY` dan `WA_GATEWAY_TOKEN` ("PwjXTSrq1es39cyPbYNC") langsung di dalam kode *frontend* secara blak-blakan.
+
+* *Saran:* Jika aplikasi ini diakses publik, siapa pun bisa melihat token Fonnte kamu melalui *Inspect Element* dan menyalahgunakannya untuk mengirim pesan berbayar kamu. Pertimbangkan untuk memindahkannya ke *environment variables* atau *backend middleware* jika aplikasi ini semakin besar.
+
+### ⚠️ Penanganan String Kosong pada Validasi Login
+
+Di fungsi `handleLogin`:
+
+```javascript
+const email = emailEl.value.trim().toLowerCase();
+
+```
+
+Jika user langsung menekan tombol login tanpa mengisi apa pun, kode akan tetap berjalan mengecek *hash* password kosong. Sebaiknya beri validasi awal:
+
+```javascript
+if (!email || !password) { alert("Email dan password wajib diisi!"); return; }
+
+```
+
+---
+
+## 🛠️ Perbaikan Kode Lengkap (Siap Pakai)
+
+Berikut adalah kode yang sudah diperbaiki, ditambahkan kurung penutup yang hilang, dan dirapikan strukturnya agar tidak ada *error siluman* lagi:
+
+```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -120,9 +175,6 @@ async function generateSHA256(string) {
     return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Taruh fungsi ini di bagian paling atas file JavaScript kamu, 
-// atau pisahkan untuk pengujian sementara
-
 async function handleLogin(event) {
     if (event) event.preventDefault();
     
@@ -137,26 +189,26 @@ async function handleLogin(event) {
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
 
+    if (!email || !password) {
+        alert("Email dan Password wajib diisi!");
+        return;
+    }
+
     try {
         let hashedInput = "";
         if (typeof generateSHA256 === "function") {
             hashedInput = await generateSHA256(password);
         }
 
-        // Jalur validasi akun NSC
         if (email === "nonaswimmingcourse@gmail.com" && hashedInput === "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
-            
-            // 1. Simpan status login ke browser secara permanen
             localStorage.setItem("isLoggedIn", "true");
             
-            // 2. Buka akses halaman utama dan sembunyikan kotak login
             const loginSection = document.getElementById("loginSection");
             const mainAppSection = document.getElementById("mainAppSection");
             
             if (loginSection) loginSection.classList.add("hidden");
             if (mainAppSection) mainAppSection.classList.remove("hidden");
             
-            // 3. Muat data dari database Supabase
             if (typeof muatDataDariCloud === "function") {
                 muatDataDariCloud();
             }
@@ -168,6 +220,7 @@ async function handleLogin(event) {
         alert("Terjadi masalah sistem saat masuk: " + err.message);
     }
 }
+
 function handleLogout() {
     if(confirm("Apakah Anda yakin ingin keluar?")) {
         localStorage.removeItem("isLoggedIn"); 
@@ -274,7 +327,6 @@ async function updateCounter(index, tipe, value) {
             baruHadir -= 1;
         } else {
             if (baruTidakHadir === 0) return;
-            // BAGIAN TYPO DI SINI SUDAH DIHAPUS (baruTargetTidakHadir -= 1;)
             baruTidakHadir -= 1;
         }
         catatanKetik = `Pengurangan manual via counter`;
@@ -317,6 +369,7 @@ async function updateCounter(index, tipe, value) {
         alert("Gagal memperbarui data ke Supabase: " + err.message);
     }
 }
+
 async function deleteRow(index) {
     const namaSiswa = dataRekap[index].nama;
     if (!confirm(`Hapus data rekap ${namaSiswa} dari sistem Supabase?`)) return;
@@ -641,10 +694,6 @@ function exportTotalPDF() {
     };
 }
 
-
-// ==========================================
-// FUNGSI UNTUK MENGELUARKAN SISWA (BARU)
-// ==========================================
 async function keluarkanSiswa(namaSiswa) {
     if (!confirm(`Apakah Anda yakin ingin mengeluarkan siswa ${namaSiswa} dari daftar aktif?`)) return;
 
@@ -673,9 +722,6 @@ async function keluarkanSiswa(namaSiswa) {
     }
 }
 
-// ==========================================
-// FUNGSI KIRIM WA (MENDUKUNG IOS/IPHONE & SEND_FILE DENGAN SEMPURNA)
-// ==========================================
 async function uploadDanKirimPdfWA(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
@@ -725,20 +771,15 @@ async function uploadDanKirimPdfWA(index) {
             columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
         });
 
-        // ==========================================================
-        // PERBAIKAN STABILITAS IOS: Mengonversi ke String Data URI agar tidak memicu Pattern Error
-        // ==========================================================
         const pdfDataUri = doc.output("datauristring");
         const pdfRes = await fetch(pdfDataUri);
         const pdfBlob = await pdfRes.blob();
 
-        // Bersihkan nama file agar strukturnya valid di API multi-platform
         const namaFileClean = item.nama.trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
         const namaFile = `absensi_${namaFileClean}.pdf`;
 
         const file = new File([pdfBlob], namaFile, { type: "application/pdf" });
 
-        // Proses unggah berkas PDF ke Supabase Storage
         const { error: uploadError } = await supabaseClient.storage
             .from("laporan-pdf")
             .upload(namaFile, file, { upsert: true });
@@ -761,7 +802,6 @@ async function uploadDanKirimPdfWA(index) {
         form.append("url", url);
         form.append("filename", namaFile);
 
-        // Menembak endpoint send_file milik Fonnte untuk meneruskan dokumen biner asli ke obrolan WhatsApp
         const res = await fetch("https://api.fonnte.com/send_file", {
             method: "POST",
             headers: {
@@ -787,3 +827,6 @@ async function uploadDanKirimPdfWA(index) {
         tombol.disabled = false;
         tombol.innerHTML = teksAsli;
     }
+} // <--- SEKARANG SUDAH DITUTUP DENGAN AMAN!
+
+```
