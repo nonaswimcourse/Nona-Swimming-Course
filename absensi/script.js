@@ -622,7 +622,7 @@ async function uploadDanKirimPdfWA(index)
     if (!tombol) return;
     const teksAsli = tombol.innerHTML;
 
-    // Token Fonnte Anda langsung ditanam di sini
+    // Masukkan token resmi Anda kembali di sini
     const WA_GATEWAY_TOKEN = "PwjXTSrq1es39cyPbYNC"; 
 
     tombol.disabled = true;
@@ -631,7 +631,6 @@ async function uploadDanKirimPdfWA(index)
     try {
         const doc = new jsPDF();
         
-        // Pembuatan layout standar PDF
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(14);
         doc.setTextColor(35, 74, 132);
@@ -657,19 +656,18 @@ async function uploadDanKirimPdfWA(index)
             head: [["Komponen Data", "Detail Keterangan"]], 
             body: rows, 
             theme: "striped",
-            headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 10 },
-            styles: { textColor: [71, 85, 105], fontSize: 10, cellPadding: 4 },
+            headStyles: { fillColor:, textColor:, fontStyle: "bold", fontSize: 10 },
+            styles: { textColor:, fontSize: 10, cellPadding: 4 },
             alternateRowStyles: { fillColor: [248, 250, 252] },
             columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
         });
 
-        // Konversi aman untuk mengantisipasi error "Load failed" di iOS/Safari
         const pdfArrayBuffer = doc.output('arraybuffer');
         const namaFileClean = item.nama.replace(/\s+/g, '_');
         const namaBerkasPDF = `absensi_${namaFileClean}.pdf`;
         const pdfFileMurni = new File([pdfArrayBuffer], namaBerkasPDF, { type: 'application/pdf' });
 
-        // 1. UNGHAH KE SUPABASE STORAGE
+        // 1. UPLOAD KE SUPABASE
         const { data: uploadData, error: uploadError } = await supabaseClient
             .storage
             .from('laporan-pdf')
@@ -680,7 +678,7 @@ async function uploadDanKirimPdfWA(index)
             });
 
         if (uploadError) {
-            throw new Error(`[Supabase Error]: ${uploadError.message}. Pastikan bucket 'laporan-pdf' diatur ke PUBLIC!`);
+            throw new Error(`[Supabase Storage Error]: ${uploadError.message}. Pastikan bucket 'laporan-pdf' diatur ke PUBLIC.`);
         }
 
         const { data: urlData } = supabaseClient
@@ -690,45 +688,45 @@ async function uploadDanKirimPdfWA(index)
 
         const publicUrl = urlData.publicUrl;
 
-        // 2. SANITASI NOMOR WHATSAPP
+        // 2. SANITASI NOMOR TUJUAN
         let nomorWA = (item.no_hp || "").replace(/\D/g, ''); 
         if (nomorWA.startsWith('0')) {
             nomorWA = '62' + nomorWA.slice(1);
         }
 
         if (!nomorWA) {
-            throw new Error("Nomor HP Siswa tidak valid atau kosong.");
+            throw new Error("Nomor HP Siswa kosong atau tidak valid.");
         }
 
-        // 3. KIRIM PESAN & DOKUMEN OTOMATIS VIA FONNTE
         let pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nStatus Kehadiran: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan Evaluasi: _${item.catatan || '-'}_\n\nTerima kasih.`;
 
         const payloadFonnte = new FormData();
         payloadFonnte.append('target', nomorWA);
         payloadFonnte.append('message', pesanWAPDF);
-        payloadFonnte.append('url', publicUrl);
+        payloadFonnte.append('url', publicUrl); 
         payloadFonnte.append('filename', `Absensi_${namaFileClean}.pdf`);
 
-        const responFonnte = await fetch('https://api.fonnte.com/send', {
+        // PERBAIKAN UTAMA: Menggunakan URL API Endpoint Fonnte yang benar
+        const responFonnte = await fetch('https://fonnte.com', {
             method: 'POST',
             headers: {
-                'Authorization': WA_GATEWAY_TOKEN // Sesuai aturan Fonnte: Hanya token tanpa kata tambahan
+                'Authorization': WA_GATEWAY_TOKEN
             },
             body: payloadFonnte
-        }).catch(() => {
-            throw new Error("[Koneksi Fonnte Gagal]: Browser diblokir saat menghubungi api.fonnte.com");
+        }).catch(errFetch => {
+            throw new Error("[Koneksi Fonnte Gagal]: Browser diblokir atau gagal menghubungi server api.fonnte.com");
         });
 
         const hasilRespon = await responFonnte.json();
 
         if (hasilRespon.status === true) {
-            alert(`✅ Sukses! PDF Laporan Absensi Ananda ${item.nama} telah terkirim otomatis.`);
+            alert(`✅ Sukses! PDF Laporan Absensi Ananda ${item.nama} telah dikirimkan secara otomatis.`);
         } else {
-            throw new Error(`[Ditolak Fonnte API]: ${hasilRespon.reason || 'Token salah atau Kuota harian habis'}`);
+            throw new Error(`[Fonnte API Rejected]: ${hasilRespon.reason || 'Token tidak valid / Perangkat tidak terhubung'}`);
         }
 
     } catch (err) {
-        console.error("Log Error:", err);
+        console.error("LOG UTAMA SISTEM:", err);
         alert("Sistem Menolak Aktivitas:\n" + err.message);
     } finally {
         tombol.disabled = false;
