@@ -1,10 +1,3 @@
-Berikut adalah file JavaScript lengkap yang sudah diperbaiki.
-
-Saya telah menambahkan **Authorization Headers** (`ApiKey` dan `Bearer Token`) pada fungsi `uploadDanKirimPdfWA` agar Supabase tidak menolak *request* Anda dengan eror "Failed to fetch". Selain itu, saya pastikan variabel `SUPABASE_ANON_KEY` yang berada di atas otomatis ikut terpakai di dalam fungsi tersebut.
-
-Anda tinggal menyalin seluruh kode di bawah ini dan menimpanya (*replace*) ke file script proyek Anda sebelum di-upload:
-
-```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -406,7 +399,7 @@ async function simpan() {
 
         if (siswaExist) {
             siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTailakHadir;
+            siswaExist.tidakHadir = nTidakHadir; // FIX: typo nTailakHadir sudah diperbaiki
             siswaExist.catatan = catatanTeks;
             siswaExist.tanggalRealtime = realtimeSekarang;
             siswaExist.rawDate = waktuSekarangISO;
@@ -741,7 +734,6 @@ async function uploadDanKirimPdfWA(index) {
 
         const pdfBase64 = doc.output("datauristring").split(",")[1];
 
-        // Memanggil Endpoint Cloud Function dengan Header Otorisasi Supabase yang Valid
         const res = await fetch(`${SUPABASE_URL}/functions/v1/send-pdf-wa`, {
             method: "POST",
             headers: {
@@ -778,5 +770,3 @@ async function uploadDanKirimPdfWA(index) {
         tombol.innerHTML = teksAsli;
     }
 }
-
-```
