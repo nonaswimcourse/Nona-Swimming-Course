@@ -680,28 +680,45 @@ async function keluarkanSiswa(namaSiswa) {
         alert("Gagal mengeluarkan siswa dari Supabase: " + err.message);
     }
 }
-async function resetTotal() {
-    if (!confirm("Yakin ingin RESET SEMUA DATA?")) return;
+async function resetSemuaData() {
+    if (!confirm("Apakah Anda yakin ingin menghapus total semua data dari database cloud Supabase?")) return;
+    if (!confirm("Konfirmasi terakhir: Data yang dihapus tidak bisa dikembalikan!")) return;
+
+    const btnReset = document.getElementById("btnResetAll");
+    if (btnReset) {
+        btnReset.disabled = true;
+        btnReset.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mereset...';
+    }
 
     try {
-        const { data, error } = await supabaseClient
+        const { data: listSiswa, error: fetchError } = await supabaseClient
             .from('absensinsc')
-            .delete()
-            .select(); // paksa eksekusi delete semua row
+            .select('absensi');
 
-        if (error) throw error;
+        if (fetchError) throw fetchError;
+
+        if (listSiswa && listSiswa.length > 0) {
+            const listNama = listSiswa.map(s => s.absensi);
+            const { error: errorDeleteRekap } = await supabaseClient
+                .from('absensinsc')
+                .delete()
+                .in('absensi', listNama);
+            if (errorDeleteRekap) throw errorDeleteRekap;
+        }
 
         dataRekap = [];
-        localStorage.removeItem("dataRekap");
+        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
         renderTable();
-
-        alert("Reset total berhasil");
+        alert("Database Absensi Berhasil Dikosongkan!");
     } catch (err) {
-        console.error(err);
-        alert("Gagal reset: " + err.message);
+        alert("Gagal mereset: " + err.message);
+    } finally {
+        if (btnReset) {
+            btnReset.disabled = false;
+            btnReset.innerHTML = '<i class="fa fa-trash-can"></i> Reset';
+        }
     }
 }
-
 async function uploadDanKirimPdfWA(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
