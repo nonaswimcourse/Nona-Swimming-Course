@@ -247,6 +247,7 @@ async function updateCounter(index, tipe, value) {
             baruHadir -= 1;
         } else {
             if (baruTidakHadir === 0) return;
+            baruTargetTidakHadir -= 1;
             baruTidakHadir -= 1;
         }
         catatanKetik = `Pengurangan manual via counter`;
@@ -622,14 +623,12 @@ async function keluarkanSiswa(namaSiswa) {
     if (!confirm(`Apakah Anda yakin ingin mengeluarkan siswa ${namaSiswa} dari daftar aktif?`)) return;
 
     try {
-        // Mencari index siswa berdasarkan nama di dataRekap
         const index = dataRekap.findIndex(item => item.nama === namaSiswa);
         if (index === -1) {
             alert("Data siswa tidak ditemukan.");
             return;
         }
 
-        // Menghapus data dari Cloud Supabase
         const { error } = await supabaseClient
             .from('absensinsc')
             .delete()
@@ -637,11 +636,9 @@ async function keluarkanSiswa(namaSiswa) {
 
         if (error) throw error;
 
-        // Menghapus data dari local storage / state aplikasi
         dataRekap.splice(index, 1);
         localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
         
-        // Render ulang tabel absensi terbaru
         renderTable();
         alert(`Siswa ${namaSiswa} berhasil dikeluarkan dari sistem.`);
     } catch (err) {
@@ -651,7 +648,7 @@ async function keluarkanSiswa(namaSiswa) {
 }
 
 // ==========================================
-// FUNGSI KIRIM WA (SUDAH DIPERBAIKI LOGIKA ERRORNYA)
+// FUNGSI KIRIM WA (MENDUKUNG IOS/IPHONE & SEND_FILE DENGAN SEMPURNA)
 // ==========================================
 async function uploadDanKirimPdfWA(index) {
     const item = dataRekap[index];
@@ -702,15 +699,20 @@ async function uploadDanKirimPdfWA(index) {
             columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
         });
 
-        // Mengubah output menjadi Blob agar kompatibel di semua browser/iOS
-const pdfBlob = doc.output("blob"); 
+        // ==========================================================
+        // PERBAIKAN STABILITAS IOS: Mengonversi ke String Data URI agar tidak memicu Pattern Error
+        // ==========================================================
+        const pdfDataUri = doc.output("datauristring");
+        const pdfRes = await fetch(pdfDataUri);
+        const pdfBlob = await pdfRes.blob();
 
-// Membersihkan nama file dari spasi dan karakter aneh agar polanya valid
-const namaFileClean = item.nama.trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
-const namaFile = `absensi_${namaFileClean}.pdf`;
+        // Bersihkan nama file agar strukturnya valid di API multi-platform
+        const namaFileClean = item.nama.trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
+        const namaFile = `absensi_${namaFileClean}.pdf`;
 
-// Membuat objek File yang bersih dan valid
-const file = new File([pdfBlob], namaFile, { type: "application/pdf" });
+        const file = new File([pdfBlob], namaFile, { type: "application/pdf" });
+
+        // Proses unggah berkas PDF ke Supabase Storage
         const { error: uploadError } = await supabaseClient.storage
             .from("laporan-pdf")
             .upload(namaFile, file, { upsert: true });
@@ -733,6 +735,7 @@ const file = new File([pdfBlob], namaFile, { type: "application/pdf" });
         form.append("url", url);
         form.append("filename", namaFile);
 
+        // Menembak endpoint send_file milik Fonnte untuk meneruskan dokumen biner asli ke obrolan WhatsApp
         const res = await fetch("https://api.fonnte.com/send_file", {
             method: "POST",
             headers: {
@@ -743,7 +746,6 @@ const file = new File([pdfBlob], namaFile, { type: "application/pdf" });
 
         const result = await res.json();
 
-        // Validasi respons spesifik untuk error Fonnte di IMG_0840.png
         if (!result.status) {
             if (result.reason && result.reason.includes("disconnected")) {
                 throw new Error("Nomor WA Pengirim di Dashboard Fonnte terputus (Disconnected). Silakan scan ulang QR Code di akun Fonnte Anda.");
@@ -759,4 +761,3 @@ const file = new File([pdfBlob], namaFile, { type: "application/pdf" });
         tombol.disabled = false;
         tombol.innerHTML = teksAsli;
     }
-}
