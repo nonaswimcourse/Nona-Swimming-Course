@@ -462,7 +462,6 @@ function exportSiswaPDF(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
     
-    // Perbaikan Mutlak: Objek gambar murni di memori (tidak berinteraksi dengan DOM HTML)
     const img = new Image();
     img.src = 'Logo percobaan.png'; 
 
@@ -605,8 +604,7 @@ function exportTotalPDF() {
     };
 }
 
-aasync function uploadDanKirimPdfWA(index)
-
+async function uploadDanKirimPdfWA(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
 
@@ -616,38 +614,6 @@ aasync function uploadDanKirimPdfWA(index)
     tombol.disabled = true;
     tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Membuat & Mengirim PDF...';
 
-    try {
-        // 1. buat PDF
-        const doc = new jsPDF();
-        doc.text(`Absensi ${item.nama}`, 10, 10);
-
-        const pdfBlob = doc.output("blob");
-
-        // 2. WA dulu (TIDAK BLOKING)
-        let nomorWA = item.no_hp || "";
-        if (nomorWA.startsWith("0")) {
-            nomorWA = "62" + nomorWA.slice(1);
-        }
-
-        const waLink = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent("Laporan PDF " + item.nama)}`;
-
-        window.open(waLink, "_blank");
-
-        // 3. upload belakang layar (AMAN)
-        supabaseClient.storage
-            .from("laporan-pdf")
-            .upload(`absensi_${item.nama}.pdf`, pdfBlob, {
-                upsert: true,
-                contentType: "application/pdf"
-            });
-
-    } catch (err) {
-        console.error(err);
-    } finally {
-        tombol.disabled = false;
-        tombol.innerHTML = teksAsli;
-}
-    // Perbaikan Mutlak: Menggunakan constructor murni memori tanpa merusak DOM HTML
     const img = new Image();
     img.src = 'Logo percobaan.png'; 
 
