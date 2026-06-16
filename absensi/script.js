@@ -38,18 +38,21 @@ function updateJamRealtime() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    selectNamaControl = new TomSelect("#nama", {
-        create: true, 
-        sortField: { field: "text", direction: "asc" },
-        placeholder: "Ketik / Pilih Nama Siswa...",
-        allowEmptyOption: true,
-        onChange: function(value) {
-            if(value) {
-                if(selectNamaControl) { selectNamaControl.blur(); }
-                document.activeElement.blur(); 
+    // Inisialisasi TomSelect untuk pencarian nama siswa
+    if (document.getElementById("nama")) {
+        selectNamaControl = new TomSelect("#nama", {
+            create: true, 
+            sortField: { field: "text", direction: "asc" },
+            placeholder: "Ketik / Pilih Nama Siswa...",
+            allowEmptyOption: true,
+            onChange: function(value) {
+                if(value) {
+                    if(selectNamaControl) { selectNamaControl.blur(); }
+                    document.activeElement.blur(); 
+                }
             }
-        }
-    });
+        });
+    }
 
     checkLoginSession();
     muatDataDariCloud();
@@ -101,6 +104,8 @@ async function muatDataDariCloud() {
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById("loginPassword");
     const eyeIcon = document.getElementById("eyeIcon");
+    if (!passwordInput || !eyeIcon) return;
+
     if (passwordInput.type === "password") {
         passwordInput.type = "text";
         eyeIcon.classList.replace("fa-eye", "fa-eye-slash");
@@ -125,7 +130,9 @@ async function handleLogin(event) {
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
 
-    if (email !== "nonaswimmingcourse@gmail.com" || await generateSHA256(password) !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
+    // Proteksi enkripsi login internal NSC
+    const passwordHashed = await generateSHA256(password);
+    if (email !== "nonaswimmingcourse@gmail.com" || passwordHashed !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
         alert("Akses ditolak! Akun atau Password salah.");
         return; 
     }
@@ -152,6 +159,9 @@ function checkLoginSession() {
 
 function renderTable() {
     let html = "";
+    const tbody = document.getElementById("tbody");
+    if (!tbody) return;
+
     if(!dataRekap || dataRekap.length === 0) {
         html = "<tr><td colspan='6' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
     } else {
@@ -212,8 +222,10 @@ function renderTable() {
             </tr>`;
         });
     }
-    document.getElementById("tbody").innerHTML = html;
-    document.getElementById("totalPertemuanText").innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
+    tbody.innerHTML = html;
+    
+    const totalTextEl = document.getElementById("totalPertemuanText");
+    if (totalTextEl) totalTextEl.innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
 }
 
 async function updateCounter(index, tipe, value) {
@@ -609,6 +621,7 @@ async function uploadDanKirimPdfWA(index) {
     const { jsPDF } = window.jspdf;
 
     const tombol = document.getElementById(`btnWaPdf-${index}`);
+    if (!tombol) return;
     const teksAsli = tombol.innerHTML;
 
     tombol.disabled = true;
