@@ -680,6 +680,26 @@ async function keluarkanSiswa(namaSiswa) {
         alert("Gagal mengeluarkan siswa dari Supabase: " + err.message);
     }
 }
+async function resetTotal() {
+    if (!confirm("Yakin ingin RESET SEMUA DATA?")) return;
+
+    try {
+        const { error } = await supabaseClient
+            .from('absensinsc')
+            .delete()
+            .neq('absensi', '');
+
+        if (error) throw error;
+
+        dataRekap = [];
+        localStorage.removeItem("dataRekap");
+        renderTable();
+
+        alert("Reset total berhasil");
+    } catch (err) {
+        alert("Gagal reset: " + err.message);
+    }
+}
 
 async function uploadDanKirimPdfWA(index) {
     const item = dataRekap[index];
