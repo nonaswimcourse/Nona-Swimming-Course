@@ -721,144 +721,41 @@ async function resetSemuaData() {
 }
 async function uploadDanKirimPdfWA(index) {
     const item = dataRekap[index];
-    const { jsPDF } = window.jspdf;
 
     const tombol = document.getElementById(`btnWaPdf-${index}`);
-    if (!tombol) return;
-
     const teksAsli = tombol.innerHTML;
-    const WA_GATEWAY_TOKEN = "PwjXTSrq1es39cyPbYNC";
 
     tombol.disabled = true;
-    tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Membuat & Mengirim PDF...';
+    tombol.innerHTML = "Mengirim...";
 
     try {
-        // =========================
-        // 1. GENERATE PDF
-        // =========================
+        const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(14);
-        doc.setTextColor(35, 74, 132);
-        doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
+        doc.text(`Laporan ${item.nama}`, 14, 20);
 
-        doc.setFontSize(10);
-        doc.setFont("Helvetica", "normal");
-        doc.setTextColor(148, 163, 184);
-        doc.text("Nona Swimming Course (NSC)", 14, 27);
+        const pdfBase64 = doc.output("datauristring").split(",")[1];
 
-        doc.setDrawColor(241, 245, 249);
-        doc.line(14, 33, 196, 33);
-
-        const rows = [
-            ["Nama Siswa", item.nama],
-            ["Total Kehadiran", `${item.hadir} Pertemuan`],
-            ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-            ["Status", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-            ["Tanggal", item.tanggalRealtime],
-            ["Catatan", item.catatan || "-"]
-        ];
-
-        doc.autoTable({
-            startY: 38,
-            head: [["Komponen", "Detail"]],
-            body: rows,
-            theme: "striped",
-            headStyles: {
-                fillColor: [35, 74, 132],
-                textColor: [255, 255, 255],
-                fontStyle: "bold",
-                fontSize: 10
-            },
-            styles: {
-                textColor: [71, 85, 105],
-                fontSize: 10,
-                cellPadding: 4
-            }
-        });
-
-        // =========================
-        // 2. PDF → BLOB
-        // =========================
-        const pdfDataUri = doc.output("datauristring");
-        const pdfBlob = await (await fetch(pdfDataUri)).blob();
-
-        // =========================
-        // 3. FILE UNIK (ANTI OVERWRITE)
-        // =========================
-        const namaFileClean = item.nama.trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
-        const namaFile = `absensi_${namaFileClean}_${Date.now()}.pdf`;
-
-        const file = new File([pdfBlob], namaFile, { type: "application/pdf" });
-
-        const { error: uploadError } = await supabaseClient.storage
-            .from("laporan-pdf")
-            .upload(namaFile, file, { upsert: false });
-
-        if (uploadError) throw uploadError;
-
-        // =========================
-        // 4. SIGNED URL (ANTI CACHE + WAJIB FONNTE)
-        // =========================
-        const { data: signedData, error: signError } =
-            await supabaseClient.storage
-                .from("laporan-pdf")
-                .createSignedUrl(namaFile, 60);
-
-        if (signError) throw signError;
-
-        const url = signedData.signedUrl;
-
-        console.log("PDF URL:", url);
-
-        // =========================
-        // 5. FORMAT NOMOR
-        // =========================
-        let nomor = (item.no_hp || "").replace(/\D/g, "");
-        if (nomor.startsWith("0")) nomor = "62" + nomor.slice(1);
-
-        if (!nomor) throw new Error("Nomor WhatsApp tidak valid");
-
-        // =========================
-        // 6. KIRIM KE FONNTE
-        // =========================
-        const pesan = `Laporan Absensi ${item.nama}`;
-
-        const form = new FormData();
-        form.append("target", nomor);
-        form.append("message", pesan);
-        form.append("url", url);
-        form.append("filename", namaFile);
-
-        const res = await fetch("https://api.fonnte.com/send", {
+        const res = await fetch("https://YOUR_PROJECT.supabase.co/functions/v1/send-pdf-wa", {
             method: "POST",
             headers: {
-                Authorization: WA_GATEWAY_TOKEN
+                "Content-Type": "application/json"
             },
-            body: form
+            body: JSON.stringify({
+                nama: item.nama,
+                no_hp: item.no_hp,
+                htmlPdf: pdfBase64
+            })
         });
 
-        const text = await res.text();
-        console.log("Fonnte response:", text);
+        const result = await res.json();
 
-        let result;
-        try {
-            result = JSON.parse(text);
-        } catch (e) {
-            throw new Error("Fonnte bukan JSON: " + text);
-        }
+        if (!result.status) throw new Error(result.reason || "Gagal kirim");
 
-        if (!result.status) {
-            throw new Error(result.reason || "Gagal kirim PDF via Fonnte");
-        }
-
-        alert("Berhasil kirim PDF ke WhatsApp");
+        alert("PDF berhasil dikirim");
 
     } catch (err) {
-        console.error(err);
-        alert("ERROR:\n" + err.message);
-
+        alert(err.message);
     } finally {
         tombol.disabled = false;
         tombol.innerHTML = teksAsli;
