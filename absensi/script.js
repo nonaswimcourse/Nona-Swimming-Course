@@ -702,11 +702,15 @@ async function uploadDanKirimPdfWA(index) {
             columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
         });
 
-        const pdfArrayBuffer = doc.output("arraybuffer");
-        const namaFileClean = item.nama.replace(/\s+/g, "_");
-        const namaFile = `absensi_${namaFileClean}.pdf`;
-        const file = new File([pdfArrayBuffer], namaFile, { type: "application/pdf" });
+        // Mengubah output menjadi Blob agar kompatibel di semua browser/iOS
+const pdfBlob = doc.output("blob"); 
 
+// Membersihkan nama file dari spasi dan karakter aneh agar polanya valid
+const namaFileClean = item.nama.trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
+const namaFile = `absensi_${namaFileClean}.pdf`;
+
+// Membuat objek File yang bersih dan valid
+const file = new File([pdfBlob], namaFile, { type: "application/pdf" });
         const { error: uploadError } = await supabaseClient.storage
             .from("laporan-pdf")
             .upload(namaFile, file, { upsert: true });
