@@ -614,7 +614,7 @@ function exportTotalPDF() {
     };
 }
 
-async function uploadDanKirimPdfWA(index) {
+async function uploadDanKirimPdfWA(index) 
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
 
