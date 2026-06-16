@@ -3,8 +3,7 @@ const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndnbWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
 const TABLE_NAME = "absensinsc";
 const STORAGE_BUCKET = "laporan-pdf";
-const WA_GATEWAY_TOKEN = "PwjXTSrq1es39cyPbYNC";
-const WA_GATEWAY_URL = "https://fonnte.com";
+const EDGE_FUNCTION_KIRIM_WA = "kirim-pdf-wa";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -837,6 +836,7 @@ async function uploadDanKirimPdfWA(index) {
 
     try {
         const nomorWA = normalizePhone(item.no_hp);
+
         if (!nomorWA) {
             throw new Error("Nomor HP kosong atau tidak valid.");
         }
@@ -846,46 +846,63 @@ async function uploadDanKirimPdfWA(index) {
             tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Memproses...';
         }
 
+        // 1. Buat file PDF dari data siswa.
         const pdfBlob = await buildSiswaPdfBlob(item);
+
+        if (!pdfBlob || pdfBlob.size === 0) {
+            throw new Error("PDF gagal dibuat atau ukuran file 0 byte.");
+        }
+
         const namaFileClean = slugifyFileName(item.nama) || "siswa";
         const namaBerkasPDF = `Absensi_${namaFileClean}.pdf`;
-        const storagePath = `${Date.now()}-${namaBerkasPDF}`;
+        const storagePath = `laporan/${Date.now()}-${namaBerkasPDF}`;
 
-        const { error: uploadError } = await supabaseClient
+        // 2. Upload PDF ke Supabase Storage public bucket.
+        const { data: uploadData, error: uploadError } = await supabaseClient
             .storage
             .from(STORAGE_BUCKET)
             .upload(storagePath, pdfBlob, {
                 contentType: "application/pdf",
+                cacheControl: "3600",
                 upsert: true
             });
 
         if (uploadError) {
-            throw new Error(`[Supabase Storage Error]: ${uploadError.message}. Pastikan bucket '${STORAGE_BUCKET}' diatur ke PUBLIC.`);
+            throw new Error(`[Supabase Storage Error]: ${uploadError.message}. Cek bucket '${STORAGE_BUCKET}', policy Storage, dan koneksi internet.`);
         }
 
+        if (!uploadData?.path) {
+            throw new Error("Upload PDF berhasil, tetapi path file tidak dikembalikan oleh Supabase.");
+        }
+
+        // 3. Ambil public URL berdasarkan path hasil upload.
         const { data: urlData } = supabaseClient
             .storage
             .from(STORAGE_BUCKET)
-            .getPublicUrl(storagePath);
+            .getPublicUrl(uploadData.path);
 
         const publicUrl = urlData?.publicUrl;
-        if (!publicUrl) throw new Error("Gagal mendapatkan public URL PDF.");
 
-        try {
-            const { error: updatePdfPathError } = await supabaseClient
-                .from(TABLE_NAME)
-                .update({ pdf_path: storagePath })
-                .eq("absensi", item.nama);
-
-            if (updatePdfPathError) {
-                console.warn("PDF path gagal disimpan:", updatePdfPathError);
-            } else {
-                item.pdf_path = storagePath;
-            }
-        } catch (error) {
-            console.warn("Gagal update pdf_path:", error);
+        if (!publicUrl) {
+            throw new Error("Gagal mendapatkan public URL PDF dari Supabase.");
         }
 
+        console.log("Path PDF Supabase:", uploadData.path);
+        console.log("URL PDF Supabase:", publicUrl);
+
+        // 4. Simpan path PDF ke database.
+        const { error: updatePdfPathError } = await supabaseClient
+            .from(TABLE_NAME)
+            .update({ pdf_path: uploadData.path })
+            .eq("absensi", normalizeNama(item.nama));
+
+        if (updatePdfPathError) {
+            console.warn("PDF path gagal disimpan:", updatePdfPathError);
+        } else {
+            item.pdf_path = uploadData.path;
+        }
+
+        // 5. Susun pesan WhatsApp.
         const pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.
 
 Status Kehadiran: *${item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`}*
@@ -893,28 +910,33 @@ Catatan Evaluasi: _${item.catatan || "-"}_
 
 Terima kasih.`;
 
-        const payloadFonnte = new FormData();
-        payloadFonnte.append("target", nomorWA);
-        payloadFonnte.append("message", pesanWAPDF);
-        payloadFonnte.append("url", publicUrl);
-        payloadFonnte.append("filename", namaBerkasPDF);
-
-        const responFonnte = await fetch(WA_GATEWAY_URL, {
-            method: "POST",
-            headers: {
-                Authorization: WA_GATEWAY_TOKEN
-            },
-            body: payloadFonnte
-        }).catch(() => {
-            throw new Error("Browser diblokir atau gagal menghubungi server Fonnte.");
+        // 6. Panggil Supabase Edge Function.
+        // Token Fonnte tidak ada lagi di frontend. Token disimpan sebagai secret di Supabase.
+        const { data: hasilFunction, error: functionError } = await supabaseClient.functions.invoke(EDGE_FUNCTION_KIRIM_WA, {
+            body: {
+                target: nomorWA,
+                message: pesanWAPDF,
+                url: publicUrl,
+                filename: namaBerkasPDF,
+                countryCode: "62"
+            }
         });
 
-        const hasilRespon = await responFonnte.json().catch(() => ({}));
+        if (functionError) {
+            throw new Error(functionError.message || "Gagal memanggil Supabase Edge Function.");
+        }
 
-        if (hasilRespon.status === true || hasilRespon.success === true || responFonnte.ok) {
-            alert(`✅ Sukses! PDF Laporan Absensi Ananda ${item.nama} telah dikirimkan ke WhatsApp.`);
+        console.log("Response Edge Function:", hasilFunction);
+
+        if (hasilFunction?.success === true) {
+            alert(`✅ Sukses! PDF laporan absensi ${item.nama} telah dikirim ke WhatsApp.`);
         } else {
-            throw new Error(hasilRespon.reason || hasilRespon.message || "Token tidak valid / perangkat tidak terhubung");
+            throw new Error(
+                hasilFunction?.reason ||
+                hasilFunction?.message ||
+                hasilFunction?.detail ||
+                "Gagal mengirim PDF melalui Edge Function. Cek secret FONNTE_TOKEN, device Fonnte, nomor tujuan, dan URL PDF."
+            );
         }
     } catch (error) {
         console.error("LOG UTAMA SISTEM:", error);
