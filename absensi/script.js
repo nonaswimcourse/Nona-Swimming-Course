@@ -646,7 +646,6 @@ aasync function uploadDanKirimPdfWA(index) {
     } finally {
         tombol.disabled = false;
         tombol.innerHTML = teksAsli;
-    }
 }
     // Perbaikan Mutlak: Menggunakan constructor murni memori tanpa merusak DOM HTML
     const img = new Image();
