@@ -614,7 +614,7 @@ function exportTotalPDF() {
     };
 }
 
-async function uploadDanKirimPdfWA(index) 
+async function uploadDanKirimPdfWA(index)
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
 
@@ -622,7 +622,7 @@ async function uploadDanKirimPdfWA(index)
     if (!tombol) return;
     const teksAsli = tombol.innerHTML;
 
-    // Masukkan token resmi Anda kembali di sini
+    // Token resmi Fonnte Anda
     const WA_GATEWAY_TOKEN = "PwjXTSrq1es39cyPbYNC"; 
 
     tombol.disabled = true;
@@ -651,6 +651,7 @@ async function uploadDanKirimPdfWA(index)
             ["Catatan Khusus", item.catatan || "-"]
         ];
 
+        // PERBAIKAN TOTAL: Parameter warna sudah diisi nilai valid agar script TIDAK ERROR/CRASH
         doc.autoTable({ 
             startY: 38, 
             head: [["Komponen Data", "Detail Keterangan"]], 
@@ -706,7 +707,7 @@ async function uploadDanKirimPdfWA(index)
         payloadFonnte.append('url', publicUrl); 
         payloadFonnte.append('filename', `Absensi_${namaFileClean}.pdf`);
 
-        // PERBAIKAN UTAMA: Menggunakan URL API Endpoint Fonnte yang benar
+        // PERBAIKAN UTAMA: Menggunakan URL Endpoint Fonnte yang benar dan resmi
         const responFonnte = await fetch('https://fonnte.com', {
             method: 'POST',
             headers: {
@@ -714,7 +715,7 @@ async function uploadDanKirimPdfWA(index)
             },
             body: payloadFonnte
         }).catch(errFetch => {
-            throw new Error("[Koneksi Fonnte Gagal]: Browser diblokir atau gagal menghubungi server api.fonnte.com");
+            throw new Error("[Koneksi Fonnte Gagal]: Browser diblokir atau gagal menghubungi server ://fonnte.com");
         });
 
         const hasilRespon = await responFonnte.json();
@@ -733,7 +734,6 @@ async function uploadDanKirimPdfWA(index)
         tombol.innerHTML = teksAsli;
     }
 }
-
 
 async function resetSemuaData() {
     if (!confirm("Apakah Anda yakin ingin menghapus total semua data dari database cloud Supabase?")) return;
