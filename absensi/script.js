@@ -769,14 +769,22 @@ async function uploadDanKirimPdfWA(index) {
             body: form
         });
 
-        const result = await res.json();
+        const text = await res.text();
+console.log("Fonnte raw response:", text);
 
-        if (!result.status) {
-            if (result.reason && result.reason.includes("disconnected")) {
-                throw new Error("Nomor WA Pengirim di Dashboard Fonnte terputus (Disconnected). Silakan scan ulang QR Code di akun Fonnte Anda.");
-            }
-            throw new Error(result.reason || "Gagal mengirim data melalui WA gateway.");
-        }
+let result;
+try {
+    result = JSON.parse(text);
+} catch (e) {
+    throw new Error("Response Fonnte bukan JSON: " + text);
+}
+
+if (!result.status) {
+    if (result.reason && result.reason.includes("disconnected")) {
+        throw new Error("Nomor WA Pengirim di Dashboard Fonnte terputus (Disconnected). Silakan scan ulang QR Code di akun Fonnte Anda.");
+    }
+    throw new Error(result.reason || "Gagal mengirim data melalui WA gateway.");
+}
 
         alert("Berhasil kirim PDF ke WhatsApp");
 
