@@ -614,7 +614,8 @@ function exportTotalPDF() {
     };
 }
 
-async function uploadDanKirimPdfWA(index)
+
+async function uploadDanKirimPdfWA(index) {
     const item = dataRekap[index];
     const { jsPDF } = window.jspdf;
 
@@ -622,163 +623,92 @@ async function uploadDanKirimPdfWA(index)
     if (!tombol) return;
     const teksAsli = tombol.innerHTML;
 
-    // Token resmi Fonnte Anda
-    const WA_GATEWAY_TOKEN = "PwjXTSrq1es39cyPbYNC"; 
+    const WA_GATEWAY_TOKEN = "PwjXTSrq1es39cyPbYNC";
 
     tombol.disabled = true;
     tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Membuat & Mengirim PDF...';
 
     try {
         const doc = new jsPDF();
-        
+
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(14);
         doc.setTextColor(35, 74, 132);
         doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
+
         doc.setFontSize(10);
         doc.setFont("Helvetica", "normal");
-        doc.setTextColor(148, 163, 184); 
+        doc.setTextColor(148, 163, 184);
         doc.text("Nona Swimming Course (NSC)", 14, 27);
-        doc.setDrawColor(241, 245, 249); 
+
+        doc.setDrawColor(241, 245, 249);
         doc.line(14, 33, 196, 33);
 
         const rows = [
             ["Nama Siswa", item.nama],
-            ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-            ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-            ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-            ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-            ["Catatan Khusus", item.catatan || "-"]
+            ["Total Kehadiran", `${item.hadir} Pertemuan`],
+            ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
+            ["Status", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+            ["Tanggal", item.tanggalRealtime],
+            ["Catatan", item.catatan || "-"]
         ];
 
-        // PERBAIKAN TOTAL: Parameter warna sudah diisi nilai valid agar script TIDAK ERROR/CRASH
-        doc.autoTable({ 
-            startY: 38, 
-            head: [["Komponen Data", "Detail Keterangan"]], 
-            body: rows, 
+        doc.autoTable({
+            startY: 38,
+            head: [["Komponen", "Detail"]],
+            body: rows,
             theme: "striped",
-            headStyles: { fillColor:, textColor:, fontStyle: "bold", fontSize: 10 },
-            styles: { textColor:, fontSize: 10, cellPadding: 4 },
-            alternateRowStyles: { fillColor: [248, 250, 252] },
+            headStyles: { fillColor: [35, 74, 132], textColor: [255,255,255], fontStyle: "bold", fontSize: 10 },
+            styles: { textColor: [71,85,105], fontSize: 10, cellPadding: 4 },
+            alternateRowStyles: { fillColor: [248,250,252] },
             columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
         });
 
-        const pdfArrayBuffer = doc.output('arraybuffer');
-        const namaFileClean = item.nama.replace(/\s+/g, '_');
-        const namaBerkasPDF = `absensi_${namaFileClean}.pdf`;
-        const pdfFileMurni = new File([pdfArrayBuffer], namaBerkasPDF, { type: 'application/pdf' });
+        const pdfArrayBuffer = doc.output("arraybuffer");
+        const namaFileClean = item.nama.replace(/\s+/g, "_");
+        const namaFile = `absensi_${namaFileClean}.pdf`;
+        const file = new File([pdfArrayBuffer], namaFile, { type: "application/pdf" });
 
-        // 1. UPLOAD KE SUPABASE
-        const { data: uploadData, error: uploadError } = await supabaseClient
-            .storage
-            .from('laporan-pdf')
-            .upload(namaBerkasPDF, pdfFileMurni, {
-                cacheControl: '0',
-                upsert: true,
-                contentType: 'application/pdf'
-            });
+        const { error: uploadError } = await supabaseClient.storage
+            .from("laporan-pdf")
+            .upload(namaFile, file, { upsert: true });
 
-        if (uploadError) {
-            throw new Error(`[Supabase Storage Error]: ${uploadError.message}. Pastikan bucket 'laporan-pdf' diatur ke PUBLIC.`);
-        }
+        if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabaseClient
-            .storage
-            .from('laporan-pdf')
-            .getPublicUrl(namaBerkasPDF);
+        const { data } = supabaseClient.storage.from("laporan-pdf").getPublicUrl(namaFile);
+        const url = data.publicUrl;
 
-        const publicUrl = urlData.publicUrl;
+        let nomor = (item.no_hp || "").replace(/\D/g, "");
+        if (nomor.startsWith("0")) nomor = "62" + nomor.slice(1);
 
-        // 2. SANITASI NOMOR TUJUAN
-        let nomorWA = (item.no_hp || "").replace(/\D/g, ''); 
-        if (nomorWA.startsWith('0')) {
-            nomorWA = '62' + nomorWA.slice(1);
-        }
+        if (!nomor) throw new Error("Nomor tidak valid");
 
-        if (!nomorWA) {
-            throw new Error("Nomor HP Siswa kosong atau tidak valid.");
-        }
+        const pesan = `Laporan Absensi ${item.nama}`;
 
-        let pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nStatus Kehadiran: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan Evaluasi: _${item.catatan || '-'}_\n\nTerima kasih.`;
+        const form = new FormData();
+        form.append("target", nomor);
+        form.append("message", pesan);
+        form.append("url", url);
+        form.append("filename", namaFile);
 
-        const payloadFonnte = new FormData();
-        payloadFonnte.append('target', nomorWA);
-        payloadFonnte.append('message', pesanWAPDF);
-        payloadFonnte.append('url', publicUrl); 
-        payloadFonnte.append('filename', `Absensi_${namaFileClean}.pdf`);
-
-        // PERBAIKAN UTAMA: Menggunakan URL Endpoint Fonnte yang benar dan resmi
-        const responFonnte = await fetch('https://fonnte.com', {
-            method: 'POST',
+        const res = await fetch("https://api.fonnte.com/send", {
+            method: "POST",
             headers: {
-                'Authorization': WA_GATEWAY_TOKEN
+                Authorization: WA_GATEWAY_TOKEN
             },
-            body: payloadFonnte
-        }).catch(errFetch => {
-            throw new Error("[Koneksi Fonnte Gagal]: Browser diblokir atau gagal menghubungi server ://fonnte.com");
+            body: form
         });
 
-        const hasilRespon = await responFonnte.json();
+        const result = await res.json();
 
-        if (hasilRespon.status === true) {
-            alert(`✅ Sukses! PDF Laporan Absensi Ananda ${item.nama} telah dikirimkan secara otomatis.`);
-        } else {
-            throw new Error(`[Fonnte API Rejected]: ${hasilRespon.reason || 'Token tidak valid / Perangkat tidak terhubung'}`);
-        }
+        if (!result.status) throw new Error(result.reason || "Gagal kirim");
+
+        alert("Berhasil kirim PDF ke WhatsApp");
 
     } catch (err) {
-        console.error("LOG UTAMA SISTEM:", err);
-        alert("Sistem Menolak Aktivitas:\n" + err.message);
+        alert("Error: " + err.message);
     } finally {
         tombol.disabled = false;
         tombol.innerHTML = teksAsli;
     }
-}
-
-async function resetSemuaData() {
-    if (!confirm("Apakah Anda yakin ingin menghapus total semua data dari database cloud Supabase?")) return;
-    if (!confirm("Konfirmasi terakhir: Data yang dihapus tidak bisa dikembalikan!")) return;
-
-    const btnReset = document.getElementById("btnResetAll");
-    if (btnReset) {
-        btnReset.disabled = true;
-        btnReset.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mereset...';
-    }
-
-    try {
-        const { data: listSiswa, error: fetchError } = await supabaseClient
-            .from('absensinsc')
-            .select('absensi');
-
-        if (fetchError) throw fetchError;
-
-        if (listSiswa && listSiswa.length > 0) {
-            const listNama = listSiswa.map(s => s.absensi);
-            const { error: errorDeleteRekap } = await supabaseClient
-                .from('absensinsc')
-                .delete()
-                .in('absensi', listNama);
-            if (errorDeleteRekap) throw errorDeleteRekap;
-        }
-
-        dataRekap = [];
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        renderTable();
-        alert("Database Absensi Berhasil Dikosongkan!");
-    } catch (err) {
-        alert("Gagal mereset: " + err.message);
-    } finally {
-        if (btnReset) {
-            btnReset.disabled = false;
-            btnReset.innerHTML = '<i class="fa fa-trash-can"></i> Reset';
-        }
-    }
-}
-
-function keluarkanSiswa(nama) {
-    if(!confirm("Keluarkan siswa " + nama + " dari les renang?\n\nData absensi tetap tersimpan.")) return;
-    dataRekap = dataRekap.filter(x => x.nama !== nama);
-    localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-    renderTable();
-    alert(nama + " sudah dikeluarkan dari daftar siswa aktif.");
 }
