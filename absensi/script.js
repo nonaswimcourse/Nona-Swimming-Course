@@ -1,108 +1,100 @@
 const TOTAL_PERTEMUAN = 12;
-
-// Inisialisasi Supabase Client
 const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndnbWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
+const TABLE_NAME = "absensinsc";
+const STORAGE_BUCKET = "laporan-pdf";
+const WA_GATEWAY_TOKEN = "PwjXTSrq1es39cyPbYNC";
+const WA_GATEWAY_URL = "https://fonnte.com";
+
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let dataRekap = [];
-let selectNamaControl;
+let selectNamaControl = null;
 
 const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const CACHE_KEY = "nsc_absensi_cache";
+
+function $(id) {
+    return document.getElementById(id);
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", "&#39;");
+}
+
+function normalizeNama(value) {
+    return String(value ?? "").trim().toUpperCase();
+}
+
+function normalizePhone(value) {
+    let digits = String(value ?? "").replace(/\D/g, "");
+    if (digits.startsWith("0")) {
+        digits = "62" + digits.slice(1);
+    }
+    return digits;
+}
 
 function formatTanggalIndonesia(timestamp) {
     if (!timestamp) return "Belum Ada Tanggal";
     const dateObj = new Date(timestamp);
-    if (isNaN(dateObj.getTime())) return timestamp;
-    
+    if (Number.isNaN(dateObj.getTime())) return String(timestamp);
+
     const hari = namaHari[dateObj.getDay()];
     const tanggal = dateObj.getDate();
     const bulan = namaBulan[dateObj.getMonth()];
     const tahun = dateObj.getFullYear();
-    
+
     return `${hari}, ${tanggal} ${bulan} ${tahun}`;
 }
 
-function updateJamRealtime() {
-    const sekarang = new Date();
-    const jam = String(sekarang.getHours()).padStart(2, '0');
-    const menit = String(sekarang.getMinutes()).padStart(2, '0');
-    const detik = String(sekarang.getSeconds()).padStart(2, '0');
-    
-    const jamEl = document.getElementById("jamRealtime");
-    if (jamEl) jamEl.innerText = `${jam}.${menit}.${detik}`;
-    
-    const tanggalEl = document.getElementById("tanggalRealtime");
-    if (tanggalEl) tanggalEl.innerText = formatTanggalIndonesia(sekarang);
+function toInt(value) {
+    const hasil = parseInt(value, 10);
+    return Number.isFinite(hasil) ? hasil : 0;
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-    if (document.getElementById("nama")) {
-        selectNamaControl = new TomSelect("#nama", {
-            create: true, 
-            sortField: { field: "text", direction: "asc" },
-            placeholder: "Ketik / Pilih Nama Siswa...",
-            allowEmptyOption: true,
-            onChange: function(value) {
-                if(value) {
-                    if(selectNamaControl) { selectNamaControl.blur(); }
-                    document.activeElement.blur(); 
-                }
-            }
-        });
-    }
-
-    checkLoginSession();
-    muatDataDariCloud();
-    
-    updateJamRealtime();
-    setInterval(updateJamRealtime, 1000);
-});
-
-async function muatDataDariCloud() {
-    const tbody = document.getElementById("tbody");
+function saveCache() {
     try {
-        if (tbody) {
-            tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#234a84;'><i class='fa fa-spinner fa-spin'></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>";
-        }
-
-        const { data, error } = await supabaseClient
-            .from('absensinsc')
-            .select('*')
-            .order('absensi', { ascending: true });
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-            dataRekap = data.map(item => {
-                let rawDateSource = item["Tanggal Terbaru"] || item.created_at || new Date().toISOString();
-                return {
-                    nama: item.absensi ? item.absensi.toString().toUpperCase().trim() : "TANPA NAMA",
-                    hadir: parseInt(item.Hadir) || 0,
-                    tidakHadir: parseInt(item["Tidak Hadir"]) || 0,
-                    catatan: item.Catatan || "",
-                    no_hp: item.no_hp || "",
-                    tanggalRealtime: formatTanggalIndonesia(rawDateSource),
-                    rawDate: rawDateSource
-                };
-            });
-        } else {
-            dataRekap = [];
-        }
-        
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        renderTable();
-    } catch (e) { 
-        console.error("Gagal memuat dari Cloud Supabase:", e);
-        dataRekap = JSON.parse(localStorage.getItem("dataRekap")) || [];
-        renderTable();
+        localStorage.setItem(CACHE_KEY, JSON.stringify(dataRekap));
+    } catch (error) {
+        console.warn("Cache gagal disimpan:", error);
     }
+}
+
+function loadCache() {
+    try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.warn("Cache gagal dibaca:", error);
+        return [];
+    }
+}
+
+function showLogin() {
+    const loginSection = $("loginSection");
+    const mainAppSection = $("mainAppSection");
+    if (loginSection) loginSection.classList.remove("hidden");
+    if (mainAppSection) mainAppSection.classList.add("hidden");
+}
+
+function showApp() {
+    const loginSection = $("loginSection");
+    const mainAppSection = $("mainAppSection");
+    if (loginSection) loginSection.classList.add("hidden");
+    if (mainAppSection) mainAppSection.classList.remove("hidden");
 }
 
 function togglePasswordVisibility() {
-    const passwordInput = document.getElementById("loginPassword");
-    const eyeIcon = document.getElementById("eyeIcon");
+    const passwordInput = $("loginPassword");
+    const eyeIcon = $("eyeIcon");
     if (!passwordInput || !eyeIcon) return;
 
     if (passwordInput.type === "password") {
@@ -114,130 +106,283 @@ function togglePasswordVisibility() {
     }
 }
 
-async function generateSHA256(string) {
-    const msgBuffer = new TextEncoder().encode(string);                    
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+function updateJamRealtime() {
+    const sekarang = new Date();
+    const jam = String(sekarang.getHours()).padStart(2, "0");
+    const menit = String(sekarang.getMinutes()).padStart(2, "0");
+    const detik = String(sekarang.getSeconds()).padStart(2, "0");
+
+    const jamEl = $("jamRealtime");
+    const tanggalEl = $("tanggalRealtime");
+    if (jamEl) jamEl.innerText = `${jam}.${menit}.${detik}`;
+    if (tanggalEl) tanggalEl.innerText = formatTanggalIndonesia(sekarang);
 }
 
-async function handleLogin(event) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    
-    const emailEl = document.getElementById("loginEmail");
-    const passwordEl = document.getElementById("loginPassword");
-    
-    if (!emailEl || !passwordEl) {
-        alert("Sistem Error: Elemen input login tidak ditemukan di HTML!");
-        return false;
-    }
+function setButtonLoading(buttonEl, loading, loadingHtml, normalHtml) {
+    if (!buttonEl) return;
+    buttonEl.disabled = loading;
+    buttonEl.innerHTML = loading ? loadingHtml : normalHtml;
+}
 
-    const email = emailEl.value.trim().toLowerCase();
-    const password = passwordEl.value;
+function getActiveSession() {
+    return supabaseClient.auth.getSession().then(({ data: { session } }) => session);
+}
 
-    if (!email || !password) {
-        alert("Email dan Password wajib diisi!");
-        return false;
+async function requireSessionOrAlert() {
+    const session = await getActiveSession();
+    if (!session) {
+        alert("Silakan login terlebih dahulu.");
+        showLogin();
+        return null;
     }
+    return session;
+}
 
+function normalizeDbRow(row) {
+    const nama = normalizeNama(row?.nama ?? row?.absensi ?? row?.name);
+    const hadir = toInt(row?.hadir ?? row?.Hadir ?? row?.hadir_total);
+    const tidakHadir = toInt(row?.tidak_hadir ?? row?.["Tidak Hadir"] ?? row?.tidakHadir);
+    const catatan = String(row?.catatan ?? row?.Catatan ?? "").trim();
+    const noHp = String(row?.no_hp ?? row?.noHp ?? "").trim();
+    const pdfPath = String(row?.pdf_path ?? row?.pdfPath ?? "").trim();
+    const rawDate = row?.tanggal ?? row?.["Tanggal Terbaru"] ?? row?.created_at ?? row?.updated_at ?? new Date().toISOString();
+
+    return {
+        id: row?.id ?? null,
+        nama,
+        absensi: normalizeNama(row?.absensi ?? nama),
+        hadir,
+        tidakHadir,
+        catatan,
+        no_hp: noHp,
+        pdf_path: pdfPath,
+        tanggal: rawDate,
+        tanggalRealtime: formatTanggalIndonesia(rawDate),
+        rawDate
+    };
+}
+
+function getDbPayloadFromItem(item, overrides = {}) {
+    return {
+        absensi: overrides.absensi ?? item.nama,
+        nama: overrides.nama ?? item.nama,
+        hadir: String(overrides.hadir ?? item.hadir ?? 0),
+        tidak_hadir: String(overrides.tidak_hadir ?? item.tidakHadir ?? 0),
+        catatan: overrides.catatan ?? item.catatan ?? "",
+        tanggal: overrides.tanggal ?? item.rawDate ?? new Date().toISOString(),
+        no_hp: overrides.no_hp ?? item.no_hp ?? "",
+        pdf_path: overrides.pdf_path ?? item.pdf_path ?? ""
+    };
+}
+
+function buildWhatsAppText(item) {
+    const statusTarget = item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
+    return `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
+
+Total Hadir: *${item.hadir}* Pertemuan
+Tidak Hadir: *${item.tidakHadir}* Pertemuan
+Status Target: *${statusTarget}*
+Catatan: _${item.catatan || "-"}_
+
+Terima kasih.`;
+}
+
+function buildWhatsAppLink(item) {
+    const nomorWA = normalizePhone(item.no_hp);
+    if (!nomorWA) return "#";
+    return `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(buildWhatsAppText(item))}`;
+}
+
+function slugifyFileName(value) {
+    return String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s_-]/g, "")
+        .replace(/\s+/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_|_$/g, "");
+}
+
+function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
+async function getLogoDataUrl() {
     try {
-        let hashedInput = "";
-        if (typeof generateSHA256 === "function") {
-            hashedInput = await generateSHA256(password);
+        const response = await fetch("Logo percobaan.png");
+        if (!response.ok) return null;
+        const blob = await response.blob();
+        return await blobToDataUrl(blob);
+    } catch (error) {
+        console.warn("Logo PDF tidak dapat dimuat:", error);
+        return null;
+    }
+}
+
+async function addPdfHeader(doc, title, subtitle) {
+    const logoDataUrl = await getLogoDataUrl().catch(() => null);
+    if (logoDataUrl) {
+        try {
+            doc.addImage(logoDataUrl, "PNG", 14, 10, 18, 25);
+        } catch (error) {
+            console.warn("Gagal menambahkan logo ke PDF:", error);
         }
-
-        if (email === "nonaswimmingcourse@gmail.com" && hashedInput === "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
-            
-            localStorage.setItem("isLoggedIn", "true");
-            
-            const loginSection = document.getElementById("loginSection");
-            const mainAppSection = document.getElementById("mainAppSection");
-            
-            if (loginSection) loginSection.classList.add("hidden");
-            if (mainAppSection) mainAppSection.classList.remove("hidden");
-            
-            setTimeout(() => {
-                if (typeof muatDataDariCloud === "function") {
-                    muatDataDariCloud();
-                }
-            }, 200);
-
-            return false;
-            
-        } else {
-            alert("Akses ditolak! Email atau Password salah.");
-        }
-    } catch (err) {
-        alert("Terjadi masalah sistem saat masuk: " + err.message);
     }
-    return false;
+
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(35, 74, 132);
+    doc.text(title, logoDataUrl ? 38 : 14, 23);
+
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(148, 163, 184);
+    doc.text(subtitle, logoDataUrl ? 38 : 14, 30);
+
+    doc.setDrawColor(241, 245, 249);
+    doc.line(14, 40, 196, 40);
 }
 
-function handleLogout() {
-    if(confirm("Apakah Anda yakin ingin keluar?")) {
-        localStorage.removeItem("isLoggedIn"); 
-        window.location.reload();
+async function buildSiswaPdfBlob(item) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+    await addPdfHeader(doc, "LAPORAN ABSENSI INDIVIDU SISWA", "Nona Swimming Course (NSC)");
+
+    const rows = [
+        ["Nama Siswa", item.nama],
+        ["No. HP Orang Tua", item.no_hp || "-"],
+        ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
+        ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
+        ["Status Pertemuan", item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+        ["Tanggal Terakhir Diinput", item.tanggalRealtime || formatTanggalIndonesia(item.rawDate)],
+        ["Catatan Khusus", item.catatan || "-"]
+    ];
+
+    doc.autoTable({
+        startY: 46,
+        head: [["Komponen Data", "Detail Keterangan"]],
+        body: rows,
+        theme: "striped",
+        headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 10 },
+        styles: { textColor: [71, 85, 105], fontSize: 10, cellPadding: 4, valign: "middle" },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
+    });
+
+    return doc.output("blob");
+}
+
+async function buildTotalPdfBlob() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+    await addPdfHeader(doc, "LAPORAN REKAP TOTAL KEHADIRAN", `Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`);
+
+    const rows = dataRekap.map((item) => [
+        item.nama,
+        item.hadir,
+        item.tidakHadir,
+        item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
+        item.tanggalRealtime || formatTanggalIndonesia(item.rawDate),
+        item.catatan || "-"
+    ]);
+
+    doc.autoTable({
+        startY: 46,
+        head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
+        body: rows,
+        theme: "striped",
+        headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 10 },
+        styles: { textColor: [71, 85, 105], fontSize: 9, cellPadding: 4, valign: "middle" },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
+    });
+
+    return doc.output("blob");
+}
+
+function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 250);
+}
+
+function prosesUnduhFile(blob, namaFile) {
+    try {
+        downloadBlob(blob, namaFile);
+    } catch (error) {
+        console.error(error);
+        alert("Gagal mengunduh file.");
     }
 }
 
-function checkLoginSession() {
-    if(localStorage.getItem("isLoggedIn") === "true") {
-        if(document.getElementById("loginSection")) document.getElementById("loginSection").classList.add("hidden");
-        if(document.getElementById("mainAppSection")) document.getElementById("mainAppSection").classList.remove("hidden");
-    }
-}
-
-function renderTable() {
-    let html = "";
-    const tbody = document.getElementById("tbody");
+function renderTable(emptyMessage = "Belum ada data rekap.") {
+    const tbody = $("tbody");
     if (!tbody) return;
 
-    if(!dataRekap || dataRekap.length === 0) {
-        html = "<tr><td colspan='6' style='text-align:center; color:#94a3b8;'>Belum ada data rekap.</td></tr>";
-    } else {
-        dataRekap.forEach((item, index) => {
-            let totalTeks = item.hadir === TOTAL_PERTEMUAN 
-                ? `<span class="total-lengkap">LENGKAP</span>` 
-                : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;
+    if (!Array.isArray(dataRekap) || dataRekap.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="table-empty">${escapeHtml(emptyMessage)}</td></tr>`;
+        const totalTextEl = $("totalPertemuanText");
+        if (totalTextEl) totalTextEl.innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
+        return;
+    }
 
-            let nomorWA = item.no_hp || ""; 
-            if (nomorWA.startsWith('0')) {
-                nomorWA = '62' + nomorWA.slice(1);
-            }
+    let html = "";
+    dataRekap.forEach((item, index) => {
+        const totalBadge = item.hadir >= TOTAL_PERTEMUAN
+            ? `<span class="total-lengkap">LENGKAP</span>`
+            : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;
 
-            let pesanWA = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nTotal Hadir: *${item.hadir}* Pertemuan\nTidak Hadir: *${item.tidakHadir}* Pertemuan\nStatus Target: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan: _${item.catatan || '-'}_\n\nTerima kasih.`;
-            let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWA)}`;
+        const nomorWA = normalizePhone(item.no_hp);
+        const waLink = nomorWA ? buildWhatsAppLink(item) : "#";
+        const waTitle = nomorWA ? "Kirim Laporan Teks via WhatsApp" : "Nomor HP belum valid";
+        const waAria = nomorWA ? "" : 'aria-disabled="true" onclick="return false;"';
 
-            html += `
+        const namaEsc = escapeHtml(item.nama);
+        const tanggalDisplay = escapeHtml(item.tanggalRealtime || formatTanggalIndonesia(item.rawDate));
+
+        html += `
             <tr>
-                <td style="font-weight: 500;">${item.nama}</td>
+                <td>${namaEsc}</td>
                 <td>
                     <div class="counter-box">
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', -1)">-</button>
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', -1)" aria-label="Kurangi hadir">-</button>
                         <span class="counter-val hadir-val">${item.hadir}</span>
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', 1)">+</button>
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', 1)" aria-label="Tambah hadir">+</button>
                     </div>
                 </td>
                 <td>
                     <div class="counter-box">
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', -1)">-</button>
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', -1)" aria-label="Kurangi tidak hadir">-</button>
                         <span class="counter-val tidak-val">${item.tidakHadir}</span>
-                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', 1)">+</button>
+                        <button class="counter-btn" onclick="updateCounter(${index}, 'tidakHadir', 1)" aria-label="Tambah tidak hadir">+</button>
                     </div>
                 </td>
-                <td>${totalTeks}</td>
-                <td style="color: #475569; font-size: 14px;">${item.tanggalRealtime}</td>
+                <td>${totalBadge}</td>
+                <td>${tanggalDisplay}</td>
                 <td>
                     <div class="actions-cell">
-                        <a href="${linkWA}" target="_blank" class="btn-action btn-wa" title="Kirim Laporan Teks via WhatsApp">
+                        <a href="${escapeHtml(waLink)}" target="_blank" rel="noopener noreferrer" class="btn-action btn-wa" title="${waTitle}" ${waAria}>
                             <i class="fab fa-whatsapp"></i>
                         </a>
                         <button class="btn-action btn-pdf" title="Download PDF Harian Siswa" onclick="exportSiswaPDF(${index})">
                             <i class="fa fa-file-pdf"></i>
                         </button>
-                        <button class="btn-action btn-wa-pdf" title="Kirim Dokumen PDF Asli ke WA Orang Tua" id="btnWaPdf-${index}" onclick="uploadDanKirimPdfWA(${index})">
+                        <button class="btn-action btn-wa-pdf" title="Kirim Dokumen PDF ke WA Orang Tua" id="btnWaPdf-${index}" onclick="uploadDanKirimPdfWA(${index})">
                             <i class="fa fa-share-nodes"></i> Kirim PDF ke WA
                         </button>
                         <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})">
@@ -246,44 +391,166 @@ function renderTable() {
                         <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})">
                             <i class="fa fa-trash"></i>
                         </button>
-                        <button class="btn-action btn-kick" title="Keluarkan Siswa" onclick="keluarkanSiswa('${item.nama}')">
+                        <button class="btn-action btn-kick" title="Keluarkan Siswa" onclick="keluarkanSiswa('${escapeHtml(item.nama).replaceAll("'", "&#39;")}')">
                             <i class="fa fa-user-minus"></i>
                         </button>
                     </div>
                 </td>
             </tr>`;
-        });
-    }
+    });
+
     tbody.innerHTML = html;
-    
-    const totalTextEl = document.getElementById("totalPertemuanText");
+    const totalTextEl = $("totalPertemuanText");
     if (totalTextEl) totalTextEl.innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
 }
 
+function showTab(tab, btn) {
+    const inputTab = $("input");
+    const rekapTab = $("rekap");
+    if (inputTab) inputTab.classList.add("hidden");
+    if (rekapTab) rekapTab.classList.add("hidden");
+
+    const target = $(tab);
+    if (target) target.classList.remove("hidden");
+
+    document.querySelectorAll(".tab-btn").forEach((el) => el.classList.remove("active"));
+    if (btn) btn.classList.add("active");
+}
+
+async function checkLoginSession() {
+    const session = await getActiveSession();
+
+    if (session) {
+        showApp();
+        await muatDataDariCloud();
+    } else {
+        showLogin();
+    }
+}
+
+async function handleLogin(event) {
+    if (event) event.preventDefault();
+
+    const emailEl = $("loginEmail");
+    const passwordEl = $("loginPassword");
+    const btnLogin = event?.target?.querySelector(".login-btn") || document.querySelector(".login-btn");
+
+    if (!emailEl || !passwordEl) return;
+
+    const email = emailEl.value.trim().toLowerCase();
+    const password = passwordEl.value;
+
+    if (!email || !password) {
+        alert("Lengkapi email dan password terlebih dahulu.");
+        return;
+    }
+
+    setButtonLoading(btnLogin, true, '<i class="fa fa-spinner fa-spin"></i> Memverifikasi...', '<i class="fa fa-right-to-bracket"></i> Masuk Aplikasi');
+
+    try {
+        const { error } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (error) {
+            throw error;
+        }
+
+        showApp();
+        await muatDataDariCloud();
+        if (passwordEl) passwordEl.value = "";
+    } catch (error) {
+        console.error("Login gagal:", error);
+        alert(error?.message || "Login gagal.");
+    } finally {
+        setButtonLoading(btnLogin, false, "", '<i class="fa fa-right-to-bracket"></i> Masuk Aplikasi');
+    }
+}
+
+async function handleLogout() {
+    if (!confirm("Apakah Anda yakin ingin keluar?")) return;
+
+    try {
+        await supabaseClient.auth.signOut();
+    } catch (error) {
+        console.error("Logout gagal:", error);
+    } finally {
+        dataRekap = [];
+        saveCache();
+        renderTable("Silakan login untuk melihat data.");
+        showLogin();
+    }
+}
+
+async function muatDataDariCloud() {
+    const session = await getActiveSession();
+    if (!session) {
+        showLogin();
+        return;
+    }
+
+    const tbody = $("tbody");
+    if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="6" class="table-empty"><i class="fa fa-spinner fa-spin"></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>`;
+    }
+
+    try {
+        const { data, error } = await supabaseClient
+            .from(TABLE_NAME)
+            .select("*")
+            .order("nama", { ascending: true });
+
+        if (error) throw error;
+
+        dataRekap = (data || []).map(normalizeDbRow).sort((a, b) => a.nama.localeCompare(b.nama, "id"));
+        saveCache();
+        renderTable();
+    } catch (error) {
+        console.error("Gagal memuat dari Cloud Supabase:", error);
+        const cached = loadCache().map(normalizeDbRow);
+        if (cached.length > 0) {
+            dataRekap = cached.sort((a, b) => a.nama.localeCompare(b.nama, "id"));
+            renderTable("Menampilkan data cache karena sinkronisasi cloud gagal.");
+        } else {
+            dataRekap = [];
+            renderTable("Gagal memuat data. Silakan cek koneksi atau session Supabase.");
+        }
+    }
+}
+
 async function updateCounter(index, tipe, value) {
+    const session = await requireSessionOrAlert();
+    if (!session) return;
+
     const targetSiswa = dataRekap[index];
+    if (!targetSiswa) return;
+
     const namaSiswa = targetSiswa.nama;
     let catatanKetik = "";
-    
+
     let baruHadir = targetSiswa.hadir;
     let baruTidakHadir = targetSiswa.tidakHadir;
 
     if (value > 0) {
-        let inputCatatan = prompt(`Masukkan Catatan Baru untuk ${namaSiswa}:`, `Update manual via counter`);
-        if (inputCatatan === null) return; 
-        catatanKetik = inputCatatan.trim() === "" ? `Update manual via counter` : inputCatatan.trim();
-        
-        if (tipe === 'hadir') baruHadir += 1;
-        else baruTidakHadir += 1;
+        const inputCatatan = prompt(`Masukkan catatan baru untuk ${namaSiswa}:`, "Update manual via counter");
+        if (inputCatatan === null) return;
+        catatanKetik = inputCatatan.trim() === "" ? "Update manual via counter" : inputCatatan.trim();
+
+        if (tipe === "hadir") {
+            baruHadir += 1;
+        } else {
+            baruTidakHadir += 1;
+        }
     } else {
-        if (tipe === 'hadir') {
+        if (tipe === "hadir") {
             if (baruHadir === 0) return;
             baruHadir -= 1;
         } else {
             if (baruTidakHadir === 0) return;
             baruTidakHadir -= 1;
         }
-        catatanKetik = `Pengurangan manual via counter`;
+        catatanKetik = "Pengurangan manual via counter";
     }
 
     if (baruHadir === 0 && baruTidakHadir === 0) {
@@ -293,491 +560,442 @@ async function updateCounter(index, tipe, value) {
     }
 
     const waktuSekarangISO = new Date().toISOString();
+    const payload = getDbPayloadFromItem(targetSiswa, {
+        hadir: baruHadir,
+        tidak_hadir: baruTidakHadir,
+        catatan: catatanKetik,
+        tanggal: waktuSekarangISO
+    });
 
     try {
         const { error } = await supabaseClient
-            .from("absensinsc")
-            .upsert({
-                absensi: namaSiswa,
-                nama: namaSiswa,
-                Hadir: baruHadir.toString(),
-                "Tidak Hadir": baruTidakHadir.toString(),
-                Catatan: catatanKetik,
-                "Tanggal Terbaru": waktuSekarangISO,
-                no_hp: targetSiswa.no_hp
-            }, {
-                onConflict: "absensi"
-            });
+            .from(TABLE_NAME)
+            .upsert(payload, { onConflict: "absensi" });
 
         if (error) throw error;
-        
-        dataRekap[index].hadir = baruHadir;
-        dataRekap[index].tidakHadir = baruTidakHadir;
-        dataRekap[index].catatan = catatanKetik;
-        dataRekap[index].tanggalRealtime = formatTanggalIndonesia(waktuSekarangISO);
-        dataRekap[index].rawDate = waktuSekarangISO;
-        
+
+        dataRekap[index] = {
+            ...targetSiswa,
+            hadir: baruHadir,
+            tidakHadir: baruTidakHadir,
+            catatan: catatanKetik,
+            rawDate: waktuSekarangISO,
+            tanggal: waktuSekarangISO,
+            tanggalRealtime: formatTanggalIndonesia(waktuSekarangISO)
+        };
+
+        saveCache();
         renderTable();
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-    } catch (err) {
-        alert("Gagal memperbarui data ke Supabase: " + err.message);
+    } catch (error) {
+        console.error(error);
+        alert("Gagal memperbarui data ke Supabase: " + (error?.message || "Terjadi kesalahan."));
+    }
+}
+
+async function deleteSiswaByName(namaSiswa, index = null, confirmText = `Hapus data rekap ${namaSiswa} dari sistem Supabase?`) {
+    const session = await requireSessionOrAlert();
+    if (!session) return;
+
+    if (!confirm(confirmText)) return;
+
+    const btnDelete = index !== null ? $(`btnDelete-${index}`) : null;
+    const originalHtml = btnDelete ? btnDelete.innerHTML : "";
+
+    try {
+        if (btnDelete) {
+            btnDelete.disabled = true;
+            btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+        }
+
+        const { error } = await supabaseClient
+            .from(TABLE_NAME)
+            .delete()
+            .eq("absensi", normalizeNama(namaSiswa));
+
+        if (error) throw error;
+
+        if (index !== null) {
+            dataRekap.splice(index, 1);
+        } else {
+            dataRekap = dataRekap.filter((item) => item.nama !== normalizeNama(namaSiswa));
+        }
+
+        saveCache();
+        renderTable();
+    } catch (error) {
+        console.error(error);
+        alert("Gagal menghapus data dari Supabase: " + (error?.message || "Terjadi kesalahan."));
+        if (btnDelete) {
+            btnDelete.disabled = false;
+            btnDelete.innerHTML = originalHtml || '<i class="fa fa-trash"></i>';
+        }
     }
 }
 
 async function deleteRow(index) {
-    const namaSiswa = dataRekap[index].nama;
-    if (!confirm(`Hapus data rekap ${namaSiswa} dari sistem Supabase?`)) return;
-    
-    const btnDelete = document.getElementById(`btnDelete-${index}`);
-    if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+    const item = dataRekap[index];
+    if (!item) return;
+    await deleteSiswaByName(item.nama, index, `Hapus data rekap ${item.nama} dari sistem Supabase?`);
+}
 
-    try {
-        const { error } = await supabaseClient
-            .from('absensinsc')
-            .delete()
-            .eq('absensi', namaSiswa);
-
-        if (error) throw error;
-
-        dataRekap.splice(index, 1);
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        renderTable();
-    } catch (err) {
-        alert("Gagal menghapus data dari Supabase: " + err.message);
-        if(btnDelete) btnDelete.innerHTML = '<i class="fa fa-trash"></i>';
-    }
+async function keluarkanSiswa(namaSiswa) {
+    await deleteSiswaByName(namaSiswa, null, `Keluarkan siswa ${namaSiswa} dari les renang?\n\nData absensi akan dihapus dari rekap cloud.`);
 }
 
 async function simpan() {
+    const session = await requireSessionOrAlert();
+    if (!session) return;
+
     let nama = "";
-    if (selectNamaControl) { nama = selectNamaControl.getValue(); }
-    if (!nama) { nama = document.getElementById("nama").value; }
-    if (!nama) { alert("Silakan pilih nama siswa terlebih dahulu!"); return; }
-
-    const status = document.getElementById("status").value;
-    const catatan = document.getElementById("catatan").value;
-    const nomorHpInput = document.getElementById("no_hp").value.trim();
-    const btnSimpan = document.getElementById("btnSimpan");
-
-    nama = nama.trim().toUpperCase();
-    btnSimpan.disabled = true;
-    btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
-
-    const catatanTeks = catatan.trim() !== "" ? catatan.trim() : "Absensi tercatat";
-    if (!Array.isArray(dataRekap)) { dataRekap = []; }
-
-    let siswaExist = dataRekap.find(s => s && s.nama === nama);
-    let nHadir = status === "Hadir" ? 1 : 0;
-    let nTidakHadir = status === "Tidak Hadir" ? 1 : 0;
-    let noHpFinal = nomorHpInput !== "" ? nomorHpInput : (siswaExist ? siswaExist.no_hp : "");
-
-    if (siswaExist) {
-        nHadir = (siswaExist.hadir || 0) + (status === "Hadir" ? 1 : 0);
-        nTidakHadir = (siswaExist.tidakHadir || 0) + (status === "Tidak Hadir" ? 1 : 0);
+    if (selectNamaControl) {
+        nama = selectNamaControl.getValue();
+    }
+    if (!nama) {
+        nama = $("nama")?.value || "";
     }
 
-    const waktuSekarangISO = new Date().toISOString();
+    nama = normalizeNama(nama);
+    if (!nama) {
+        alert("Silakan pilih nama siswa terlebih dahulu!");
+        return;
+    }
+
+    const status = $("status")?.value || "Hadir";
+    const catatan = $("catatan")?.value || "";
+    const nomorHpInput = $("no_hp")?.value.trim() || "";
+    const btnSimpan = $("btnSimpan");
+
+    setButtonLoading(btnSimpan, true, '<i class="fa fa-spinner fa-spin"></i> Menyimpan...', '<i class="fa fa-plus-circle"></i> Simpan Data');
 
     try {
-        const { error: errorRekap } = await supabaseClient
-            .from("absensinsc")
-            .upsert({
-                absensi: nama,
-                nama: nama,
-                Hadir: nHadir.toString(),
-                "Tidak Hadir": nTidakHadir.toString(),
-                Catatan: catatanTeks,
-                "Tanggal Terbaru": waktuSekarangISO,
-                no_hp: noHpFinal
-            }, {
-                onConflict: "absensi"
-            });
+        const catatanTeks = catatan.trim() !== "" ? catatan.trim() : "Absensi tercatat";
+        if (!Array.isArray(dataRekap)) dataRekap = [];
 
-        if (errorRekap) throw errorRekap;
+        const existingIndex = dataRekap.findIndex((item) => item && item.nama === nama);
+        const existing = existingIndex >= 0 ? dataRekap[existingIndex] : null;
 
-        const realtimeSekarang = formatTanggalIndonesia(waktuSekarangISO);
+        const nHadir = (existing?.hadir || 0) + (status === "Hadir" ? 1 : 0);
+        const nTidakHadir = (existing?.tidakHadir || 0) + (status === "Tidak Hadir" ? 1 : 0);
+        const noHpFinal = nomorHpInput !== "" ? nomorHpInput : (existing?.no_hp || "");
 
-        if (siswaExist) {
-            siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTidakHadir; // FIX: typo nTailakHadir sudah diperbaiki
-            siswaExist.catatan = catatanTeks;
-            siswaExist.tanggalRealtime = realtimeSekarang;
-            siswaExist.rawDate = waktuSekarangISO;
-            siswaExist.no_hp = noHpFinal;
+        const waktuSekarangISO = new Date().toISOString();
+        const payload = {
+            absensi: nama,
+            nama,
+            hadir: String(nHadir),
+            tidak_hadir: String(nTidakHadir),
+            catatan: catatanTeks,
+            tanggal: waktuSekarangISO,
+            no_hp: noHpFinal,
+            pdf_path: existing?.pdf_path || ""
+        };
+
+        const { error } = await supabaseClient
+            .from(TABLE_NAME)
+            .upsert(payload, { onConflict: "absensi" });
+
+        if (error) throw error;
+
+        const savedItem = {
+            ...(existing || {}),
+            nama,
+            absensi: nama,
+            hadir: nHadir,
+            tidakHadir: nTidakHadir,
+            catatan: catatanTeks,
+            no_hp: noHpFinal,
+            pdf_path: existing?.pdf_path || "",
+            tanggal: waktuSekarangISO,
+            rawDate: waktuSekarangISO,
+            tanggalRealtime: formatTanggalIndonesia(waktuSekarangISO)
+        };
+
+        if (existingIndex >= 0) {
+            dataRekap[existingIndex] = savedItem;
         } else {
-            dataRekap.push({
-                nama: nama, hadir: nHadir, tidakHadir: nTidakHadir,
-                catatan: catatanTeks, tanggalRealtime: realtimeSekarang, rawDate: waktuSekarangISO, no_hp: noHpFinal
-            });
+            dataRekap.push(savedItem);
         }
 
+        dataRekap.sort((a, b) => a.nama.localeCompare(b.nama, "id"));
+        saveCache();
         renderTable();
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
 
-        if (selectNamaControl) { selectNamaControl.clear(true); } 
-        else { document.getElementById("nama").value = ""; }
+        if (selectNamaControl) {
+            selectNamaControl.clear(true);
+        } else if ($("nama")) {
+            $("nama").value = "";
+        }
 
-        document.getElementById("catatan").value = "";
-        document.getElementById("no_hp").value = "";
-        alert("Data berhasil disimpan ke Rekap Cloud!");
-    } catch (err) {
-        console.error(err);
-        alert("Gagal menyimpan ke Supabase: " + err.message);
+        if ($("catatan")) $("catatan").value = "";
+        if ($("no_hp")) $("no_hp").value = "";
+
+        alert("Data berhasil disimpan ke Supabase!");
+    } catch (error) {
+        console.error(error);
+        alert("Gagal menyimpan ke Supabase: " + (error?.message || "Terjadi kesalahan."));
     } finally {
-        btnSimpan.disabled = false;
-        btnSimpan.innerHTML = '<i class="fa fa-plus-circle"></i> Simpan Data';
+        setButtonLoading(btnSimpan, false, "", '<i class="fa fa-plus-circle"></i> Simpan Data');
     }
 }
 
-function showTab(tab, btn) {
-    document.getElementById("input").classList.add("hidden");
-    document.getElementById("rekap").classList.add("hidden");
-    document.getElementById(tab).classList.remove("hidden");
-    document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
-    btn.classList.add("active");
-}
-
-function prosesUnduhFile(blob, namaFile) {
-    try {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = namaFile;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 300);
-    } catch (e) {
-        alert("Gagal mengunduh file.");
-    }
-}
-
-function exportSiswaExcel(index) {
+async function exportSiswaExcel(index) {
     const item = dataRekap[index];
+    if (!item) return;
+
     const worksheetData = [
         ["LAPORAN ABSENSI INDIVIDU SISWA"],
         ["Nona Swimming Course (NSC)"],
         [],
         ["Komponen", "Keterangan"],
         ["Nama Siswa", item.nama],
+        ["No. HP Orang Tua", item.no_hp || "-"],
         ["Jumlah Kehadiran", `${item.hadir} Pertemuan`],
         ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-        ["Status Target", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-        ["Tanggal Terakhir Update", item.tanggalRealtime],
+        ["Status Target", item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+        ["Tanggal Terakhir Update", item.tanggalRealtime || formatTanggalIndonesia(item.rawDate)],
         ["Catatan Terakhir", item.catatan || "-"]
     ];
+
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(worksheetData);
     XLSX.utils.book_append_sheet(wb, ws, "Absensi Siswa");
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
-    prosesUnduhFile(blob, `Absensi_${item.nama}.xlsx`);
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+    prosesUnduhFile(blob, `Absensi_${slugifyFileName(item.nama)}.xlsx`);
 }
 
-function exportTotalExcel() {
-    if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+async function exportTotalExcel() {
+    if (dataRekap.length === 0) {
+        alert("Tidak ada data untuk diekspor!");
+        return;
+    }
+
     const worksheetData = [
         ["LAPORAN REKAP TOTAL KEHADIRAN SISWA"],
         ["Nona Swimming Course (NSC)"],
         [],
-        ["Nama Siswa", "Hadir", "Tidak Hadir", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]
+        ["Nama Siswa", "Hadir", "Tidak Hadir", "Rasio", "Tanggal Terbaru", "Catatan Terakhir", "No. HP"]
     ];
-    
-    dataRekap.forEach(item => {
+
+    dataRekap.forEach((item) => {
         worksheetData.push([
-            item.nama, item.hadir, item.tidakHadir,
-            item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-            item.tanggalRealtime, item.catatan || "-"
+            item.nama,
+            item.hadir,
+            item.tidakHadir,
+            item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
+            item.tanggalRealtime || formatTanggalIndonesia(item.rawDate),
+            item.catatan || "-",
+            item.no_hp || "-"
         ]);
     });
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(worksheetData);
     XLSX.utils.book_append_sheet(wb, ws, "Total Absensi");
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
     prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.xlsx");
 }
 
-function exportSiswaPDF(index) {
+async function exportSiswaPDF(index) {
     const item = dataRekap[index];
-    const { jsPDF } = window.jspdf;
-    
-    const img = new Image();
-    img.src = 'Logo percobaan.png'; 
-
-    img.onload = function() {
-        const doc = new jsPDF();
-        try {
-            doc.addImage(img, "PNG", 14, 10, 18, 25);
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(14);
-            doc.setTextColor(35, 74, 132);
-            doc.text("LAPORAN ABSENSI INDIVIDU SISWA", 38, 23); 
-            
-            doc.setFontSize(10);
-            doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184);
-            doc.text("Nona Swimming Course (NSC)", 38, 30);
-            
-            doc.setDrawColor(241, 245, 249);
-            doc.line(14, 40, 196, 40);
-
-            const rows = [
-                ["Nama Siswa", item.nama],
-                ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-                ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-                ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-                ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-                ["Catatan Khusus", item.catatan || "-"]
-            ];
-
-            doc.autoTable({ 
-                startY: 46, 
-                head: [["Komponen Data", "Detail Keterangan"]], 
-                body: rows, 
-                theme: "striped",
-                headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 10 },
-                styles: { textColor: [71, 85, 105], fontSize: 10, cellPadding: 4 },
-                alternateRowStyles: { fillColor: [248, 250, 252] },
-                columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
-            });
-            doc.save(`Absensi_${item.nama}.pdf`);
-        } catch(e) {
-            console.error("Gagal memproses pembuatan PDF:", e);
-            alert("Terjadi kesalahan saat menyusun layout PDF.");
-        }
-    };
-
-    img.onerror = function() {
-        const docBiasa = new jsPDF();
-        docBiasa.setFont("Helvetica", "bold");
-        docBiasa.setFontSize(14);
-        docBiasa.setTextColor(35, 74, 132);
-        docBiasa.text("LAPORAN ABSENSI INDIVIDU SISWA", 14, 20);
-        
-        const rowsFallback = [
-            ["Nama Siswa", item.nama],
-            ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
-            ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-            ["Status Pertemuan", item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
-            ["Tanggal Terakhir Diinput", item.tanggalRealtime],
-            ["Catatan Khusus", item.catatan || "-"]
-        ];
-
-        docBiasa.autoTable({ startY: 28, head: [["Komponen Data", "Detail Keterangan"]], body: rowsFallback });
-        docBiasa.save(`Absensi_${item.nama}.pdf`);
-    };
-}
-
-function exportTotalPDF() {
-    if (dataRekap.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
-    const { jsPDF } = window.jspdf;
-    
-    const img = new Image();
-    img.src = 'Logo percobaan.png'; 
-
-    img.onload = function() {
-        const doc = new jsPDF();
-        try {
-            doc.addImage(img, "PNG", 14, 10, 18, 25);
-            doc.setFont("Helvetica", "bold");
-            doc.setFontSize(14); 
-            doc.setTextColor(35, 74, 132);
-            doc.text("LAPORAN REKAP TOTAL KEHADIRAN", 38, 23);
-            
-            doc.setFontSize(10);
-            doc.setFont("Helvetica", "normal");
-            doc.setTextColor(148, 163, 184);
-            doc.text(`Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`, 38, 30);
-            
-            doc.setDrawColor(241, 245, 249);
-            doc.line(14, 40, 196, 40);
-            
-            const tableRows = [];
-            dataRekap.forEach(item => {
-                tableRows.push([
-                    item.nama, item.hadir, item.tidakHadir,
-                    item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                    item.tanggalRealtime, item.catatan || '-'
-                ]);
-            });
-            
-            doc.autoTable({
-                startY: 46,
-                head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-                body: tableRows,
-                theme: "striped",
-                headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold" },
-                styles: { fontSize: 9, padding: 5, valign: "middle" },
-                columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
-            });
-            
-            doc.save("Rekap_Total_Absensi_NSC.pdf");
-        } catch(e) {
-            console.error("Gagal memproses pembuatan PDF Total:", e);
-            alert("Terjadi kesalahan saat menyusun layout PDF Total.");
-        }
-    };
-    
-    img.onerror = function() {
-        const docBiasa = new jsPDF();
-        docBiasa.setFont("Helvetica", "bold");
-        docBiasa.setFontSize(14);
-        docBiasa.setTextColor(35, 74, 132);
-        docBiasa.text("LAPORAN REKAP TOTAL KEHADIRAN", 14, 20);
-        
-        const tableRowsFallback = [];
-        dataRekap.forEach(item => {
-            tableRowsFallback.push([
-                item.nama, item.hadir, item.tidakHadir,
-                item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
-                item.tanggalRealtime, item.catatan || '-'
-            ]);
-        });
-
-        docBiasa.autoTable({
-            startY: 28,
-            head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
-            body: tableRowsFallback
-        });
-        docBiasa.save("Rekap_Total_Absensi_NSC.pdf");
-    };
-}
-
-async function keluarkanSiswa(namaSiswa) {
-    if (!confirm(`Apakah Anda yakin ingin mengeluarkan siswa ${namaSiswa} dari daftar aktif?`)) return;
+    if (!item) return;
 
     try {
-        const index = dataRekap.findIndex(item => item.nama === namaSiswa);
-        if (index === -1) {
-            alert("Data siswa tidak ditemukan.");
-            return;
+        const blob = await buildSiswaPdfBlob(item);
+        downloadBlob(blob, `Absensi_${slugifyFileName(item.nama)}.pdf`);
+    } catch (error) {
+        console.error("Gagal export PDF individu:", error);
+        alert("Terjadi kesalahan saat menyusun layout PDF.");
+    }
+}
+
+async function exportTotalPDF() {
+    if (dataRekap.length === 0) {
+        alert("Tidak ada data untuk diekspor!");
+        return;
+    }
+
+    try {
+        const blob = await buildTotalPdfBlob();
+        downloadBlob(blob, "Rekap_Total_Absensi_NSC.pdf");
+    } catch (error) {
+        console.error("Gagal export PDF total:", error);
+        alert("Terjadi kesalahan saat menyusun layout PDF Total.");
+    }
+}
+
+async function uploadDanKirimPdfWA(index) {
+    const session = await requireSessionOrAlert();
+    if (!session) return;
+
+    const item = dataRekap[index];
+    if (!item) return;
+
+    const tombol = $(`btnWaPdf-${index}`);
+    const teksAsli = tombol ? tombol.innerHTML : "";
+
+    try {
+        const nomorWA = normalizePhone(item.no_hp);
+        if (!nomorWA) {
+            throw new Error("Nomor HP kosong atau tidak valid.");
         }
 
-        const { error } = await supabaseClient
-            .from('absensinsc')
-            .delete()
-            .eq('absensi', namaSiswa);
+        if (tombol) {
+            tombol.disabled = true;
+            tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Memproses...';
+        }
 
-        if (error) throw error;
+        const pdfBlob = await buildSiswaPdfBlob(item);
+        const namaFileClean = slugifyFileName(item.nama) || "siswa";
+        const namaBerkasPDF = `Absensi_${namaFileClean}.pdf`;
+        const storagePath = `${Date.now()}-${namaBerkasPDF}`;
 
-        dataRekap.splice(index, 1);
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        
-        renderTable();
-        alert(`Siswa ${namaSiswa} berhasil dikeluarkan dari sistem.`);
-    } catch (err) {
-        console.error("Gagal mengeluarkan siswa:", err);
-        alert("Gagal mengeluarkan siswa dari Supabase: " + err.message);
+        const { error: uploadError } = await supabaseClient
+            .storage
+            .from(STORAGE_BUCKET)
+            .upload(storagePath, pdfBlob, {
+                contentType: "application/pdf",
+                upsert: true
+            });
+
+        if (uploadError) {
+            throw new Error(`[Supabase Storage Error]: ${uploadError.message}. Pastikan bucket '${STORAGE_BUCKET}' diatur ke PUBLIC.`);
+        }
+
+        const { data: urlData } = supabaseClient
+            .storage
+            .from(STORAGE_BUCKET)
+            .getPublicUrl(storagePath);
+
+        const publicUrl = urlData?.publicUrl;
+        if (!publicUrl) throw new Error("Gagal mendapatkan public URL PDF.");
+
+        try {
+            const { error: updatePdfPathError } = await supabaseClient
+                .from(TABLE_NAME)
+                .update({ pdf_path: storagePath })
+                .eq("absensi", item.nama);
+
+            if (updatePdfPathError) {
+                console.warn("PDF path gagal disimpan:", updatePdfPathError);
+            } else {
+                item.pdf_path = storagePath;
+            }
+        } catch (error) {
+            console.warn("Gagal update pdf_path:", error);
+        }
+
+        const pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.
+
+Status Kehadiran: *${item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`}*
+Catatan Evaluasi: _${item.catatan || "-"}_
+
+Terima kasih.`;
+
+        const payloadFonnte = new FormData();
+        payloadFonnte.append("target", nomorWA);
+        payloadFonnte.append("message", pesanWAPDF);
+        payloadFonnte.append("url", publicUrl);
+        payloadFonnte.append("filename", namaBerkasPDF);
+
+        const responFonnte = await fetch(WA_GATEWAY_URL, {
+            method: "POST",
+            headers: {
+                Authorization: WA_GATEWAY_TOKEN
+            },
+            body: payloadFonnte
+        }).catch(() => {
+            throw new Error("Browser diblokir atau gagal menghubungi server Fonnte.");
+        });
+
+        const hasilRespon = await responFonnte.json().catch(() => ({}));
+
+        if (hasilRespon.status === true || hasilRespon.success === true || responFonnte.ok) {
+            alert(`✅ Sukses! PDF Laporan Absensi Ananda ${item.nama} telah dikirimkan ke WhatsApp.`);
+        } else {
+            throw new Error(hasilRespon.reason || hasilRespon.message || "Token tidak valid / perangkat tidak terhubung");
+        }
+    } catch (error) {
+        console.error("LOG UTAMA SISTEM:", error);
+        alert("Sistem Menolak Aktivitas:\n" + (error?.message || "Terjadi kesalahan."));
+    } finally {
+        if (tombol) {
+            tombol.disabled = false;
+            tombol.innerHTML = teksAsli;
+        }
     }
 }
 
 async function resetSemuaData() {
+    const session = await requireSessionOrAlert();
+    if (!session) return;
+
     if (!confirm("Apakah Anda yakin ingin menghapus total semua data dari database cloud Supabase?")) return;
     if (!confirm("Konfirmasi terakhir: Data yang dihapus tidak bisa dikembalikan!")) return;
 
-    const btnReset = document.getElementById("btnResetAll");
-    if (btnReset) {
-        btnReset.disabled = true;
-        btnReset.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mereset...';
-    }
+    const btnReset = $("btnResetAll");
+    const originalHtml = btnReset ? btnReset.innerHTML : "";
 
     try {
+        if (btnReset) {
+            btnReset.disabled = true;
+            btnReset.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Mereset...';
+        }
+
         const { data: listSiswa, error: fetchError } = await supabaseClient
-            .from('absensinsc')
-            .select('absensi');
+            .from(TABLE_NAME)
+            .select("absensi");
 
         if (fetchError) throw fetchError;
 
         if (listSiswa && listSiswa.length > 0) {
-            const listNama = listSiswa.map(s => s.absensi);
+            const listNama = listSiswa.map((s) => s.absensi).filter(Boolean);
             const { error: errorDeleteRekap } = await supabaseClient
-                .from('absensinsc')
+                .from(TABLE_NAME)
                 .delete()
-                .in('absensi', listNama);
+                .in("absensi", listNama);
+
             if (errorDeleteRekap) throw errorDeleteRekap;
         }
 
         dataRekap = [];
-        localStorage.setItem("dataRekap", JSON.stringify(dataRekap));
-        renderTable();
+        saveCache();
+        renderTable("Database telah dikosongkan.");
         alert("Database Absensi Berhasil Dikosongkan!");
-    } catch (err) {
-        alert("Gagal mereset: " + err.message);
+    } catch (error) {
+        console.error(error);
+        alert("Gagal mereset: " + (error?.message || "Terjadi kesalahan."));
     } finally {
         if (btnReset) {
             btnReset.disabled = false;
-            btnReset.innerHTML = '<i class="fa fa-trash-can"></i> Reset';
+            btnReset.innerHTML = originalHtml || '<i class="fa fa-trash-can"></i> Reset';
         }
     }
 }
-const fileName = `laporan_${id}.pdf`;
 
-await supabase.storage
-  .from("laporan-pdf")
-  .upload(fileName, file);
+function initNamaSelect() {
+    const selectEl = $("nama");
+    if (!selectEl || selectNamaControl) return;
 
-await supabase
-  .from("absensinsc")
-  .update({
-    pdf_path: fileName
-  })
-  .eq("id", id);
-async function uploadDanKirimPdfWA(index) {
-    const item = dataRekap[index];
-
-    const tombol = document.getElementById(`btnWaPdf-${index}`);
-    const teksAsli = tombol.innerHTML;
-
-    tombol.disabled = true;
-    tombol.innerHTML = "Mengirim...";
-
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        doc.setFont("Helvetica", "bold");
-        doc.text(`Laporan Absensi ${item.nama}`, 14, 20);
-
-        const pdfBase64 = doc.output("datauristring").split(",")[1];
-
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/send-pdf-wa`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "ApiKey": SUPABASE_ANON_KEY,
-                "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
-            },
-            body: JSON.stringify({
-                nama: item.nama,
-                no_hp: item.no_hp,
-                htmlPdf: pdfBase64
-            })
-        });
-
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error("Server Error: " + text);
+    selectNamaControl = new TomSelect("#nama", {
+        create: true,
+        sortField: { field: "text", direction: "asc" },
+        placeholder: "Ketik / Pilih Nama Siswa...",
+        allowEmptyOption: true,
+        persist: false,
+        onChange: function (value) {
+            if (value) {
+                if (selectNamaControl) selectNamaControl.blur();
+                document.activeElement?.blur?.();
+            }
         }
-
-        const result = await res.json();
-
-        if (!result || result.error) {
-            throw new Error(result.error || "Gagal kirim WA");
-        }
-
-        alert("PDF berhasil dikirim ke WhatsApp");
-
-    } catch (err) {
-        console.error(err);
-        alert("ERROR: " + err.message);
-
-    } finally {
-        tombol.disabled = false;
-        tombol.innerHTML = teksAsli;
-    }
+    });
 }
+
+document.addEventListener("DOMContentLoaded", async function () {
+    initNamaSelect();
+    updateJamRealtime();
+    setInterval(updateJamRealtime, 1000);
+    await checkLoginSession();
+});

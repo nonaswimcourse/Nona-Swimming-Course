@@ -3,93 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#234a84">
     <title>Absensi Les Renang NSC</title>
-    
+
     <link rel="icon" type="image/png" href="Logo percobaan.png">
-    
+
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<div id="loginSection" class="login-wrapper">
-    <div class="login-card">
-        <div class="login-logo-container">
-            <img src="Logo percobaan.png" alt="Logo NSC" class="login-logo">
-        </div>
-        <h2>Sistem Absensi NSC</h2>
-        <p>Silakan masuk menggunakan akun Gmail Anda</p>
-        
-        <form id="loginForm" onsubmit="handleLogin(event)">
-            <div class="login-form-group">
-                <label for="loginEmail">Alamat Gmail</label>
-                <input type="email" id="loginEmail" required placeholder="namaanda@gmail.com" autocomplete="username">
+    <div id="loginSection" class="login-wrapper">
+        <div class="login-card">
+            <div class="login-logo-container">
+                <img src="Logo percobaan.png" alt="Logo NSC" class="login-logo">
             </div>
-            
-            <div class="login-form-group">
-                <label for="loginPassword">Password</label>
-                <div class="password-container">
-                    <input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password">
-                    <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility()">
-                        <i id="eyeIcon" class="fa fa-eye"></i>
-                    </button>
+            <h2>Sistem Absensi NSC</h2>
+            <p>Silakan masuk menggunakan akun Supabase Auth</p>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="login-form-group">
+                    <label for="loginEmail">Alamat Gmail</label>
+                    <input type="email" id="loginEmail" required placeholder="namaanda@gmail.com" autocomplete="username">
+                </div>
+
+                <div class="login-form-group">
+                    <label for="loginPassword">Password</label>
+                    <div class="password-container">
+                        <input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password">
+                        <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility()" aria-label="Tampilkan atau sembunyikan password">
+                            <i id="eyeIcon" class="fa fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-btn">
+                    <i class="fa fa-right-to-bracket"></i> Masuk Aplikasi
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p>Nona Swimming Course &copy; 2026</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainAppSection" class="hidden">
+        <div class="header">
+            <div class="header-left">
+                <img src="Logo percobaan.png" alt="Logo NSC" class="header-logo">
+                <div class="header-text">
+                    <h1>Absensi Les Renang</h1>
+                    <p>Nona Swimming Course</p>
                 </div>
             </div>
-            <button type="submit" class="login-btn">
-                <i class="fa fa-right-to-bracket"></i> Masuk Aplikasi
-            </button>
-        </form>
-        <div class="login-footer">
-            <p>Nona Swimming Course &copy; 2026</p>
-        </div>
-    </div>
-</div>
-
-<div id="mainAppSection" class="hidden">
-    <div class="header">
-        <div class="header-left">
-            <img src="Logo percobaan.png" alt="Logo NSC" class="header-logo">
-            <div class="header-text">
-                <h1>Absensi Les Renang</h1>
-                <p>Nona Swimming Course</p>
+            <div class="header-right">
+                <div id="jamRealtime" class="jam">00.00.00</div>
+                <div id="tanggalRealtime" class="tanggal">Memuat tanggal...</div>
             </div>
         </div>
-        <div class="header-right">
-            <div id="jamRealtime" class="jam">00.00.00</div>
-            <div id="tanggalRealtime" class="tanggal">Memuat tanggal...</div>
-        </div>
-    </div>
 
-    <div class="container">
-        <div class="nav-bar">
-            <div class="tabs">
-                <button class="tab-btn active" onclick="showTab('input', this)">
-                    <i class="fa fa-clipboard-check"></i> Input Absensi
-                </button>
-                <button class="tab-btn" onclick="showTab('rekap', this)">
-                    <i class="fa fa-chart-column"></i> Rekap Data
+        <div class="container">
+            <div class="nav-bar">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showTab('input', this)">
+                        <i class="fa fa-clipboard-check"></i> Input Absensi
+                    </button>
+                    <button class="tab-btn" onclick="showTab('rekap', this)">
+                        <i class="fa fa-chart-column"></i> Rekap Data
+                    </button>
+                </div>
+                <button class="logout-main-btn" onclick="handleLogout()">
+                    <i class="fa fa-arrow-right-from-bracket"></i> Keluar (Logout)
                 </button>
             </div>
-            <button class="logout-main-btn" onclick="handleLogout()">
-                <i class="fa fa-arrow-right-from-bracket"></i> Keluar (Logout)
-            </button>
-        </div>
 
-        <div id="input" class="card">
-            <h2>Tambah Absensi</h2>
-            <div class="row" style="grid-template-columns: 2fr 1fr 1fr; gap: 20px;">
-                <div>
-                    <label for="nama">Nama Siswa</label>
-                    <select id="nama" placeholder="Ketik atau pilih nama siswa...">
-                        <option value=""></option>
+            <div id="input" class="card">
+                <h2>Tambah Absensi</h2>
+                <div class="row row-absensi">
+                    <div>
+                        <label for="nama">Nama Siswa</label>
+                        <select id="nama" placeholder="Ketik atau pilih nama siswa...">
+                            <option value=""></option>
                         <option value="AIRA">AIRA</option>
                         <option value="ALDEBARAN">ALDEBARAN</option>
                         <option value="ALFA">ALFA</option>
@@ -121,70 +126,73 @@
                         <option value="YUMNA">YUMNA</option>
                         <option value="ZIDNI">ZIDNI</option>
                         <option value="ZULFA">ZULFA</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="no_hp">No. HP Orang Tua</label>
-                    <input type="text" id="no_hp" placeholder="Contoh: 0812345678" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:15px;">
-                </div>
-                <div>
-                    <label for="status">Status</label>
-                    <select id="status">
                         <option value="Hadir">Hadir</option>
                         <option value="Tidak Hadir">Tidak Hadir</option>
-                    </select>
-                </div>
-            </div>
-            <br>
-            <label for="catatan">Catatan</label>
-            <textarea rows="3" id="catatan" placeholder="Tambahkan catatan khusus di sini..."></textarea>
-            <button class="btn btn-primary" id="btnSimpan" onclick="simpan()">
-                <i class="fa fa-plus-circle"></i> Simpan Data
-            </button>
-        </div>
-
-        <div id="rekap" class="card hidden">
-            <div class="rekap-header-wrapper">
-                <div class="rekap-title-area" style="display: flex; align-items: center; gap: 15px;">
+                        </select>
+                    </div>
                     <div>
-                        <h2 style="margin: 0;">Rekap Kehadiran</h2>
-                        <p id="totalPertemuanText" style="margin: 5px 0 0 0;">Total 12 Pertemuan Les Renang</p>
+                        <label for="no_hp">No. HP Orang Tua</label>
+                        <input type="text" id="no_hp" placeholder="Contoh: 0812345678" inputmode="numeric" autocomplete="tel">
+                    </div>
+                    <div>
+                        <label for="status">Status</label>
+                        <select id="status">
+                            <option value="Hadir">Hadir</option>
+                            <option value="Tidak Hadir">Tidak Hadir</option>
+                        </select>
                     </div>
                 </div>
-                <div class="rekap-controls-area">
-                    <div class="export">
-                        <button class="btn reset" id="btnResetAll" onclick="resetSemuaData()">
-                            <i class="fa fa-trash-can"></i> Reset
-                        </button>
-                        <button class="btn excel-btn" onclick="exportTotalExcel()">
-                            <i class="fa fa-file-excel"></i> Excel Total
-                        </button>
-                        <button class="btn pdf-btn" onclick="exportTotalPDF()">
-                            <i class="fa fa-file-pdf"></i> PDF Total
-                        </button>
-                    </div>
-                </div>
+
+                <div class="field-spacer"></div>
+
+                <label for="catatan">Catatan</label>
+                <textarea rows="3" id="catatan" placeholder="Tambahkan catatan khusus di sini..."></textarea>
+                <button class="btn btn-primary" id="btnSimpan" onclick="simpan()">
+                    <i class="fa fa-plus-circle"></i> Simpan Data
+                </button>
             </div>
-            
-            <div class="table-wrapper">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Nama</th>
-                            <th>Hadir</th>
-                            <th>Tidak Hadir</th>
-                            <th>Total</th>
-                            <th>Tanggal Terbaru</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody"></tbody>
-                </table>
+
+            <div id="rekap" class="card hidden">
+                <div class="rekap-header-wrapper">
+                    <div class="rekap-title-area">
+                        <h2>Rekap Kehadiran</h2>
+                        <p id="totalPertemuanText">Total 12 Pertemuan Les Renang</p>
+                    </div>
+
+                    <div class="rekap-controls-area">
+                        <div class="export">
+                            <button class="btn reset" id="btnResetAll" onclick="resetSemuaData()">
+                                <i class="fa fa-trash-can"></i> Reset
+                            </button>
+                            <button class="btn excel-btn" onclick="exportTotalExcel()">
+                                <i class="fa fa-file-excel"></i> Excel Total
+                            </button>
+                            <button class="btn pdf-btn" onclick="exportTotalPDF()">
+                                <i class="fa fa-file-pdf"></i> PDF Total
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Hadir</th>
+                                <th>Tidak Hadir</th>
+                                <th>Total</th>
+                                <th>Tanggal Terbaru</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
