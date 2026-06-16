@@ -496,12 +496,29 @@ async function muatDataDariCloud() {
     }
 
     try {
-        const { data, error } = await supabaseClient
-            .from(TABLE_NAME)
-            .select("*")
-            .order("nama", { ascending: true });
+    // 1. Pastikan nama file unik (misal ditambah timestamp) agar tidak bentrok
+    const fileName = `laporan-${Date.now()}.pdf`; 
+    
+    // 2. Gunakan fungsi .storage.from() untuk berinteraksi dengan Bucket
+    const { data, error } = await supabaseClient
+        .storage
+        .from('laporan-pdf') // Nama bucket wajib huruf kecil semua
+        .upload(fileName, fileObatAtauPdfAnda); // 'fileObatAtauPdfAnda' adalah objek file dari input/buffer
 
-        if (error) throw error;
+    if (error) throw error;
+
+    // Jika berhasil, dapatkan URL Publik untuk dikirim ke WhatsApp
+    const { data: publicUrlData } = supabaseClient
+        .storage
+        .from('laporan-pdf')
+        .getPublicUrl(fileName);
+
+    const urlPdfUntukWA = publicUrlData.publicUrl;
+    console.log("Link PDF untuk dikirim ke WA:", urlPdfUntukWA);
+
+} catch (error) {
+    console.error("Gagal mengunggah PDF:", error.message);
+}
 
         dataRekap = (data || []).map(normalizeDbRow).sort((a, b) => a.nama.localeCompare(b.nama, "id"));
         saveCache();
