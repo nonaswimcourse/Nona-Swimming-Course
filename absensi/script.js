@@ -38,7 +38,6 @@ function updateJamRealtime() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    // Inisialisasi TomSelect untuk pencarian nama siswa
     if (document.getElementById("nama")) {
         selectNamaControl = new TomSelect("#nama", {
             create: true, 
@@ -130,9 +129,8 @@ async function handleLogin(event) {
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
 
-    // Proteksi enkripsi login internal NSC
-    const passwordHashed = await generateSHA256(password);
-    if (email !== "nonaswimmingcourse@gmail.com" || passwordHashed !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
+    const hashedInput = await generateSHA256(password);
+    if (email !== "nonaswimmingcourse@gmail.com" || hashedInput !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
         alert("Akses ditolak! Akun atau Password salah.");
         return; 
     }
