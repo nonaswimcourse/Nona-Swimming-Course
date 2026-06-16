@@ -612,7 +612,7 @@ async function uploadDanKirimPdfWA(index) {
     const tombol = document.getElementById(`btnWaPdf-${index}`);
     const teksAsli = tombol.innerHTML;
     tombol.disabled = true;
-    tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading PDF...';
+    tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Membuat & Mengirim PDF...';
 
     // Perbaikan Mutlak: Menggunakan constructor murni memori tanpa merusak DOM HTML
     const img = new Image();
