@@ -122,22 +122,38 @@ async function generateSHA256(string) {
 
 async function handleLogin(event) {
     if (event) event.preventDefault(); 
-    const emailEl = document.getElementById("loginEmail");
-    const passwordEl = document.getElementById("loginPassword");
-    if (!emailEl || !passwordEl) return;
+    
+    // Menggunakan fallback jika ID elemen di HTML kamu berbeda
+    const emailEl = document.getElementById("loginEmail") || document.getElementById("email");
+    const passwordEl = document.getElementById("loginPassword") || document.getElementById("password");
+    
+    if (!emailEl || !passwordEl) {
+        alert("Sistem Error: Elemen input Email atau Password tidak ditemukan di halaman HTML!");
+        return;
+    }
 
     const email = emailEl.value.trim().toLowerCase();
     const password = passwordEl.value;
 
+    // Menghasilkan hash SHA-256 dari password yang diinput
     const hashedInput = await generateSHA256(password);
+    
+    // Validasi kecocokan email dan hash password
     if (email !== "nonaswimmingcourse@gmail.com" || hashedInput !== "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
         alert("Akses ditolak! Akun atau Password salah.");
         return; 
     }
     
+    // Jika berhasil
     localStorage.setItem("isLoggedIn", "true");
-    document.getElementById("loginSection").classList.add("hidden");
-    document.getElementById("mainAppSection").classList.remove("hidden");
+    
+    // Menyembunyikan form login dan menampilkan aplikasi utama
+    const loginSection = document.getElementById("loginSection") || document.getElementById("login-section");
+    const mainAppSection = document.getElementById("mainAppSection") || document.getElementById("main-section");
+    
+    if (loginSection) loginSection.classList.add("hidden");
+    if (mainAppSection) mainAppSection.classList.remove("hidden");
+    
     muatDataDariCloud();
 }
 
