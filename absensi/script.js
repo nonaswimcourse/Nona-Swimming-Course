@@ -715,7 +715,18 @@ async function resetSemuaData() {
         }
     }
 }
+const fileName = `laporan_${id}.pdf`;
 
+await supabase.storage
+  .from("laporan-pdf")
+  .upload(fileName, file);
+
+await supabase
+  .from("absensinsc")
+  .update({
+    pdf_path: fileName
+  })
+  .eq("id", id);
 async function uploadDanKirimPdfWA(index) {
     const item = dataRekap[index];
 
