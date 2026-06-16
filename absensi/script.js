@@ -1,3 +1,10 @@
+Berikut adalah file JavaScript lengkap yang sudah diperbaiki.
+
+Saya telah menambahkan **Authorization Headers** (`ApiKey` dan `Bearer Token`) pada fungsi `uploadDanKirimPdfWA` agar Supabase tidak menolak *request* Anda dengan eror "Failed to fetch". Selain itu, saya pastikan variabel `SUPABASE_ANON_KEY` yang berada di atas otomatis ikut terpakai di dalam fungsi tersebut.
+
+Anda tinggal menyalin seluruh kode di bawah ini dan menimpanya (*replace*) ke file script proyek Anda sebelum di-upload:
+
+```javascript
 const TOTAL_PERTEMUAN = 12;
 
 // Inisialisasi Supabase Client
@@ -121,7 +128,6 @@ async function generateSHA256(string) {
 }
 
 async function handleLogin(event) {
-    // Kunci utama menahan form submit browser agar halaman tidak ter-refresh otomatis
     if (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -149,20 +155,16 @@ async function handleLogin(event) {
             hashedInput = await generateSHA256(password);
         }
 
-        // Jalur validasi akun NSC
         if (email === "nonaswimmingcourse@gmail.com" && hashedInput === "3d32f1b4eec6aac2520a664ae8b746e46f83d5baecf81e030e47a9db5c8c7c83") {
             
-            // 1. Simpan status login ke browser secara permanen
             localStorage.setItem("isLoggedIn", "true");
             
-            // 2. Buka akses halaman utama dan sembunyikan kotak login
             const loginSection = document.getElementById("loginSection");
             const mainAppSection = document.getElementById("mainAppSection");
             
             if (loginSection) loginSection.classList.add("hidden");
             if (mainAppSection) mainAppSection.classList.remove("hidden");
             
-            // 3. Beri jeda kecil agar DOM stabil sebelum menarik data Supabase
             setTimeout(() => {
                 if (typeof muatDataDariCloud === "function") {
                     muatDataDariCloud();
@@ -404,7 +406,7 @@ async function simpan() {
 
         if (siswaExist) {
             siswaExist.hadir = nHadir;
-            siswaExist.tidakHadir = nTidakHadir;
+            siswaExist.tidakHadir = nTailakHadir;
             siswaExist.catatan = catatanTeks;
             siswaExist.tanggalRealtime = realtimeSekarang;
             siswaExist.rawDate = waktuSekarangISO;
@@ -680,6 +682,7 @@ async function keluarkanSiswa(namaSiswa) {
         alert("Gagal mengeluarkan siswa dari Supabase: " + err.message);
     }
 }
+
 async function resetSemuaData() {
     if (!confirm("Apakah Anda yakin ingin menghapus total semua data dari database cloud Supabase?")) return;
     if (!confirm("Konfirmasi terakhir: Data yang dihapus tidak bisa dikembalikan!")) return;
@@ -719,6 +722,7 @@ async function resetSemuaData() {
         }
     }
 }
+
 async function uploadDanKirimPdfWA(index) {
     const item = dataRekap[index];
 
@@ -737,13 +741,13 @@ async function uploadDanKirimPdfWA(index) {
 
         const pdfBase64 = doc.output("datauristring").split(",")[1];
 
-        // 🔥 FIX PENTING: GANTI URL SUPABASE KAMU DI SINI
-        const SUPABASE_PROJECT_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
-
-        const res = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/send-pdf-wa`, {
+        // Memanggil Endpoint Cloud Function dengan Header Otorisasi Supabase yang Valid
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/send-pdf-wa`, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "ApiKey": SUPABASE_ANON_KEY,
+                "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
             },
             body: JSON.stringify({
                 nama: item.nama,
@@ -752,7 +756,6 @@ async function uploadDanKirimPdfWA(index) {
             })
         });
 
-        // 🔥 FIX ERROR "Failed to fetch"
         if (!res.ok) {
             const text = await res.text();
             throw new Error("Server Error: " + text);
@@ -775,3 +778,5 @@ async function uploadDanKirimPdfWA(index) {
         tombol.innerHTML = teksAsli;
     }
 }
+
+```
