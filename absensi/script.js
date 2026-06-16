@@ -263,7 +263,7 @@ async function updateCounter(index, tipe, value) {
             baruHadir -= 1;
         } else {
             if (baruTidakHadir === 0) return;
-            baruTargetTidakHadir -= 1;
+            // BAGIAN TYPO DI SINI SUDAH DIHAPUS (baruTargetTidakHadir -= 1;)
             baruTidakHadir -= 1;
         }
         catatanKetik = `Pengurangan manual via counter`;
@@ -306,7 +306,6 @@ async function updateCounter(index, tipe, value) {
         alert("Gagal memperbarui data ke Supabase: " + err.message);
     }
 }
-
 async function deleteRow(index) {
     const namaSiswa = dataRekap[index].nama;
     if (!confirm(`Hapus data rekap ${namaSiswa} dari sistem Supabase?`)) return;
