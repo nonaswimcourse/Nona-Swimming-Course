@@ -732,11 +732,15 @@ async function uploadDanKirimPdfWA(index) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        doc.text(`Laporan ${item.nama}`, 14, 20);
+        doc.setFont("Helvetica", "bold");
+        doc.text(`Laporan Absensi ${item.nama}`, 14, 20);
 
         const pdfBase64 = doc.output("datauristring").split(",")[1];
 
-        const res = await fetch("https://YOUR_PROJECT.supabase.co/functions/v1/send-pdf-wa", {
+        // 🔥 FIX PENTING: GANTI URL SUPABASE KAMU DI SINI
+        const SUPABASE_PROJECT_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
+
+        const res = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/send-pdf-wa`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -748,14 +752,24 @@ async function uploadDanKirimPdfWA(index) {
             })
         });
 
+        // 🔥 FIX ERROR "Failed to fetch"
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error("Server Error: " + text);
+        }
+
         const result = await res.json();
 
-        if (!result.status) throw new Error(result.reason || "Gagal kirim");
+        if (!result || result.error) {
+            throw new Error(result.error || "Gagal kirim WA");
+        }
 
-        alert("PDF berhasil dikirim");
+        alert("PDF berhasil dikirim ke WhatsApp");
 
     } catch (err) {
-        alert(err.message);
+        console.error(err);
+        alert("ERROR: " + err.message);
+
     } finally {
         tombol.disabled = false;
         tombol.innerHTML = teksAsli;
