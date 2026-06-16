@@ -762,12 +762,12 @@ async function uploadDanKirimPdfWA(index) {
         form.append("filename", namaFile);
 
        const res = await fetch("https://api.fonnte.com/send", {
-            method: "POST",
-            headers: {
-                Authorization: WA_GATEWAY_TOKEN
-            },
-            body: form
-        });
+    method: "POST",
+    headers: {
+        Authorization: WA_GATEWAY_TOKEN
+    },
+    body: form
+});
 
         const text = await res.text();
 console.log("Fonnte raw response:", text);
