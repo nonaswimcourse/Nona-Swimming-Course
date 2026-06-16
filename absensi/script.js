@@ -883,47 +883,31 @@ async function uploadDanKirimPdfWA(index) {
 
         const publicUrl = urlData?.publicUrl;
 
-        if (!publicUrl) {
-            throw new Error("Gagal mendapatkan public URL PDF dari Supabase.");
-        }
+if (!publicUrl) {
+    throw new Error("Gagal mendapatkan public URL PDF dari Supabase.");
+}
 
-        console.log("Path PDF Supabase:", uploadData.path);
-        console.log("URL PDF Supabase:", publicUrl);
+const publicUrlDownload = `${publicUrl}?download=${encodeURIComponent(namaBerkasPDF)}`;
 
-        // 4. Simpan path PDF ke database.
-        const { error: updatePdfPathError } = await supabaseClient
-            .from(TABLE_NAME)
-            .update({ pdf_path: uploadData.path })
-            .eq("absensi", normalizeNama(item.nama));
-
-        if (updatePdfPathError) {
-            console.warn("PDF path gagal disimpan:", updatePdfPathError);
-        } else {
-            item.pdf_path = uploadData.path;
-        }
-
-        // 5. Susun pesan WhatsApp.
-        const pesanWAPDF = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
+const pesanWAPDF = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
 
 Status Kehadiran: *${item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`}*
 Catatan Evaluasi: _${item.catatan || "-"}_
 
 Silakan buka PDF laporan melalui link berikut:
-${publicUrl}
+${publicUrlDownload}
 
 Terima kasih.`;
 
-        // 6. Panggil Supabase Edge Function.
-        // Token Fonnte tidak ada lagi di frontend. Token disimpan sebagai secret di Supabase.
-        const { data: hasilFunction, error: functionError } = await supabaseClient.functions.invoke(EDGE_FUNCTION_KIRIM_WA, {
-            body: {
-                target: nomorWA,
-                message: pesanWAPDF,
-                url: publicUrl,
-                filename: namaBerkasPDF,
-                countryCode: "62"
-            }
-        });
+const { data: hasilFunction, error: functionError } = await supabaseClient.functions.invoke(EDGE_FUNCTION_KIRIM_WA, {
+    body: {
+        target: nomorWA,
+        message: pesanWAPDF,
+        url: publicUrlDownload,
+        filename: namaBerkasPDF,
+        countryCode: "62"
+    }
+});
 
         if (functionError) {
             throw new Error(functionError.message || "Gagal memanggil Supabase Edge Function.");
