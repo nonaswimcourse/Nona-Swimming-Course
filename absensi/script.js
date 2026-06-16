@@ -606,13 +606,25 @@ function exportTotalPDF() {
 }
 
 async function uploadDanKirimPdfWA(index) {
+
+    // 1. ambil data
     const item = dataRekap[index];
-    const { jsPDF } = window.jspdf;
-    
-    const tombol = document.getElementById(`btnWaPdf-${index}`);
-    const teksAsli = tombol.innerHTML;
-    tombol.disabled = true;
-    tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Membuat & Mengirim PDF...';
+
+    // 2. loading UI (yang kamu sudah buat)
+    tombol.innerHTML = 'Membuat & Mengirim PDF...';
+
+    // 3. BUAT PDF (taruh di bawah sini)
+    const doc = new jsPDF();
+
+    // 4. ubah jadi blob
+    const pdfBlob = doc.output("blob");
+
+    // 5. KIRIM WA dulu (biar cepat)
+    window.open(waLink, "_blank");
+
+    // 6. upload ke supabase (belakang layar)
+    supabaseClient.storage.upload(...)
+}
 
     // Perbaikan Mutlak: Menggunakan constructor murni memori tanpa merusak DOM HTML
     const img = new Image();
