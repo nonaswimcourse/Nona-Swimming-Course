@@ -684,10 +684,10 @@ async function resetTotal() {
     if (!confirm("Yakin ingin RESET SEMUA DATA?")) return;
 
     try {
-        const { error } = await supabaseClient
+        const { data, error } = await supabaseClient
             .from('absensinsc')
             .delete()
-            .neq('absensi', '');
+            .select(); // paksa eksekusi delete semua row
 
         if (error) throw error;
 
@@ -697,6 +697,7 @@ async function resetTotal() {
 
         alert("Reset total berhasil");
     } catch (err) {
+        console.error(err);
         alert("Gagal reset: " + err.message);
     }
 }
