@@ -3,7 +3,7 @@ const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndnbWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
 const TABLE_NAME = "absensinsc";
 const STORAGE_BUCKET = "laporan-pdf";
-const EDGE_FUNCTION_KIRIM_WA = "kirim-pdf-wa";
+const EDGE_FUNCTION_KIRIM_WA = "dynamic-endpoint";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
