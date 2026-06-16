@@ -622,6 +622,9 @@ async function uploadDanKirimPdfWA(index) {
     if (!tombol) return;
     const teksAsli = tombol.innerHTML;
 
+    // Ganti dengan API Token resmi dari dashboard vendor WA Gateway Anda
+    const WA_GATEWAY_TOKEN = "PwjXTSrq1es39cyPbYNC"; 
+
     tombol.disabled = true;
     tombol.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Membuat & Mengirim PDF...';
 
@@ -631,6 +634,7 @@ async function uploadDanKirimPdfWA(index) {
     const eksekusiUploadPDF = async (pakeLogo) => {
         const doc = new jsPDF();
         try {
+            // --- 1. PROSES PEMBUATAN LAYOUT PDF ---
             if (pakeLogo) {
                 doc.addImage(img, "PNG", 14, 10, 18, 25);
                 doc.setFont("Helvetica", "bold");
@@ -670,6 +674,7 @@ async function uploadDanKirimPdfWA(index) {
                 columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
             });
 
+            // --- 2. UPLOAD KE SUPABASE STORAGE ---
             const pdfBlob = doc.output('blob');
             const namaFileClean = item.nama.replace(/\s+/g, '_');
             const pathFile = `absensi_${namaFileClean}.pdf`;
@@ -692,19 +697,41 @@ async function uploadDanKirimPdfWA(index) {
 
             const publicUrl = urlData.publicUrl;
 
-            let nomorWA = item.no_hp || ""; 
+            // --- 3. SANITASI NOMOR TUJUAN ---
+            let nomorWA = (item.no_hp || "").replace(/\D/g, ''); 
             if (nomorWA.startsWith('0')) {
                 nomorWA = '62' + nomorWA.slice(1);
             }
 
-            let pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan tautan resmi Dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nStatus Akhir Kehadiran: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan Evaluasi: _${item.catatan || '-'}_\n\nSilakan klik link di bawah ini untuk melihat/mengunduh dokumen PDF asli langsung dari cloud server kami:\n${publicUrl}\n\nTerima kasih.`;
-            let linkWA = `https://api.whatsapp.com/send?phone=${nomorWA}&text=${encodeURIComponent(pesanWAPDF)}`;
-            
-            window.open(linkWA, '_blank');
+            // --- 4. FORMAT PESAN OTOMATIS ---
+            let pesanWAPDF = `Halo Bapak/Ibu, berikut kami lampirkan dokumen PDF Hasil Evaluasi & Absensi Ananda *${item.nama}* di *Nona Swimming Course*.\n\nStatus Kehadiran: *${item.hadir === TOTAL_PERTEMUAN ? "LENGKAP" : item.hadir + "/" + TOTAL_PERTEMUAN}*\nCatatan Evaluasi: _${item.catatan || '-'}_\n\nTerima kasih.`;
+
+            // --- 5. PENGIRIMAN OTOMATIS VIA API GATEWAY ---
+            const formData = new FormData();
+            formData.append('target', nomorWA);
+            formData.append('message', pesanWAPDF);
+            formData.append('url', publicUrl); // Menyertakan URL PDF dari Supabase agar terkirim sebagai file dokumen asli
+            formData.append('filename', `Absensi_${namaFileClean}.pdf`);
+
+            const responWA = await fetch('https://fonnte.com', {
+                method: 'POST',
+                headers: {
+                    'Authorization': WA_GATEWAY_TOKEN
+                },
+                body: formData
+            });
+
+            const hasilRespon = await responWA.json();
+
+            if (hasilRespon.status === true) {
+                alert(`✅ Laporan PDF Ananda ${item.nama} berhasil dikirim langsung ke WhatsApp tujuan!`);
+            } else {
+                throw new Error(hasilRespon.reason || "Gagal meneruskan pesan lewat Gateway.");
+            }
 
         } catch (err) {
-            console.error("Gagal melakukan upload dokumen PDF ke Supabase Storage:", err);
-            alert("Aplikasi mengalami galat sistem saat mengunggah PDF: " + err.message);
+            console.error("Gagal melakukan proses otomatisasi:", err);
+            alert("Terjadi kesalahan sistem: " + err.message);
         } finally {
             tombol.disabled = false;
             tombol.innerHTML = teksAsli;
