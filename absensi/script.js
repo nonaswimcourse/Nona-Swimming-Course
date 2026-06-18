@@ -247,6 +247,27 @@ async function addPdfHeader(doc, title, subtitle) {
     doc.line(14, 40, 196, 40);
 }
 
+function addPdfSignature(doc) {
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const marginRight = 196;
+    const finalY = doc.lastAutoTable?.finalY || 46;
+    let y = finalY + 18;
+
+    if (y > pageHeight - 55) {
+        doc.addPage();
+        y = 38;
+    }
+
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(15, 47, 87);
+    doc.text(`Brebes, ${formatTanggalIndonesia(new Date())}`, marginRight, y, { align: "right" });
+    doc.text("Coach,", marginRight, y + 8, { align: "right" });
+
+    doc.setFont("Helvetica", "bold");
+    doc.text("Wahyu Riski Maulana", marginRight, y + 38, { align: "right" });
+}
+
 async function buildSiswaPdfBlob(item) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -273,6 +294,8 @@ async function buildSiswaPdfBlob(item) {
         alternateRowStyles: { fillColor: [248, 250, 252] },
         columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
     });
+
+    addPdfSignature(doc);
 
     return doc.output("blob");
 }
@@ -302,6 +325,8 @@ async function buildTotalPdfBlob() {
         alternateRowStyles: { fillColor: [248, 250, 252] },
         columnStyles: { 0: { fontStyle: "bold" }, 3: { halign: "center" } }
     });
+
+    addPdfSignature(doc);
 
     return doc.output("blob");
 }
