@@ -1,52 +1,48 @@
-# NSC Android WebAPK Logo Fix
+# NSC PWA Flat Icon Fix
 
-Masalah yang diperbaiki:
-Android hanya membuat shortcut Chrome, sehingga icon muncul kotak dengan logo Chrome.
-Paket ini membuat web memenuhi syarat PWA/WebAPK dan memakai logo NSC sebagai icon.
+Masalah pada screenshot:
+Manifest OK, tetapi icon 192, icon 512, dan maskable icon masih 404 karena file berada di path /absensi/icons/.
 
-## File yang harus diupload ke folder /absensi/
+Solusi paket ini:
+Tidak memakai folder icons. Semua icon diletakkan langsung di folder /absensi/.
 
-Upload semua file ini:
-- index.html
-- style.css
-- script.js
-- pwa.js
-- service-worker.js
-- manifest.webmanifest
-- offline.html
-- pwa-check.html
-- Logo percobaan.png
-- apple-touch-icon.png
-- apple-touch-icon-precomposed.png
-- favicon-32x32.png
-- favicon-16x16.png
-- folder icons/
+## Upload ke GitHub
 
-## Cara tes Android
+Masuk ke folder absensi, lalu upload semua isi folder ini langsung ke sana.
 
-1. Hapus shortcut/app lama dari Home Screen.
-2. Buka Chrome Android.
-3. Hapus data situs nonaswimmingcourse.pro.
-4. Buka:
-   https://nonaswimmingcourse.pro/absensi/?v=webapk-logo-v5
-5. Tunggu 5 sampai 10 detik.
-6. Tekan tombol Download App atau menu titik tiga.
-7. Pilih Install app.
-   Jangan hanya memilih Add to Home screen jika masih muncul sebagai shortcut Chrome.
+Struktur yang benar:
 
-## Cek PWA
+absensi/
+  index.html
+  style.css
+  script.js
+  manifest.webmanifest
+  service-worker.js
+  pwa.js
+  offline.html
+  pwa-check.html
+  icon-192x192.png
+  icon-512x512.png
+  maskable-icon-512x512.png
+  apple-touch-icon.png
+  apple-touch-icon-precomposed.png
+  favicon-32x32.png
+  favicon-16x16.png
+  Logo percobaan.png
+
+## Cek setelah upload
 
 Buka:
-https://nonaswimmingcourse.pro/absensi/pwa-check.html?v=webapk-logo-v5
+https://nonaswimmingcourse.pro/absensi/icon-192x192.png
+https://nonaswimmingcourse.pro/absensi/icon-512x512.png
+https://nonaswimmingcourse.pro/absensi/maskable-icon-512x512.png
+https://nonaswimmingcourse.pro/absensi/pwa-check.html?v=flat-icon-v1
 
-Status minimal yang harus OK:
-- HTTPS
-- Manifest Fetch
-- Manifest Display
-- Manifest Icons
-- Icon 192
-- Icon 512
-- Maskable Icon
-- SW Register
+Semua icon harus OK.
 
-Jika status ini belum OK, Android akan tetap membuat shortcut Chrome.
+## Install ulang Android
+
+1. Hapus shortcut lama.
+2. Hapus data situs Chrome.
+3. Buka https://nonaswimmingcourse.pro/absensi/?v=flat-icon-v1
+4. Pilih Install app.

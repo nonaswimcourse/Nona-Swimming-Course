@@ -1,19 +1,12 @@
-/* NSC PWA Installer - Android WebAPK Logo Fix webapk-logo-v5 */
+/* NSC PWA Installer - Flat Icon Path flat-icon-v1 */
 
 (function () {
   "use strict";
 
-  const APP_SCOPE = "/absensi/";
-  const SW_URL = "/absensi/service-worker.js";
-
   let deferredPrompt = null;
-
-  const ua = navigator.userAgent || "";
-  const isAndroid = /Android/i.test(ua);
-  const isIOS = /iPhone|iPad|iPod/i.test(ua);
-  const isStandalone =
-    window.matchMedia("(display-mode: standalone)").matches ||
-    window.navigator.standalone === true;
+  const isAndroid = /Android/i.test(navigator.userAgent || "");
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 
   function createButton() {
     if (document.getElementById("nscPwaInstallButton")) return document.getElementById("nscPwaInstallButton");
@@ -56,7 +49,7 @@
     const button = document.createElement("button");
     button.id = "nscPwaInstallButton";
     button.type = "button";
-    button.innerHTML = `<img src="/absensi/icons/icon-192x192.png?v=webapk-logo-v5" alt=""> <span>Download App</span>`;
+    button.innerHTML = `<img src="/absensi/icon-192x192.png?v=flat-icon-v1" alt=""> <span>Download App</span>`;
     document.body.appendChild(button);
 
     button.addEventListener("click", async () => {
@@ -75,8 +68,7 @@
   function showInstallButton() {
     if (isStandalone) return;
     if (!isAndroid && !isIOS) return;
-    const button = createButton();
-    button.style.display = "inline-flex";
+    createButton().style.display = "inline-flex";
   }
 
   function showGuide() {
@@ -88,13 +80,11 @@
       modal.innerHTML = `
         <div class="nsc-pwa-card">
           <h3>Install Aplikasi NSC</h3>
-          <p>Kalau Android masih menampilkan logo Chrome, berarti yang terpasang adalah shortcut biasa, bukan WebAPK.</p>
+          <p>Jika prompt belum muncul, gunakan menu Chrome.</p>
           <ol>
-            <li>Buka halaman ini di <strong>Chrome Android</strong>.</li>
-            <li>Tunggu 5 sampai 10 detik.</li>
-            <li>Pilih menu <strong>titik tiga</strong>.</li>
-            <li>Pilih <strong>Install app</strong>, bukan hanya Add to Home screen.</li>
-            <li>Kalau menu Install app belum ada, buka <strong>/absensi/pwa-check.html</strong>.</li>
+            <li>Tekan titik tiga kanan atas.</li>
+            <li>Pilih <strong>Install app</strong>.</li>
+            <li>Jangan pilih Add to Home screen jika masih muncul logo Chrome.</li>
           </ol>
           <button type="button">Tutup</button>
         </div>
@@ -111,8 +101,8 @@
   async function registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
     try {
-      const registration = await navigator.serviceWorker.register(SW_URL, {
-        scope: APP_SCOPE,
+      const registration = await navigator.serviceWorker.register("/absensi/service-worker.js", {
+        scope: "/absensi/",
         updateViaCache: "none"
       });
       console.info("NSC service worker aktif:", registration.scope);

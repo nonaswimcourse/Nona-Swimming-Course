@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>PWA Check - NSC</title>
-  <link rel="manifest" href="/absensi/manifest.webmanifest?v=webapk-logo-v5">
+  <link rel="manifest" href="/absensi/manifest.webmanifest?v=flat-icon-v1">
   <style>
     body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f6f9;color:#0f172a;margin:0;padding:18px}
     main{max-width:760px;margin:auto;background:white;border-radius:20px;padding:22px;box-shadow:0 14px 34px rgba(15,23,42,.10)}
@@ -18,9 +18,9 @@
 <body>
 <main>
   <h1>NSC PWA Check</h1>
-  <p>Kalau Android masih membuat icon dengan logo Chrome, cek status di bawah ini. Semua komponen utama harus OK.</p>
+  <p>Versi ini tidak memakai folder icons. Semua icon berada langsung di folder /absensi/.</p>
   <div id="result"></div>
-  <button onclick="location.href='/absensi/?v=webapk-logo-v5'">Buka Aplikasi</button>
+  <button onclick="location.href='/absensi/?v=flat-icon-v1'">Buka Aplikasi</button>
 </main>
 <script>
 const result = document.getElementById("result");
@@ -33,7 +33,7 @@ function row(label, status, detail){
   html += row("HTTPS", location.protocol === "https:" ? "OK" : "BAD", location.protocol);
   html += row("Service Worker Support", "serviceWorker" in navigator ? "OK" : "BAD", navigator.userAgent);
   try {
-    const man = await fetch("/absensi/manifest.webmanifest?v=webapk-logo-v5&check=1", {cache:"no-store"});
+    const man = await fetch("/absensi/manifest.webmanifest?v=flat-icon-v1&check=1", {cache:"no-store"});
     html += row("Manifest Fetch", man.ok ? "OK" : "BAD", "HTTP " + man.status);
     const json = await man.json();
     html += row("Manifest Display", json.display === "standalone" ? "OK" : "BAD", json.display || "");
@@ -44,9 +44,9 @@ function row(label, status, detail){
     html += row("Manifest Fetch", "BAD", e.message);
   }
   try {
-    const icon192 = await fetch("/absensi/icons/icon-192x192.png?v=webapk-logo-v5&check=1", {cache:"no-store"});
-    const icon512 = await fetch("/absensi/icons/icon-512x512.png?v=webapk-logo-v5&check=1", {cache:"no-store"});
-    const maskable = await fetch("/absensi/icons/maskable-icon-512x512.png?v=webapk-logo-v5&check=1", {cache:"no-store"});
+    const icon192 = await fetch("/absensi/icon-192x192.png?v=flat-icon-v1&check=1", {cache:"no-store"});
+    const icon512 = await fetch("/absensi/icon-512x512.png?v=flat-icon-v1&check=1", {cache:"no-store"});
+    const maskable = await fetch("/absensi/maskable-icon-512x512.png?v=flat-icon-v1&check=1", {cache:"no-store"});
     html += row("Icon 192", icon192.ok ? "OK" : "BAD", "HTTP " + icon192.status);
     html += row("Icon 512", icon512.ok ? "OK" : "BAD", "HTTP " + icon512.status);
     html += row("Maskable Icon", maskable.ok ? "OK" : "BAD", "HTTP " + maskable.status);

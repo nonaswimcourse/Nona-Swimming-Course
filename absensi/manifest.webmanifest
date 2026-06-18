@@ -3,7 +3,7 @@
   "short_name": "Absensi NSC",
   "description": "Aplikasi absensi Nona Swimming Course untuk input dan rekap kehadiran siswa.",
   "id": "/absensi/",
-  "start_url": "/absensi/?source=pwa&v=webapk-logo-v5",
+  "start_url": "/absensi/?source=pwa&v=flat-icon-v1",
   "scope": "/absensi/",
   "display": "standalone",
   "display_override": [
@@ -22,19 +22,19 @@
   ],
   "icons": [
     {
-      "src": "/absensi/icons/icon-192x192.png",
+      "src": "/absensi/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/absensi/icons/icon-512x512.png",
+      "src": "/absensi/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/absensi/icons/maskable-icon-512x512.png",
+      "src": "/absensi/maskable-icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

@@ -1,8 +1,6 @@
-/* NSC Service Worker - Android WebAPK Logo Fix webapk-logo-v5
-   Letakkan file ini di /absensi/service-worker.js
-*/
+/* NSC Service Worker - Flat Icon Path flat-icon-v1 */
 
-const CACHE_VERSION = "nsc-absensi-webapk-logo-v5";
+const CACHE_VERSION = "nsc-absensi-flat-icon-v1";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -15,9 +13,9 @@ const CORE_ASSETS = [
   "/absensi/manifest.webmanifest",
   "/absensi/offline.html",
   "/absensi/Logo percobaan.png",
-  "/absensi/icons/icon-192x192.png",
-  "/absensi/icons/icon-512x512.png",
-  "/absensi/icons/maskable-icon-512x512.png",
+  "/absensi/icon-192x192.png",
+  "/absensi/icon-512x512.png",
+  "/absensi/maskable-icon-512x512.png",
   "/absensi/apple-touch-icon.png",
   "/absensi/favicon-32x32.png"
 ];
@@ -37,8 +35,6 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   if (request.method !== "GET") return;
-
-  // Jangan cache request eksternal, Supabase, CDN, WhatsApp.
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
@@ -59,9 +55,7 @@ async function cacheCoreAssets() {
   await Promise.all(CORE_ASSETS.map(async (asset) => {
     try {
       const response = await fetch(asset, { cache: "reload" });
-      if (response && response.ok) {
-        await cache.put(asset, response.clone());
-      }
+      if (response && response.ok) await cache.put(asset, response.clone());
     } catch (error) {
       console.warn("[SW] Gagal cache:", asset, error);
     }
@@ -108,14 +102,12 @@ async function cacheFirst(request) {
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(RUNTIME_CACHE);
   const cached = await cache.match(request);
-
   const fresh = fetch(request)
     .then((response) => {
       if (response && response.ok) cache.put(request, response.clone());
       return response;
     })
     .catch(() => cached);
-
   return cached || fresh;
 }
 
