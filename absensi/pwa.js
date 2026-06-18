@@ -1,226 +1,141 @@
-/* Absensi NSC PWA Installer
-   Fokus utama: Android Chrome tetap menampilkan tombol Download App.
-*/
+/* NSC PWA Installer - Android WebAPK Logo Fix webapk-logo-v5 */
 
 (function () {
   "use strict";
 
   const APP_SCOPE = "/absensi/";
-  const SW_URL = APP_SCOPE + "service-worker.js?v=20260618-android4";
+  const SW_URL = "/absensi/service-worker.js";
 
   let deferredPrompt = null;
-  let registrationRef = null;
 
   const ua = navigator.userAgent || "";
   const isAndroid = /Android/i.test(ua);
   const isIOS = /iPhone|iPad|iPod/i.test(ua);
-  const isChromeAndroid = isAndroid && /Chrome/i.test(ua) && !/Edg|OPR|Firefox/i.test(ua);
-  const isSamsung = isAndroid && /SamsungBrowser/i.test(ua);
   const isStandalone =
     window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true;
 
-  function createInstallButton() {
+  function createButton() {
     if (document.getElementById("nscPwaInstallButton")) return document.getElementById("nscPwaInstallButton");
+
+    const style = document.createElement("style");
+    style.textContent = `
+      #nscPwaInstallButton {
+        position:fixed; right:16px; bottom:16px; z-index:2147483647;
+        border:0; border-radius:999px; padding:13px 18px;
+        min-height:52px; background:linear-gradient(135deg,#234a84,#1a3763);
+        color:#fff; font-weight:800; display:none; align-items:center; gap:10px;
+        box-shadow:0 14px 30px rgba(15,23,42,.25);
+        font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      }
+      #nscPwaInstallButton img {
+        width:28px; height:28px; border-radius:8px; object-fit:cover; background:#061c34;
+      }
+      @media(max-width:540px) {
+        #nscPwaInstallButton { left:14px; right:14px; justify-content:center; }
+      }
+      .nsc-pwa-modal {
+        position:fixed; inset:0; z-index:2147483646; display:none; place-items:center;
+        background:rgba(15,23,42,.58); padding:18px;
+        font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      }
+      .nsc-pwa-card {
+        width:min(94vw,430px); background:#fff; color:#0f172a; border-radius:22px;
+        padding:24px; box-shadow:0 24px 60px rgba(15,23,42,.28);
+      }
+      .nsc-pwa-card h3 { margin:0 0 8px; color:#234a84; font-size:22px; }
+      .nsc-pwa-card p { margin:0 0 14px; color:#64748b; line-height:1.55; }
+      .nsc-pwa-card ol { margin:0; padding-left:20px; color:#334155; line-height:1.7; }
+      .nsc-pwa-card button {
+        margin-top:18px; border:0; border-radius:12px; padding:11px 15px;
+        background:#234a84; color:#fff; font-weight:800;
+      }
+    `;
+    document.head.appendChild(style);
 
     const button = document.createElement("button");
     button.id = "nscPwaInstallButton";
     button.type = "button";
-    button.innerHTML = `
-      <span class="nsc-pwa-icon">⬇</span>
-      <span class="nsc-pwa-text">Download App</span>
-      <span class="nsc-pwa-close" aria-label="Tutup">×</span>
-    `;
-
-    button.setAttribute("aria-label", "Download aplikasi Absensi NSC");
-    button.style.cssText = [
-      "position:fixed",
-      "right:16px",
-      "bottom:16px",
-      "z-index:2147483647",
-      "border:0",
-      "border-radius:999px",
-      "padding:13px 44px 13px 16px",
-      "min-height:52px",
-      "max-width:calc(100vw - 32px)",
-      "background:linear-gradient(135deg,#234a84,#1a3763)",
-      "color:#fff",
-      "font-weight:800",
-      "box-shadow:0 14px 30px rgba(15,23,42,.25)",
-      "display:none",
-      "align-items:center",
-      "gap:10px",
-      "font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"
-    ].join(";");
-
-    const style = document.createElement("style");
-    style.textContent = `
-      #nscPwaInstallButton .nsc-pwa-icon{
-        width:26px;height:26px;border-radius:999px;background:rgba(255,255,255,.16);
-        display:grid;place-items:center;font-size:16px;line-height:1;
-      }
-      #nscPwaInstallButton .nsc-pwa-close{
-        position:absolute;right:12px;top:50%;transform:translateY(-50%);
-        width:24px;height:24px;border-radius:999px;display:grid;place-items:center;
-        font-size:22px;line-height:1;color:rgba(255,255,255,.9);
-      }
-      #nscPwaInstallButton .nsc-pwa-close:hover{background:rgba(255,255,255,.16);}
-      @media(max-width:540px){
-        #nscPwaInstallButton{left:14px!important;right:14px!important;bottom:14px!important;justify-content:center!important;}
-      }
-      .nsc-pwa-modal{
-        position:fixed;inset:0;z-index:2147483646;display:none;place-items:center;
-        background:rgba(15,23,42,.56);padding:18px;
-        font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-      }
-      .nsc-pwa-card{
-        width:min(94vw,430px);background:#fff;color:#0f172a;border-radius:22px;
-        padding:24px;box-shadow:0 24px 60px rgba(15,23,42,.28);
-      }
-      .nsc-pwa-card h3{margin:0 0 8px;color:#234a84;font-size:22px;line-height:1.2;}
-      .nsc-pwa-card p{margin:0 0 14px;color:#64748b;line-height:1.55;}
-      .nsc-pwa-card ol{margin:0;padding-left:20px;color:#334155;line-height:1.7;}
-      .nsc-pwa-card button{
-        margin-top:18px;border:0;border-radius:12px;padding:11px 15px;
-        background:#234a84;color:#fff;font-weight:800;
-      }
-    `;
-    document.head.appendChild(style);
+    button.innerHTML = `<img src="/absensi/icons/icon-192x192.png?v=webapk-logo-v5" alt=""> <span>Download App</span>`;
     document.body.appendChild(button);
 
-    button.addEventListener("click", async function (event) {
-      if (event.target && event.target.classList.contains("nsc-pwa-close")) {
-        button.style.display = "none";
-        return;
-      }
-
+    button.addEventListener("click", async () => {
       if (deferredPrompt) {
-        try {
-          deferredPrompt.prompt();
-          await deferredPrompt.userChoice;
-        } catch (error) {
-          console.warn("Prompt install gagal:", error);
-        } finally {
-          deferredPrompt = null;
-        }
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
         return;
       }
-
-      showManualInstallGuide();
+      showGuide();
     });
 
     return button;
   }
 
-  function showButton(text) {
+  function showInstallButton() {
     if (isStandalone) return;
-    const button = createInstallButton();
-    const textEl = button.querySelector(".nsc-pwa-text");
-    if (textEl) textEl.textContent = text || "Download App";
+    if (!isAndroid && !isIOS) return;
+    const button = createButton();
     button.style.display = "inline-flex";
   }
 
-  function showManualInstallGuide() {
-    let modal = document.getElementById("nscPwaManualModal");
+  function showGuide() {
+    let modal = document.getElementById("nscPwaGuide");
     if (!modal) {
       modal = document.createElement("div");
-      modal.id = "nscPwaManualModal";
+      modal.id = "nscPwaGuide";
       modal.className = "nsc-pwa-modal";
       modal.innerHTML = `
-        <div class="nsc-pwa-card" role="dialog" aria-modal="true">
-          <h3>Install Aplikasi Absensi NSC</h3>
-          <p>Browser belum mengirim tombol install otomatis. Gunakan cara manual di Android.</p>
+        <div class="nsc-pwa-card">
+          <h3>Install Aplikasi NSC</h3>
+          <p>Kalau Android masih menampilkan logo Chrome, berarti yang terpasang adalah shortcut biasa, bukan WebAPK.</p>
           <ol>
-            <li>Buka halaman ini memakai <strong>Google Chrome Android</strong>.</li>
-            <li>Tekan ikon <strong>titik tiga</strong> di kanan atas.</li>
-            <li>Pilih <strong>Install app</strong> atau <strong>Add to Home screen</strong>.</li>
-            <li>Tekan <strong>Install</strong>.</li>
+            <li>Buka halaman ini di <strong>Chrome Android</strong>.</li>
+            <li>Tunggu 5 sampai 10 detik.</li>
+            <li>Pilih menu <strong>titik tiga</strong>.</li>
+            <li>Pilih <strong>Install app</strong>, bukan hanya Add to Home screen.</li>
+            <li>Kalau menu Install app belum ada, buka <strong>/absensi/pwa-check.html</strong>.</li>
           </ol>
-          <button type="button" id="nscPwaModalOk">Saya Mengerti</button>
+          <button type="button">Tutup</button>
         </div>
       `;
       document.body.appendChild(modal);
-      modal.addEventListener("click", function (event) {
-        if (event.target === modal) modal.style.display = "none";
-      });
-      modal.querySelector("#nscPwaModalOk").addEventListener("click", function () {
-        modal.style.display = "none";
+      modal.querySelector("button").addEventListener("click", () => modal.style.display = "none");
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) modal.style.display = "none";
       });
     }
     modal.style.display = "grid";
   }
 
-  async function registerSW() {
-    if (!("serviceWorker" in navigator)) {
-      console.warn("Service worker tidak didukung browser ini.");
-      return;
-    }
-
+  async function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
     try {
-      registrationRef = await navigator.serviceWorker.register(SW_URL, {
+      const registration = await navigator.serviceWorker.register(SW_URL, {
         scope: APP_SCOPE,
         updateViaCache: "none"
       });
-
-      if (registrationRef.waiting && navigator.serviceWorker.controller) {
-        registrationRef.waiting.postMessage({ type: "SKIP_WAITING" });
-      }
-
-      registrationRef.addEventListener("updatefound", function () {
-        const worker = registrationRef.installing;
-        if (!worker) return;
-        worker.addEventListener("statechange", function () {
-          if (worker.state === "installed" && navigator.serviceWorker.controller) {
-            console.info("PWA update tersedia. Reload halaman untuk versi terbaru.");
-          }
-        });
-      });
-
-      console.info("NSC PWA service worker aktif:", registrationRef.scope);
+      console.info("NSC service worker aktif:", registration.scope);
     } catch (error) {
-      console.warn("Registrasi service worker gagal:", error);
+      console.warn("Service worker gagal:", error);
     }
   }
 
-  function runDiagnostics() {
-    window.__NSC_PWA__ = {
-      isAndroid,
-      isIOS,
-      isChromeAndroid,
-      isSamsung,
-      isStandalone,
-      hasBeforeInstallPrompt: Boolean(deferredPrompt),
-      hasServiceWorker: "serviceWorker" in navigator,
-      serviceWorkerScope: registrationRef ? registrationRef.scope : null,
-      manifest: "/absensi/manifest.webmanifest"
-    };
-    console.info("NSC PWA diagnostics:", window.__NSC_PWA__);
-  }
-
-  window.addEventListener("beforeinstallprompt", function (event) {
+  window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferredPrompt = event;
-    showButton("Download App");
-    runDiagnostics();
+    showInstallButton();
   });
 
-  window.addEventListener("appinstalled", function () {
-    const button = document.getElementById("nscPwaInstallButton");
-    if (button) button.style.display = "none";
+  window.addEventListener("appinstalled", () => {
+    const btn = document.getElementById("nscPwaInstallButton");
+    if (btn) btn.style.display = "none";
     deferredPrompt = null;
   });
 
-  document.addEventListener("DOMContentLoaded", async function () {
-    await registerSW();
-
-    // Android fix: tampilkan tombol walau beforeinstallprompt belum keluar.
-    // Kalau eligible, klik tombol akan membuka prompt native.
-    // Kalau belum eligible, klik tombol akan membuka panduan manual.
-    if (!isStandalone && (isAndroid || isIOS || isChromeAndroid || isSamsung)) {
-      window.setTimeout(() => showButton("Download App"), 700);
-      window.setTimeout(() => showButton("Download App"), 2500);
-    }
-
-    runDiagnostics();
+  document.addEventListener("DOMContentLoaded", async () => {
+    await registerServiceWorker();
+    setTimeout(showInstallButton, 1200);
+    setTimeout(showInstallButton, 4000);
   });
 })();
