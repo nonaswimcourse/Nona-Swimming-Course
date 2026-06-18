@@ -6,20 +6,11 @@
   "start_url": "/absensi/?source=pwa",
   "scope": "/absensi/",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ],
   "orientation": "portrait",
   "theme_color": "#234a84",
-  "background_color": "#f4f6f9",
+  "background_color": "#061c34",
   "lang": "id-ID",
   "dir": "ltr",
-  "prefer_related_applications": false,
-  "categories": [
-    "education",
-    "productivity"
-  ],
   "icons": [
     {
       "src": "/absensi/icons/icon-192x192.png",
