@@ -4,6 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#234a84">
+
+    <!-- PWA Absensi NSC -->
+    <meta name="description" content="Aplikasi absensi Nona Swimming Course untuk input dan rekap kehadiran siswa.">
+    <meta name="application-name" content="Absensi NSC">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.webmanifest">
+
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-title" content="Absensi NSC">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="icons/icon-180x180.png">
+
+    <!-- Windows Tile Support -->
+    <meta name="msapplication-TileColor" content="#234a84">
+    <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
+
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
     <title>Absensi Les Renang NSC</title>
 
     <link rel="icon" type="image/png" href="Logo percobaan.png">
@@ -23,6 +42,31 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+    <div id="pwaStatusBar" class="pwa-status hidden" role="status" aria-live="polite">
+        <span id="pwaStatusText"><i class="fa fa-wifi"></i> Koneksi aktif.</span>
+    </div>
+
+    <button id="pwaInstallBtn" class="pwa-install-btn hidden" type="button" aria-label="Install aplikasi Absensi NSC">
+        <span class="pwa-install-icon"><i class="fa fa-download"></i></span>
+        <span id="pwaInstallText">Install Aplikasi</span>
+        <span id="pwaInstallCloseBtn" class="pwa-install-close" aria-hidden="true">&times;</span>
+    </button>
+
+    <div id="pwaUpdateToast" class="pwa-update-toast hidden" role="status" aria-live="polite">
+        <div class="pwa-update-content">
+            <strong>Update tersedia</strong>
+            <span>Muat ulang untuk memakai versi terbaru.</span>
+        </div>
+        <div class="pwa-update-actions">
+            <button id="pwaReloadBtn" type="button">Muat Ulang</button>
+            <button id="pwaUpdateCloseBtn" type="button" aria-label="Tutup">&times;</button>
+        </div>
+    </div>
+
+    <noscript>
+        <div class="pwa-noscript">Aplikasi membutuhkan JavaScript agar fitur absensi berjalan.</div>
+    </noscript>
     <div id="loginSection" class="login-wrapper">
         <div class="login-card">
             <div class="login-logo-container">
@@ -126,6 +170,8 @@
                         <option value="YUMNA">YUMNA</option>
                         <option value="ZIDNI">ZIDNI</option>
                         <option value="ZULFA">ZULFA</option>
+                        <option value="Hadir">Hadir</option>
+                        <option value="Tidak Hadir">Tidak Hadir</option>
                         </select>
                     </div>
                     <div>
@@ -191,6 +237,7 @@
         </div>
     </div>
 
+    <script src="pwa.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
