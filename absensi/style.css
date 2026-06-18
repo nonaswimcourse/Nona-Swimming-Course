@@ -41,6 +41,13 @@ img {
     max-width: 100%;
 }
 
+img[src*="Logo"],
+img[src*="logo"],
+.login-logo,
+.header-logo {
+    background-color: transparent !important;
+}
+
 button,
 input,
 select,
@@ -81,12 +88,19 @@ button {
     display: flex;
     justify-content: center;
     margin-bottom: 24px;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
 }
 
 .login-logo {
     width: 124px;
     height: auto;
     object-fit: contain;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    outline: none !important;
 }
 
 .login-card h2 {
@@ -229,6 +243,11 @@ textarea {
     width: 56px;
     height: auto;
     flex-shrink: 0;
+    object-fit: contain;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    outline: none !important;
 }
 
 .header-text h1 {
