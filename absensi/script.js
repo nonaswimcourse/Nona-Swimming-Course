@@ -52,6 +52,17 @@ function formatTanggalIndonesia(timestamp) {
     return `${hari}, ${tanggal} ${bulan} ${tahun}`;
 }
 
+function formatTanggalTtdIndonesia(timestamp = new Date()) {
+    const dateObj = new Date(timestamp);
+    if (Number.isNaN(dateObj.getTime())) return "";
+
+    const tanggal = dateObj.getDate();
+    const bulan = namaBulan[dateObj.getMonth()];
+    const tahun = dateObj.getFullYear();
+
+    return `${tanggal} ${bulan} ${tahun}`;
+}
+
 function toInt(value) {
     const hasil = parseInt(value, 10);
     return Number.isFinite(hasil) ? hasil : 0;
@@ -261,8 +272,8 @@ function addPdfSignature(doc) {
     doc.setFont("Helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(15, 47, 87);
-    doc.text(`Brebes, ${formatTanggalIndonesia(new Date())}`, marginRight, y, { align: "right" });
-    doc.text("Coach,", marginRight, y + 8, { align: "right" });
+    doc.text(`Brebes, ${formatTanggalTtdIndonesia(new Date())}`, marginRight, y, { align: "right" });
+    doc.text("Pelatih NSC,", marginRight, y + 8, { align: "right" });
 
     doc.setFont("Helvetica", "bold");
     doc.text("Wahyu Riski Maulana", marginRight, y + 38, { align: "right" });
