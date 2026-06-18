@@ -13,6 +13,7 @@ let selectNamaControl = null;
 const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const CACHE_KEY = "nsc_absensi_cache";
+const SISWA_DIKELUARKAN_KEY = "nsc_siswa_dikeluarkan_cache";
 
 function $(id) {
     return document.getElementById(id);
@@ -75,6 +76,73 @@ function loadCache() {
         console.warn("Cache gagal dibaca:", error);
         return [];
     }
+}
+
+function getSiswaDikeluarkanList() {
+    try {
+        const raw = localStorage.getItem(SISWA_DIKELUARKAN_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.map(normalizeNama).filter(Boolean) : [];
+    } catch (error) {
+        console.warn("Daftar siswa dikeluarkan gagal dibaca:", error);
+        return [];
+    }
+}
+
+function saveSiswaDikeluarkanList(listNama) {
+    try {
+        const unik = [...new Set((listNama || []).map(normalizeNama).filter(Boolean))];
+        localStorage.setItem(SISWA_DIKELUARKAN_KEY, JSON.stringify(unik));
+    } catch (error) {
+        console.warn("Daftar siswa dikeluarkan gagal disimpan:", error);
+    }
+}
+
+function isSiswaDikeluarkan(namaSiswa) {
+    const nama = normalizeNama(namaSiswa);
+    return getSiswaDikeluarkanList().includes(nama);
+}
+
+function tambahSiswaDikeluarkan(namaSiswa) {
+    const nama = normalizeNama(namaSiswa);
+    if (!nama) return;
+    const listNama = getSiswaDikeluarkanList();
+    if (!listNama.includes(nama)) {
+        listNama.push(nama);
+        saveSiswaDikeluarkanList(listNama);
+    }
+}
+
+function hapusSiswaDariDropdown(namaSiswa) {
+    const nama = normalizeNama(namaSiswa);
+    const selectEl = $("nama");
+    if (!nama || !selectEl) return;
+
+    Array.from(selectEl.options).forEach((option) => {
+        const valueOption = normalizeNama(option.value);
+        const textOption = normalizeNama(option.textContent);
+        if (valueOption === nama || textOption === nama) {
+            option.remove();
+        }
+    });
+
+    if (selectNamaControl) {
+        const optionsToRemove = Object.keys(selectNamaControl.options || {}).filter((value) => {
+            const option = selectNamaControl.options[value];
+            return normalizeNama(value) === nama || normalizeNama(option?.text) === nama;
+        });
+
+        optionsToRemove.forEach((value) => selectNamaControl.removeOption(value));
+        selectNamaControl.clear(true);
+        selectNamaControl.refreshOptions(false);
+    } else {
+        selectEl.value = "";
+    }
+}
+
+function filterDropdownSiswaDikeluarkan() {
+    getSiswaDikeluarkanList().forEach((nama) => hapusSiswaDariDropdown(nama));
 }
 
 function showLogin() {
@@ -593,9 +661,15 @@ async function updateCounter(index, tipe, value) {
 
 async function deleteSiswaByName(namaSiswa, index = null, confirmText = `Hapus data rekap ${namaSiswa} dari sistem Supabase?`) {
     const session = await requireSessionOrAlert();
-    if (!session) return;
+    if (!session) return false;
 
-    if (!confirm(confirmText)) return;
+    const nama = normalizeNama(namaSiswa);
+    if (!nama) {
+        alert("Nama siswa tidak valid.");
+        return false;
+    }
+
+    if (confirmText && !confirm(confirmText)) return false;
 
     const btnDelete = index !== null ? $(`btnDelete-${index}`) : null;
     const originalHtml = btnDelete ? btnDelete.innerHTML : "";
@@ -609,18 +683,19 @@ async function deleteSiswaByName(namaSiswa, index = null, confirmText = `Hapus d
         const { error } = await supabaseClient
             .from(TABLE_NAME)
             .delete()
-            .eq("absensi", normalizeNama(namaSiswa));
+            .eq("absensi", nama);
 
         if (error) throw error;
 
         if (index !== null) {
             dataRekap.splice(index, 1);
         } else {
-            dataRekap = dataRekap.filter((item) => item.nama !== normalizeNama(namaSiswa));
+            dataRekap = dataRekap.filter((item) => item.nama !== nama);
         }
 
         saveCache();
         renderTable();
+        return true;
     } catch (error) {
         console.error(error);
         alert("Gagal menghapus data dari Supabase: " + (error?.message || "Terjadi kesalahan."));
@@ -628,6 +703,7 @@ async function deleteSiswaByName(namaSiswa, index = null, confirmText = `Hapus d
             btnDelete.disabled = false;
             btnDelete.innerHTML = originalHtml || '<i class="fa fa-trash"></i>';
         }
+        return false;
     }
 }
 
@@ -638,7 +714,24 @@ async function deleteRow(index) {
 }
 
 async function keluarkanSiswa(namaSiswa) {
-    await deleteSiswaByName(namaSiswa, null, `Keluarkan siswa ${namaSiswa} dari les renang?\n\nData absensi akan dihapus dari rekap cloud.`);
+    const nama = normalizeNama(namaSiswa);
+    if (!nama) {
+        alert("Nama siswa tidak valid.");
+        return;
+    }
+
+    const berhasil = await deleteSiswaByName(
+        nama,
+        null,
+        `Keluarkan siswa ${nama} dari les renang?\n\nNama siswa akan dihapus dari daftar input.\nData absensi siswa ini juga akan dihapus dari rekap cloud.`
+    );
+
+    if (!berhasil) return;
+
+    tambahSiswaDikeluarkan(nama);
+    hapusSiswaDariDropdown(nama);
+
+    alert(`Siswa ${nama} berhasil dikeluarkan dari daftar input dan rekap cloud.`);
 }
 
 async function simpan() {
@@ -656,6 +749,16 @@ async function simpan() {
     nama = normalizeNama(nama);
     if (!nama) {
         alert("Silakan pilih nama siswa terlebih dahulu!");
+        return;
+    }
+
+    if (isSiswaDikeluarkan(nama)) {
+        alert(`${nama} sudah dikeluarkan dari daftar input. Aktifkan kembali siswa tersebut terlebih dahulu jika ingin menginput absensi.`);
+        if (selectNamaControl) {
+            selectNamaControl.clear(true);
+        } else if ($("nama")) {
+            $("nama").value = "";
+        }
         return;
     }
 
@@ -987,6 +1090,8 @@ function initNamaSelect() {
     const selectEl = $("nama");
     if (!selectEl || selectNamaControl) return;
 
+    filterDropdownSiswaDikeluarkan();
+
     selectNamaControl = new TomSelect("#nama", {
         create: true,
         sortField: { field: "text", direction: "asc" },
@@ -1000,6 +1105,8 @@ function initNamaSelect() {
             }
         }
     });
+
+    filterDropdownSiswaDikeluarkan();
 }
 
 document.addEventListener("DOMContentLoaded", async function () {
