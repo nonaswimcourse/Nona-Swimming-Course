@@ -1,33 +1,32 @@
-/* Service Worker PWA Absensi NSC
-   File ini aman untuk GitHub Pages, Netlify, Vercel, atau hosting biasa.
-   Scope mengikuti lokasi file ini. Jika file berada di /absensi/, scope-nya /absensi/.
+/* Service Worker Absensi NSC
+   Android install fix v1.0.4
+   Path wajib: /absensi/service-worker.js
 */
 
-const CACHE_VERSION = "nsc-absensi-pwa-v1.0.0";
+const CACHE_VERSION = "nsc-absensi-v1.0.4-android-download";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
-const BASE_URL = new URL("./", self.location.href);
-
 const CORE_ASSETS = [
-  "./",
-  "./index.html",
-  "./style.css",
-  "./script.js",
-  "./pwa.js",
-  "./manifest.webmanifest",
-  "./offline.html",
-  "./Logo percobaan.png",
-  "./icons/icon-192x192.png",
-  "./icons/icon-512x512.png",
-  "./icons/maskable-icon-512x512.png"
+  "/absensi/",
+  "/absensi/index.html",
+  "/absensi/style.css",
+  "/absensi/script.js",
+  "/absensi/pwa.js",
+  "/absensi/manifest.webmanifest",
+  "/absensi/offline.html",
+  "/absensi/icons/icon-192x192.png",
+  "/absensi/icons/icon-512x512.png",
+  "/absensi/icons/maskable-icon-512x512.png",
+  "/absensi/apple-touch-icon.png"
 ];
 
-const EXCLUDED_KEYWORDS = [
+const BYPASS_KEYWORDS = [
   "supabase.co",
   "auth/v1",
   "storage/v1",
-  "functions/v1"
+  "functions/v1",
+  "api.whatsapp.com"
 ];
 
 self.addEventListener("install", (event) => {
@@ -36,7 +35,7 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(deleteOldCaches());
+  event.waitUntil(cleanOldCaches());
   self.clients.claim();
 });
 
@@ -45,10 +44,10 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   if (request.method !== "GET") return;
-  if (shouldBypassCache(url)) return;
+  if (shouldBypass(url)) return;
 
   if (request.mode === "navigate") {
-    event.respondWith(networkFirstPage(request));
+    event.respondWith(networkFirst(request));
     return;
   }
 
@@ -64,54 +63,44 @@ self.addEventListener("fetch", (event) => {
 
 async function cacheCoreAssets() {
   const cache = await caches.open(STATIC_CACHE);
-
-  await Promise.all(
-    CORE_ASSETS.map(async (asset) => {
-      try {
-        const requestUrl = new URL(asset, BASE_URL);
-        const response = await fetch(requestUrl, { cache: "reload" });
-        if (response.ok) {
-          await cache.put(requestUrl, response);
-        }
-      } catch (error) {
-        console.warn("[SW] gagal cache asset:", asset, error);
-      }
-    })
-  );
+  await Promise.all(CORE_ASSETS.map(async (asset) => {
+    try {
+      const response = await fetch(asset, { cache: "reload" });
+      if (response && response.ok) await cache.put(asset, response.clone());
+    } catch (error) {
+      console.warn("[SW] Asset tidak masuk cache:", asset, error);
+    }
+  }));
 }
 
-async function deleteOldCaches() {
+async function cleanOldCaches() {
   const keys = await caches.keys();
   await Promise.all(
-    keys
-      .filter((key) => !key.startsWith(CACHE_VERSION))
-      .map((key) => caches.delete(key))
+    keys.filter((key) => !key.startsWith(CACHE_VERSION)).map((key) => caches.delete(key))
   );
 }
 
-function shouldBypassCache(url) {
+function shouldBypass(url) {
   if (url.origin !== self.location.origin) return true;
-
-  const fullUrl = url.href.toLowerCase();
-  return EXCLUDED_KEYWORDS.some((keyword) => fullUrl.includes(keyword));
+  const href = url.href.toLowerCase();
+  return BYPASS_KEYWORDS.some((keyword) => href.includes(keyword));
 }
 
 function isStaticAsset(pathname) {
   return /\.(?:css|js|png|jpg|jpeg|svg|gif|webp|ico|woff2?|ttf|eot|webmanifest)$/i.test(pathname);
 }
 
-async function networkFirstPage(request) {
+async function networkFirst(request) {
   try {
     const response = await fetch(request);
-    const cache = await caches.open(RUNTIME_CACHE);
-    cache.put(request, response.clone());
+    if (response && response.ok) {
+      const cache = await caches.open(RUNTIME_CACHE);
+      await cache.put(request, response.clone());
+    }
     return response;
   } catch (error) {
     const cached = await caches.match(request);
-    if (cached) return cached;
-
-    const offlineUrl = new URL("./offline.html", BASE_URL);
-    return caches.match(offlineUrl);
+    return cached || caches.match("/absensi/offline.html");
   }
 }
 
@@ -122,7 +111,7 @@ async function cacheFirst(request) {
   const response = await fetch(request);
   if (response && response.ok) {
     const cache = await caches.open(STATIC_CACHE);
-    cache.put(request, response.clone());
+    await cache.put(request, response.clone());
   }
   return response;
 }
@@ -133,9 +122,7 @@ async function staleWhileRevalidate(request) {
 
   const fresh = fetch(request)
     .then((response) => {
-      if (response && response.ok) {
-        cache.put(request, response.clone());
-      }
+      if (response && response.ok) cache.put(request, response.clone());
       return response;
     })
     .catch(() => cached);

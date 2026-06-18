@@ -1,6 +1,4 @@
-# Opsional untuk Apache Hosting
-# Pakai file ini dengan nama .htaccess jika server belum mengenali .webmanifest.
-
+# Optional untuk Apache
 <IfModule mod_mime.c>
   AddType application/manifest+json .webmanifest
   AddType application/javascript .js
@@ -8,6 +6,9 @@
 
 <IfModule mod_headers.c>
   <FilesMatch "service-worker\.js$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "manifest\.webmanifest$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
   </FilesMatch>
 </IfModule>

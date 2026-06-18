@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PWA Check - NSC</title>
+  <link rel="manifest" href="/absensi/manifest.webmanifest">
+  <style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f6f9;color:#0f172a;margin:0;padding:18px}
+    main{max-width:760px;margin:auto;background:white;border-radius:20px;padding:22px;box-shadow:0 14px 34px rgba(15,23,42,.10)}
+    h1{margin:0 0 8px;color:#234a84}
+    p{color:#64748b}
+    .row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #e2e8f0;padding:12px 0}
+    .ok{color:#15803d;font-weight:800}.bad{color:#dc2626;font-weight:800}.warn{color:#b45309;font-weight:800}
+    code{background:#f1f5f9;padding:3px 6px;border-radius:6px}
+    button{border:0;border-radius:999px;background:#234a84;color:#fff;padding:12px 16px;font-weight:800;margin-top:16px}
+  </style>
+</head>
+<body>
+<main>
+  <h1>NSC PWA Check</h1>
+  <p>Gunakan halaman ini di Android Chrome untuk mengecek penyebab tombol install tidak muncul.</p>
+  <div id="result"></div>
+  <button onclick="location.href='/absensi/?pwaDebug=1&v=android4'">Buka Aplikasi</button>
+</main>
+<script>
+const result = document.getElementById("result");
+function row(label, status, detail){
+  const cls = status === "OK" ? "ok" : status === "WARN" ? "warn" : "bad";
+  return `<div class="row"><strong>${label}</strong><span class="${cls}">${status}</span></div><div style="color:#64748b;font-size:13px">${detail||""}</div>`;
+}
+(async function(){
+  let html = "";
+  html += row("HTTPS", location.protocol === "https:" ? "OK" : "BAD", location.protocol);
+  html += row("Service Worker Support", "serviceWorker" in navigator ? "OK" : "BAD", navigator.userAgent);
+  try {
+    const man = await fetch("/absensi/manifest.webmanifest?v=check");
+    html += row("Manifest Fetch", man.ok ? "OK" : "BAD", "HTTP " + man.status);
+    const json = await man.json();
+    html += row("Manifest Name", json.name && json.short_name ? "OK" : "BAD", json.name || "");
+    html += row("Start URL", json.start_url ? "OK" : "BAD", json.start_url || "");
+    html += row("Display", ["standalone","fullscreen","minimal-ui"].includes(json.display) ? "OK" : "BAD", json.display || "");
+  } catch(e) {
+    html += row("Manifest Fetch", "BAD", e.message);
+  }
+  try {
+    const icon192 = await fetch("/absensi/icons/icon-192x192.png?v=check");
+    const icon512 = await fetch("/absensi/icons/icon-512x512.png?v=check");
+    html += row("Icon 192", icon192.ok ? "OK" : "BAD", "HTTP " + icon192.status);
+    html += row("Icon 512", icon512.ok ? "OK" : "BAD", "HTTP " + icon512.status);
+  } catch(e) {
+    html += row("Icons", "BAD", e.message);
+  }
+  try {
+    const reg = await navigator.serviceWorker.register("/absensi/service-worker.js?v=check", {scope:"/absensi/", updateViaCache:"none"});
+    html += row("SW Register", "OK", reg.scope);
+  } catch(e) {
+    html += row("SW Register", "BAD", e.message);
+  }
+  html += row("Standalone", matchMedia("(display-mode: standalone)").matches ? "OK" : "WARN", "Kalau WARN berarti masih dibuka di browser, belum sebagai aplikasi.");
+  result.innerHTML = html;
+})();
+</script>
+</body>
+</html>
