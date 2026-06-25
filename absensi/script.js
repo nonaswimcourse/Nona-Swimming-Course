@@ -13,6 +13,9 @@ let selectNamaControl = null;
 const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const CACHE_KEY = "nsc_absensi_cache";
+const CATATAN_HISTORY_PREFIX = "NSC_CATATAN_HISTORY_V1:";
+let realtimeChannel = null;
+let realtimeReloadTimer = null;
 
 function $(id) {
     return document.getElementById(id);
@@ -61,6 +64,108 @@ function formatTanggalTtdIndonesia(timestamp = new Date()) {
     const tahun = dateObj.getFullYear();
 
     return `${tanggal} ${bulan} ${tahun}`;
+}
+
+function formatWaktuIndonesia(timestamp) {
+    if (!timestamp) return "-";
+    const dateObj = new Date(timestamp);
+    if (Number.isNaN(dateObj.getTime())) return "-";
+
+    const jam = String(dateObj.getHours()).padStart(2, "0");
+    const menit = String(dateObj.getMinutes()).padStart(2, "0");
+    return `${jam}.${menit} WIB`;
+}
+
+function normalizeRiwayatCatatan(list, fallbackTanggal = new Date().toISOString()) {
+    if (!Array.isArray(list)) return [];
+
+    return list
+        .map((entry) => {
+            if (typeof entry === "string") {
+                const teks = entry.trim();
+                if (!teks) return null;
+                return {
+                    tanggal: fallbackTanggal,
+                    waktu: formatWaktuIndonesia(fallbackTanggal),
+                    status: "",
+                    catatan: teks
+                };
+            }
+
+            const tanggal = entry?.tanggal || entry?.date || entry?.created_at || fallbackTanggal;
+            const catatan = String(entry?.catatan ?? entry?.note ?? entry?.keterangan ?? "").trim();
+            if (!catatan) return null;
+
+            return {
+                tanggal,
+                waktu: entry?.waktu || formatWaktuIndonesia(tanggal),
+                status: String(entry?.status ?? "").trim(),
+                catatan
+            };
+        })
+        .filter(Boolean)
+        .slice(-TOTAL_PERTEMUAN);
+}
+
+function parseCatatanHistory(rawCatatan, fallbackTanggal = new Date().toISOString()) {
+    const teks = String(rawCatatan ?? "").trim();
+    if (!teks) return [];
+
+    if (teks.startsWith(CATATAN_HISTORY_PREFIX)) {
+        try {
+            const parsed = JSON.parse(teks.slice(CATATAN_HISTORY_PREFIX.length));
+            return normalizeRiwayatCatatan(parsed, fallbackTanggal);
+        } catch (error) {
+            console.warn("Riwayat catatan gagal dibaca:", error);
+        }
+    }
+
+    try {
+        const parsed = JSON.parse(teks);
+        if (Array.isArray(parsed)) {
+            return normalizeRiwayatCatatan(parsed, fallbackTanggal);
+        }
+        if (parsed && Array.isArray(parsed.riwayat)) {
+            return normalizeRiwayatCatatan(parsed.riwayat, fallbackTanggal);
+        }
+    } catch (_) {
+        // Catatan lama masih berbentuk teks biasa.
+    }
+
+    return normalizeRiwayatCatatan([{ tanggal: fallbackTanggal, catatan: teks }], fallbackTanggal);
+}
+
+function serializeCatatanHistory(history) {
+    const cleanHistory = normalizeRiwayatCatatan(history);
+    if (cleanHistory.length === 0) return "";
+    return CATATAN_HISTORY_PREFIX + JSON.stringify(cleanHistory);
+}
+
+function tambahRiwayatCatatan(history, catatan, tanggal, status = "") {
+    const cleanHistory = normalizeRiwayatCatatan(history, tanggal);
+    const teks = String(catatan ?? "").trim();
+    if (!teks) return cleanHistory;
+
+    cleanHistory.push({
+        tanggal,
+        waktu: formatWaktuIndonesia(tanggal),
+        status,
+        catatan: teks
+    });
+
+    return cleanHistory.slice(-TOTAL_PERTEMUAN);
+}
+
+function getCatatanTerakhir(history, fallback = "") {
+    const cleanHistory = normalizeRiwayatCatatan(history);
+    if (cleanHistory.length === 0) return String(fallback ?? "").trim();
+    return cleanHistory[cleanHistory.length - 1].catatan || "";
+}
+
+function getTanggalTerakhirRiwayat(history, fallbackTanggal) {
+    const cleanHistory = normalizeRiwayatCatatan(history, fallbackTanggal);
+    if (cleanHistory.length === 0) return fallbackTanggal;
+    return cleanHistory[cleanHistory.length - 1].tanggal || fallbackTanggal;
 }
 
 function toInt(value) {
@@ -152,10 +257,15 @@ function normalizeDbRow(row) {
     const nama = normalizeNama(row?.nama ?? row?.absensi ?? row?.name);
     const hadir = toInt(row?.hadir ?? row?.Hadir ?? row?.hadir_total);
     const tidakHadir = toInt(row?.tidak_hadir ?? row?.["Tidak Hadir"] ?? row?.tidakHadir);
-    const catatan = String(row?.catatan ?? row?.Catatan ?? "").trim();
+    const rawDate = row?.tanggal ?? row?.["Tanggal Terbaru"] ?? row?.created_at ?? row?.updated_at ?? new Date().toISOString();
+    const riwayatDariCache = normalizeRiwayatCatatan(row?.riwayatCatatan, rawDate);
+    const riwayatCatatan = riwayatDariCache.length > 0
+        ? riwayatDariCache
+        : parseCatatanHistory(row?.catatan ?? row?.Catatan ?? "", rawDate);
+    const tanggalTerakhir = getTanggalTerakhirRiwayat(riwayatCatatan, rawDate);
+    const catatan = getCatatanTerakhir(riwayatCatatan, row?.catatan ?? row?.Catatan ?? "");
     const noHp = String(row?.no_hp ?? row?.noHp ?? "").trim();
     const pdfPath = String(row?.pdf_path ?? row?.pdfPath ?? "").trim();
-    const rawDate = row?.tanggal ?? row?.["Tanggal Terbaru"] ?? row?.created_at ?? row?.updated_at ?? new Date().toISOString();
 
     return {
         id: row?.id ?? null,
@@ -164,22 +274,26 @@ function normalizeDbRow(row) {
         hadir,
         tidakHadir,
         catatan,
+        riwayatCatatan,
         no_hp: noHp,
         pdf_path: pdfPath,
-        tanggal: rawDate,
-        tanggalRealtime: formatTanggalIndonesia(rawDate),
-        rawDate
+        tanggal: tanggalTerakhir,
+        tanggalRealtime: formatTanggalIndonesia(tanggalTerakhir),
+        rawDate: tanggalTerakhir
     };
 }
 
 function getDbPayloadFromItem(item, overrides = {}) {
+    const tanggalPayload = overrides.tanggal ?? item.rawDate ?? new Date().toISOString();
+    const riwayatPayload = overrides.riwayatCatatan ?? item.riwayatCatatan ?? [];
+
     return {
         absensi: overrides.absensi ?? item.nama,
         nama: overrides.nama ?? item.nama,
         hadir: String(overrides.hadir ?? item.hadir ?? 0),
         tidak_hadir: String(overrides.tidak_hadir ?? item.tidakHadir ?? 0),
-        catatan: overrides.catatan ?? item.catatan ?? "",
-        tanggal: overrides.tanggal ?? item.rawDate ?? new Date().toISOString(),
+        catatan: serializeCatatanHistory(riwayatPayload),
+        tanggal: tanggalPayload,
         no_hp: overrides.no_hp ?? item.no_hp ?? "",
         pdf_path: overrides.pdf_path ?? item.pdf_path ?? ""
     };
@@ -238,45 +352,52 @@ async function addPdfHeader(doc, title, subtitle) {
     const logoDataUrl = await getLogoDataUrl().catch(() => null);
     if (logoDataUrl) {
         try {
-            doc.addImage(logoDataUrl, "PNG", 14, 10, 18, 25);
+            // Logo dan header dipadatkan agar laporan 12 catatan tetap muat 1 halaman.
+            doc.addImage(logoDataUrl, "PNG", 14, 7, 14, 19);
         } catch (error) {
             console.warn("Gagal menambahkan logo ke PDF:", error);
         }
     }
 
     doc.setFont("Helvetica", "bold");
-    doc.setFontSize(14);
+    doc.setFontSize(12.5);
     doc.setTextColor(35, 74, 132);
-    doc.text(title, logoDataUrl ? 38 : 14, 23);
+    doc.text(title, logoDataUrl ? 33 : 14, 16);
 
     doc.setFont("Helvetica", "normal");
-    doc.setFontSize(10);
+    doc.setFontSize(8.5);
     doc.setTextColor(148, 163, 184);
-    doc.text(subtitle, logoDataUrl ? 38 : 14, 30);
+    doc.text(subtitle, logoDataUrl ? 33 : 14, 22);
 
     doc.setDrawColor(241, 245, 249);
-    doc.line(14, 40, 196, 40);
+    doc.line(14, 29, 196, 29);
 }
 
-function addPdfSignature(doc) {
+function addPdfSignature(doc, options = {}) {
     const pageHeight = doc.internal.pageSize.getHeight();
     const marginRight = 196;
-    const finalY = doc.lastAutoTable?.finalY || 46;
-    let y = finalY + 18;
+    const finalY = doc.lastAutoTable?.finalY || 34;
+    const gap = Number(options.gap ?? 7);
+    const maxY = pageHeight - 31;
+    let y = finalY + gap;
 
-    if (y > pageHeight - 55) {
+    // Untuk laporan individu 12 pertemuan, tanda tangan jangan langsung pindah halaman.
+    // Jika tabel hampir menyentuh bawah halaman, posisi tanda tangan dikunci dekat bawah.
+    if (options.keepOnPage && y > maxY) {
+        y = maxY;
+    } else if (!options.keepOnPage && y > pageHeight - 42) {
         doc.addPage();
-        y = 38;
+        y = 32;
     }
 
     doc.setFont("Helvetica", "normal");
-    doc.setFontSize(10);
+    doc.setFontSize(8.5);
     doc.setTextColor(15, 47, 87);
     doc.text(`Brebes, ${formatTanggalTtdIndonesia(new Date())}`, marginRight, y, { align: "right" });
-    doc.text("Pelatih NSC,", marginRight, y + 8, { align: "right" });
+    doc.text("Pelatih NSC,", marginRight, y + 6, { align: "right" });
 
     doc.setFont("Helvetica", "bold");
-    doc.text("Wahyu Riski Maulana", marginRight, y + 38, { align: "right" });
+    doc.text("Wahyu Riski Maulana", marginRight, y + 24, { align: "right" });
 }
 
 async function buildSiswaPdfBlob(item) {
@@ -296,17 +417,57 @@ async function buildSiswaPdfBlob(item) {
     ];
 
     doc.autoTable({
-        startY: 46,
+        startY: 33,
         head: [["Komponen Data", "Detail Keterangan"]],
         body: rows,
         theme: "striped",
-        headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 10 },
-        styles: { textColor: [71, 85, 105], fontSize: 10, cellPadding: 4, valign: "middle" },
+        headStyles: { fillColor: [35, 74, 132], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5, cellPadding: 2 },
+        styles: { textColor: [71, 85, 105], fontSize: 8.2, cellPadding: 1.8, valign: "middle", lineWidth: 0.1 },
         alternateRowStyles: { fillColor: [248, 250, 252] },
-        columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: "auto" } }
+        columnStyles: { 0: { cellWidth: 52 }, 1: { cellWidth: "auto" } },
+        margin: { left: 14, right: 14 }
     });
 
-    addPdfSignature(doc);
+    const riwayatRows = normalizeRiwayatCatatan(item.riwayatCatatan, item.rawDate).map((entry, idx) => [
+        idx + 1,
+        formatTanggalIndonesia(entry.tanggal),
+        entry.waktu || formatWaktuIndonesia(entry.tanggal),
+        entry.status || "-",
+        entry.catatan || "-"
+    ]);
+
+    let startRiwayatY = (doc.lastAutoTable?.finalY || 33) + 6;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    if (startRiwayatY > pageHeight - 55) {
+        doc.addPage();
+        startRiwayatY = 24;
+    }
+
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(35, 74, 132);
+    doc.text("Riwayat Catatan Pertemuan", 14, startRiwayatY - 2);
+
+    doc.autoTable({
+        startY: startRiwayatY,
+        head: [["Ke-", "Tanggal", "Waktu", "Status", "Catatan"]],
+        body: riwayatRows.length ? riwayatRows : [["-", "-", "-", "-", "Belum ada riwayat catatan"]],
+        theme: "grid",
+        headStyles: { fillColor: [15, 47, 87], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7.4, cellPadding: 1.4 },
+        styles: { textColor: [51, 65, 85], fontSize: 7.1, cellPadding: 1.3, valign: "top", lineWidth: 0.1, overflow: "linebreak" },
+        bodyStyles: { minCellHeight: 4.8 },
+        columnStyles: {
+            0: { cellWidth: 9, halign: "center" },
+            1: { cellWidth: 34 },
+            2: { cellWidth: 18 },
+            3: { cellWidth: 22 },
+            4: { cellWidth: "auto" }
+        },
+        margin: { left: 14, right: 14 },
+        rowPageBreak: "avoid"
+    });
+
+    addPdfSignature(doc, { keepOnPage: true, gap: 6 });
 
     return doc.output("blob");
 }
@@ -327,7 +488,7 @@ async function buildTotalPdfBlob() {
     ]);
 
     doc.autoTable({
-        startY: 46,
+        startY: 33,
         head: [["Nama Siswa", "Hadir", "Absen", "Rasio", "Tanggal Terbaru", "Catatan Terakhir"]],
         body: rows,
         theme: "striped",
@@ -458,6 +619,7 @@ async function checkLoginSession() {
     if (session) {
         showApp();
         await muatDataDariCloud();
+        aktifkanRealtimeAbsensi();
     } else {
         showLogin();
     }
@@ -494,6 +656,7 @@ async function handleLogin(event) {
 
         showApp();
         await muatDataDariCloud();
+        aktifkanRealtimeAbsensi();
         if (passwordEl) passwordEl.value = "";
     } catch (error) {
         console.error("Login gagal:", error);
@@ -511,6 +674,7 @@ async function handleLogout() {
     } catch (error) {
         console.error("Logout gagal:", error);
     } finally {
+        await hentikanRealtimeAbsensi();
         dataRekap = [];
         saveCache();
         renderTable("Silakan login untuk melihat data.");
@@ -518,7 +682,7 @@ async function handleLogout() {
     }
 }
 
-async function muatDataDariCloud() {
+async function muatDataDariCloud(tampilkanLoading = true) {
     const session = await getActiveSession();
     if (!session) {
         showLogin();
@@ -526,7 +690,7 @@ async function muatDataDariCloud() {
     }
 
     const tbody = $("tbody");
-    if (tbody) {
+    if (tbody && tampilkanLoading) {
         tbody.innerHTML = `<tr><td colspan="6" class="table-empty"><i class="fa fa-spinner fa-spin"></i> Menyinkronkan data terbaru dari Cloud Supabase...</td></tr>`;
     }
 
@@ -551,6 +715,46 @@ async function muatDataDariCloud() {
             dataRekap = [];
             renderTable("Gagal memuat data. Silakan cek koneksi atau session Supabase.");
         }
+    }
+}
+
+function jadwalkanReloadRealtime() {
+    if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
+
+    realtimeReloadTimer = setTimeout(async () => {
+        realtimeReloadTimer = null;
+        const session = await getActiveSession();
+        if (!session) return;
+        await muatDataDariCloud(false);
+    }, 600);
+}
+
+function aktifkanRealtimeAbsensi() {
+    if (realtimeChannel) return;
+
+    realtimeChannel = supabaseClient
+        .channel("absensinsc-realtime")
+        .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: TABLE_NAME },
+            function () {
+                jadwalkanReloadRealtime();
+            }
+        )
+        .subscribe(function (status) {
+            console.log("Realtime absensi:", status);
+        });
+}
+
+async function hentikanRealtimeAbsensi() {
+    if (!realtimeChannel) return;
+
+    try {
+        await supabaseClient.removeChannel(realtimeChannel);
+    } catch (error) {
+        console.warn("Realtime channel gagal dihentikan:", error);
+    } finally {
+        realtimeChannel = null;
     }
 }
 
@@ -595,10 +799,14 @@ async function updateCounter(index, tipe, value) {
     }
 
     const waktuSekarangISO = new Date().toISOString();
+    const statusCatatan = value > 0
+        ? (tipe === "hadir" ? "Hadir" : "Tidak Hadir")
+        : "Koreksi";
+    const riwayatBaru = tambahRiwayatCatatan(targetSiswa.riwayatCatatan, catatanKetik, waktuSekarangISO, statusCatatan);
     const payload = getDbPayloadFromItem(targetSiswa, {
         hadir: baruHadir,
         tidak_hadir: baruTidakHadir,
-        catatan: catatanKetik,
+        riwayatCatatan: riwayatBaru,
         tanggal: waktuSekarangISO
     });
 
@@ -613,7 +821,8 @@ async function updateCounter(index, tipe, value) {
             ...targetSiswa,
             hadir: baruHadir,
             tidakHadir: baruTidakHadir,
-            catatan: catatanKetik,
+            catatan: getCatatanTerakhir(riwayatBaru),
+            riwayatCatatan: riwayatBaru,
             rawDate: waktuSekarangISO,
             tanggal: waktuSekarangISO,
             tanggalRealtime: formatTanggalIndonesia(waktuSekarangISO)
@@ -714,12 +923,13 @@ async function simpan() {
         const noHpFinal = nomorHpInput !== "" ? nomorHpInput : (existing?.no_hp || "");
 
         const waktuSekarangISO = new Date().toISOString();
+        const riwayatBaru = tambahRiwayatCatatan(existing?.riwayatCatatan, catatanTeks, waktuSekarangISO, status);
         const payload = {
             absensi: nama,
             nama,
             hadir: String(nHadir),
             tidak_hadir: String(nTidakHadir),
-            catatan: catatanTeks,
+            catatan: serializeCatatanHistory(riwayatBaru),
             tanggal: waktuSekarangISO,
             no_hp: noHpFinal,
             pdf_path: existing?.pdf_path || ""
@@ -737,7 +947,8 @@ async function simpan() {
             absensi: nama,
             hadir: nHadir,
             tidakHadir: nTidakHadir,
-            catatan: catatanTeks,
+            catatan: getCatatanTerakhir(riwayatBaru),
+            riwayatCatatan: riwayatBaru,
             no_hp: noHpFinal,
             pdf_path: existing?.pdf_path || "",
             tanggal: waktuSekarangISO,
@@ -788,8 +999,21 @@ async function exportSiswaExcel(index) {
         ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
         ["Status Target", item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
         ["Tanggal Terakhir Update", item.tanggalRealtime || formatTanggalIndonesia(item.rawDate)],
-        ["Catatan Terakhir", item.catatan || "-"]
+        ["Catatan Terakhir", item.catatan || "-"],
+        [],
+        ["Riwayat Catatan Pertemuan"],
+        ["Ke", "Tanggal", "Waktu", "Status", "Catatan"]
     ];
+
+    normalizeRiwayatCatatan(item.riwayatCatatan, item.rawDate).forEach((entry, idx) => {
+        worksheetData.push([
+            idx + 1,
+            formatTanggalIndonesia(entry.tanggal),
+            entry.waktu || formatWaktuIndonesia(entry.tanggal),
+            entry.status || "-",
+            entry.catatan || "-"
+        ]);
+    });
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(worksheetData);
@@ -928,7 +1152,8 @@ const publicUrlDownload = `${publicUrl}?download=${encodeURIComponent(namaBerkas
 const pesanWAPDF = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
 
 Status Kehadiran: *${item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`}*
-Catatan Evaluasi: _${item.catatan || "-"}_
+Catatan Evaluasi Terakhir: _${item.catatan || "-"}_
+Riwayat catatan lengkap tersedia di dalam PDF.
 
 Silakan buka PDF laporan melalui link berikut:
 ${publicUrlDownload}

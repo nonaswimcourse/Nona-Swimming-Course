@@ -1,6 +1,6 @@
-/* NSC Service Worker - Flat Icon Path flat-icon-v1 */
+/* NSC Service Worker - Realtime Catatan PDF Compact v2 */
 
-const CACHE_VERSION = "nsc-absensi-flat-icon-v1";
+const CACHE_VERSION = "nsc-absensi-realtime-catatan-compact-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
