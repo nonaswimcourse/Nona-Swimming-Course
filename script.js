@@ -58,3 +58,12 @@ window.addEventListener('load', () => {
         loader.classList.add('loader-hidden');
     }, 1500); 
 });
+
+// ===== DAFTARKAN SERVICE WORKER (biar bisa di-install & tampil logo di Layar Utama) =====
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js").catch((err) => {
+            console.log("Service worker gagal didaftarkan:", err);
+        });
+    });
+}
