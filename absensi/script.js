@@ -9,6 +9,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let dataRekap = [];
 let selectNamaControl = null;
+let selectCatatanControl = null;
 
 const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -166,6 +167,27 @@ function getTanggalTerakhirRiwayat(history, fallbackTanggal) {
     const cleanHistory = normalizeRiwayatCatatan(history, fallbackTanggal);
     if (cleanHistory.length === 0) return fallbackTanggal;
     return cleanHistory[cleanHistory.length - 1].tanggal || fallbackTanggal;
+}
+
+// Menghapus entri riwayat terakhir yang statusnya sesuai (Hadir/Tidak Hadir) secara permanen.
+// Dipakai saat counter dikurangi (-), supaya data benar-benar hilang, bukan menyisakan riwayat "koreksi".
+function hapusRiwayatTerakhirByStatus(history, statusTarget) {
+    const cleanHistory = normalizeRiwayatCatatan(history);
+
+    for (let i = cleanHistory.length - 1; i >= 0; i--) {
+        if (cleanHistory[i].status === statusTarget) {
+            cleanHistory.splice(i, 1);
+            return cleanHistory;
+        }
+    }
+
+    // Fallback: kalau tidak ada entri dengan status yang cocok, hapus entri paling akhir
+    // supaya jumlah riwayat tetap sinkron dengan angka counter (tetap benar-benar terhapus, tanpa jejak).
+    if (cleanHistory.length > 0) {
+        cleanHistory.splice(cleanHistory.length - 1, 1);
+    }
+
+    return cleanHistory;
 }
 
 function toInt(value) {
@@ -766,21 +788,26 @@ async function updateCounter(index, tipe, value) {
     if (!targetSiswa) return;
 
     const namaSiswa = targetSiswa.nama;
-    let catatanKetik = "";
-
     let baruHadir = targetSiswa.hadir;
     let baruTidakHadir = targetSiswa.tidakHadir;
+    const waktuSekarangISO = new Date().toISOString();
+    let riwayatBaru;
+    let tanggalPayload;
 
     if (value > 0) {
         const inputCatatan = prompt(`Masukkan catatan baru untuk ${namaSiswa}:`, "Update manual via counter");
         if (inputCatatan === null) return;
-        catatanKetik = inputCatatan.trim() === "" ? "Update manual via counter" : inputCatatan.trim();
+        const catatanKetik = inputCatatan.trim() === "" ? "Update manual via counter" : inputCatatan.trim();
 
+        const statusCatatan = tipe === "hadir" ? "Hadir" : "Tidak Hadir";
         if (tipe === "hadir") {
             baruHadir += 1;
         } else {
             baruTidakHadir += 1;
         }
+
+        riwayatBaru = tambahRiwayatCatatan(targetSiswa.riwayatCatatan, catatanKetik, waktuSekarangISO, statusCatatan);
+        tanggalPayload = waktuSekarangISO;
     } else {
         if (tipe === "hadir") {
             if (baruHadir === 0) return;
@@ -789,7 +816,12 @@ async function updateCounter(index, tipe, value) {
             if (baruTidakHadir === 0) return;
             baruTidakHadir -= 1;
         }
-        catatanKetik = "Pengurangan manual via counter";
+
+        // Kurangi = hapus permanen entri riwayat terakhir yang sesuai, bukan menambah catatan "koreksi".
+        // Jadi setelah dikurangi, tidak ada bekas/riwayat data yang tersimpan.
+        const statusTarget = tipe === "hadir" ? "Hadir" : "Tidak Hadir";
+        riwayatBaru = hapusRiwayatTerakhirByStatus(targetSiswa.riwayatCatatan, statusTarget);
+        tanggalPayload = getTanggalTerakhirRiwayat(riwayatBaru, waktuSekarangISO);
     }
 
     if (baruHadir === 0 && baruTidakHadir === 0) {
@@ -798,16 +830,11 @@ async function updateCounter(index, tipe, value) {
         return;
     }
 
-    const waktuSekarangISO = new Date().toISOString();
-    const statusCatatan = value > 0
-        ? (tipe === "hadir" ? "Hadir" : "Tidak Hadir")
-        : "Koreksi";
-    const riwayatBaru = tambahRiwayatCatatan(targetSiswa.riwayatCatatan, catatanKetik, waktuSekarangISO, statusCatatan);
     const payload = getDbPayloadFromItem(targetSiswa, {
         hadir: baruHadir,
         tidak_hadir: baruTidakHadir,
         riwayatCatatan: riwayatBaru,
-        tanggal: waktuSekarangISO
+        tanggal: tanggalPayload
     });
 
     try {
@@ -821,11 +848,11 @@ async function updateCounter(index, tipe, value) {
             ...targetSiswa,
             hadir: baruHadir,
             tidakHadir: baruTidakHadir,
-            catatan: getCatatanTerakhir(riwayatBaru),
+            catatan: getCatatanTerakhir(riwayatBaru, ""),
             riwayatCatatan: riwayatBaru,
-            rawDate: waktuSekarangISO,
-            tanggal: waktuSekarangISO,
-            tanggalRealtime: formatTanggalIndonesia(waktuSekarangISO)
+            rawDate: tanggalPayload,
+            tanggal: tanggalPayload,
+            tanggalRealtime: formatTanggalIndonesia(tanggalPayload)
         };
 
         saveCache();
@@ -905,7 +932,7 @@ async function simpan() {
     }
 
     const status = $("status")?.value || "Hadir";
-    const catatan = $("catatan")?.value || "";
+    const catatan = getCatatanInputValue();
     const nomorHpInput = $("no_hp")?.value.trim() || "";
     const btnSimpan = $("btnSimpan");
 
@@ -972,7 +999,7 @@ async function simpan() {
             $("nama").value = "";
         }
 
-        if ($("catatan")) $("catatan").value = "";
+        resetCatatanInput();
         if ($("no_hp")) $("no_hp").value = "";
 
         alert("Data berhasil disimpan ke Supabase!");
@@ -1263,8 +1290,42 @@ function initNamaSelect() {
     });
 }
 
+function initCatatanSelect() {
+    const selectEl = $("catatan");
+    if (!selectEl || selectCatatanControl) return;
+
+    // create: true -> boleh pilih dari dropdown ATAU ketik catatan manual bebas
+    selectCatatanControl = new TomSelect("#catatan", {
+        create: true,
+        createOnBlur: true,
+        allowEmptyOption: true,
+        persist: false,
+        placeholder: "Pilih catatan cepat atau ketik catatan manual...",
+        onChange: function (value) {
+            if (value) {
+                if (selectCatatanControl) selectCatatanControl.blur();
+                document.activeElement?.blur?.();
+            }
+        }
+    });
+}
+
+function getCatatanInputValue() {
+    if (selectCatatanControl) return selectCatatanControl.getValue() || "";
+    return $("catatan")?.value || "";
+}
+
+function resetCatatanInput() {
+    if (selectCatatanControl) {
+        selectCatatanControl.clear(true);
+    } else if ($("catatan")) {
+        $("catatan").value = "";
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async function () {
     initNamaSelect();
+    initCatatanSelect();
     updateJamRealtime();
     setInterval(updateJamRealtime, 1000);
     await checkLoginSession();
