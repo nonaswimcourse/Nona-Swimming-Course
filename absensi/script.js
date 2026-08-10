@@ -18,15 +18,16 @@ const CATATAN_PRESET = [
         ]
     },
     {
-        label: "Keberanian & Pernapasan",
+        label: "Umum - Keberanian & Adaptasi Air",
         options: [
             "Masih ragu/takut menahan napas di dalam air",
-            "Pengambilan napas masih terlalu sering, perlu latihan breath-holding",
-            "Sudah cukup berani menahan napas di dalam air"
+            "Sudah cukup berani menahan napas di dalam air",
+            "Masih takut mengapung/mengambang sendiri",
+            "Sudah bisa mengapung dengan tenang tanpa bantuan"
         ]
     },
     {
-        label: "Gerakan Kaki (Leg Kick)",
+        label: "Gaya Bebas - Gerakan Kaki",
         options: [
             "Cambukan kaki masih dari lutut, belum dari pangkal paha",
             "Dorongan tenaga dari pukulan kaki belum optimal",
@@ -34,15 +35,7 @@ const CATATAN_PRESET = [
         ]
     },
     {
-        label: "Posisi Tubuh (Body Position)",
-        options: [
-            "Posisi kepala terlalu mendongak, pinggul jadi tenggelam",
-            "Belum streamline, perlu latihan posisi wajah menghadap bawah",
-            "Berenang datar (flat swimming), belum ada body roll"
-        ]
-    },
-    {
-        label: "Gerakan Tangan (Arm Stroke)",
+        label: "Gaya Bebas - Gerakan Tangan",
         options: [
             "Kayuhan tangan (push phase) belum maksimal sampai belakang",
             "Recovery tangan belum ideal, sikut belum high elbow",
@@ -51,10 +44,93 @@ const CATATAN_PRESET = [
         ]
     },
     {
-        label: "Koordinasi & Timing",
+        label: "Gaya Bebas - Koordinasi & Pernapasan",
         options: [
+            "Pengambilan napas masih terlalu sering, perlu latihan breath-holding",
+            "Kepala diangkat ke depan saat ambil napas, bukan diputar ke samping",
             "Irama gerakan tergesa-gesa, fase glide/meluncur hilang",
             "Koordinasi tangan dan kaki sudah mulai selaras"
+        ]
+    },
+    {
+        label: "Gaya Bebas - Posisi Tubuh",
+        options: [
+            "Posisi kepala terlalu mendongak, pinggul jadi tenggelam",
+            "Belum streamline, perlu latihan posisi wajah menghadap bawah",
+            "Berenang datar (flat swimming), belum ada body roll"
+        ]
+    },
+    {
+        label: "Gaya Dada - Gerakan Kaki",
+        options: [
+            "Tendangan katak (whip kick) belum simetris kiri-kanan",
+            "Lutut membuka terlalu lebar, dorongan air jadi berkurang",
+            "Fase tarik-lipat-tendang-luncur sudah mulai terbentuk dengan baik"
+        ]
+    },
+    {
+        label: "Gaya Dada - Gerakan Tangan",
+        options: [
+            "Kayuhan tangan terlalu lebar, melewati garis bahu",
+            "Fase recovery tangan belum rapat/streamline ke depan",
+            "Pola tarikan tangan (pull) sudah membentuk pola hati dengan baik"
+        ]
+    },
+    {
+        label: "Gaya Dada - Koordinasi & Pernapasan",
+        options: [
+            "Urutan tarik-napas-tendang-luncur belum sinkron",
+            "Kepala terlalu lama berada di atas air saat ambil napas",
+            "Belum ada fase meluncur (glide) setelah tendangan",
+            "Koordinasi tangan dan kaki sudah rapi, tinggal tambah kecepatan"
+        ]
+    },
+    {
+        label: "Gaya Punggung - Gerakan Kaki",
+        options: [
+            "Tendangan kaki masih dari lutut, lutut menyembul ke atas air",
+            "Ukuran tendangan sudah kecil dan cepat, sudah cukup baik",
+            "Posisi ujung jari kaki belum rileks/menunjuk (pointed)"
+        ]
+    },
+    {
+        label: "Gaya Punggung - Gerakan Tangan",
+        options: [
+            "Entry tangan tidak lurus di atas bahu, sering mengarah ke tengah",
+            "Fase tarikan tangan belum penuh sampai ke paha",
+            "Recovery tangan sudah lurus (straight-arm recovery) dengan baik"
+        ]
+    },
+    {
+        label: "Gaya Punggung - Koordinasi & Posisi Tubuh",
+        options: [
+            "Pinggul turun/tenggelam karena posisi kepala kurang stabil",
+            "Rotasi bahu (body roll) belum mengikuti kayuhan tangan",
+            "Posisi tubuh sudah horizontal dan stabil di permukaan air"
+        ]
+    },
+    {
+        label: "Gaya Kupu-kupu (Dolphin) - Gerakan Kaki",
+        options: [
+            "Gelombang tubuh (undulation) belum terbentuk dari dada ke kaki",
+            "Tendangan dolphin kick masih kaku, hanya dari lutut",
+            "Ritme dua kali tendangan tiap satu kayuhan tangan mulai terbentuk"
+        ]
+    },
+    {
+        label: "Gaya Kupu-kupu (Dolphin) - Gerakan Tangan",
+        options: [
+            "Pola tarikan tangan (keyhole pull) belum sempurna",
+            "Recovery tangan di atas air masih terlalu tinggi dan cepat lelah",
+            "Posisi masuk tangan ke air belum simetris kiri-kanan"
+        ]
+    },
+    {
+        label: "Gaya Kupu-kupu (Dolphin) - Koordinasi & Pernapasan",
+        options: [
+            "Mengangkat kepala terlalu tinggi saat ambil napas, mengganggu gelombang tubuh",
+            "Timing napas belum pas dengan fase recovery tangan",
+            "Koordinasi gelombang tubuh dan tangan sudah mulai menyatu"
         ]
     }
 ];
