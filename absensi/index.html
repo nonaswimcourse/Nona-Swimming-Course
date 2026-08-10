@@ -170,40 +170,7 @@
                 <div class="field-spacer"></div>
 
                 <label for="catatan">Catatan</label>
-                <select id="catatan" placeholder="Pilih catatan cepat atau ketik catatan manual...">
-                    <option value=""></option>
-                    <optgroup label="Umum / Kehadiran">
-                        <option value="Absensi tercatat">Absensi tercatat</option>
-                        <option value="Hadir tepat waktu dan aktif berlatih">Hadir tepat waktu dan aktif berlatih</option>
-                        <option value="Tidak hadir tanpa keterangan">Tidak hadir tanpa keterangan</option>
-                        <option value="Izin / sakit, tidak hadir">Izin / sakit, tidak hadir</option>
-                    </optgroup>
-                    <optgroup label="Keberanian & Pernapasan">
-                        <option value="Masih ragu/takut menahan napas di dalam air">Masih ragu/takut menahan napas di dalam air</option>
-                        <option value="Pengambilan napas masih terlalu sering, perlu latihan breath-holding">Pengambilan napas masih terlalu sering, perlu latihan breath-holding</option>
-                        <option value="Sudah cukup berani menahan napas di dalam air">Sudah cukup berani menahan napas di dalam air</option>
-                    </optgroup>
-                    <optgroup label="Gerakan Kaki (Leg Kick)">
-                        <option value="Cambukan kaki masih dari lutut, belum dari pangkal paha">Cambukan kaki masih dari lutut, belum dari pangkal paha</option>
-                        <option value="Dorongan tenaga dari pukulan kaki belum optimal">Dorongan tenaga dari pukulan kaki belum optimal</option>
-                        <option value="Ritme gerakan kaki sudah bagus, siap masuk koordinasi tangan-kaki">Ritme gerakan kaki sudah bagus, siap masuk koordinasi tangan-kaki</option>
-                    </optgroup>
-                    <optgroup label="Posisi Tubuh (Body Position)">
-                        <option value="Posisi kepala terlalu mendongak, pinggul jadi tenggelam">Posisi kepala terlalu mendongak, pinggul jadi tenggelam</option>
-                        <option value="Belum streamline, perlu latihan posisi wajah menghadap bawah">Belum streamline, perlu latihan posisi wajah menghadap bawah</option>
-                        <option value="Berenang datar (flat swimming), belum ada body roll">Berenang datar (flat swimming), belum ada body roll</option>
-                    </optgroup>
-                    <optgroup label="Gerakan Tangan (Arm Stroke)">
-                        <option value="Kayuhan tangan (push phase) belum maksimal sampai belakang">Kayuhan tangan (push phase) belum maksimal sampai belakang</option>
-                        <option value="Recovery tangan belum ideal, sikut belum high elbow">Recovery tangan belum ideal, sikut belum high elbow</option>
-                        <option value="Tangan menyilang garis tengah tubuh (crossing over)">Tangan menyilang garis tengah tubuh (crossing over)</option>
-                        <option value="Sikut jatuh saat entry, tangan menepuk air duluan">Sikut jatuh saat entry, tangan menepuk air duluan</option>
-                    </optgroup>
-                    <optgroup label="Koordinasi & Timing">
-                        <option value="Irama gerakan tergesa-gesa, fase glide/meluncur hilang">Irama gerakan tergesa-gesa, fase glide/meluncur hilang</option>
-                        <option value="Koordinasi tangan dan kaki sudah mulai selaras">Koordinasi tangan dan kaki sudah mulai selaras</option>
-                    </optgroup>
-                </select>
+                <select id="catatan" placeholder="Pilih catatan cepat atau ketik catatan manual..."></select>
                 <button class="btn btn-primary" id="btnSimpan" onclick="simpan()">
                     <i class="fa fa-plus-circle"></i> Simpan Data
                 </button>
@@ -246,6 +213,20 @@
                         <tbody id="tbody"></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalCatatanCounter" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h3 id="modalCatatanTitle">Catatan Tambahan</h3>
+            <p class="modal-subtitle">Pilih catatan cepat atau ketik catatan manual di bawah ini.</p>
+            <select id="modalCatatanSelect" placeholder="Pilih catatan cepat atau ketik catatan manual..."></select>
+            <div class="modal-actions">
+                <button type="button" class="btn modal-btn-cancel" id="modalCatatanBatal">Batal</button>
+                <button type="button" class="btn btn-primary modal-btn-ok" id="modalCatatanSimpan">
+                    <i class="fa fa-check"></i> Simpan
+                </button>
             </div>
         </div>
     </div>

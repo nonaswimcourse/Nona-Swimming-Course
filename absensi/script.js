@@ -7,6 +7,70 @@ const EDGE_FUNCTION_KIRIM_WA = "dynamic-endpoint";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const CATATAN_PRESET = [
+    {
+        label: "Umum / Kehadiran",
+        options: [
+            "Absensi tercatat",
+            "Hadir tepat waktu dan aktif berlatih",
+            "Tidak hadir tanpa keterangan",
+            "Izin / sakit, tidak hadir"
+        ]
+    },
+    {
+        label: "Keberanian & Pernapasan",
+        options: [
+            "Masih ragu/takut menahan napas di dalam air",
+            "Pengambilan napas masih terlalu sering, perlu latihan breath-holding",
+            "Sudah cukup berani menahan napas di dalam air"
+        ]
+    },
+    {
+        label: "Gerakan Kaki (Leg Kick)",
+        options: [
+            "Cambukan kaki masih dari lutut, belum dari pangkal paha",
+            "Dorongan tenaga dari pukulan kaki belum optimal",
+            "Ritme gerakan kaki sudah bagus, siap masuk koordinasi tangan-kaki"
+        ]
+    },
+    {
+        label: "Posisi Tubuh (Body Position)",
+        options: [
+            "Posisi kepala terlalu mendongak, pinggul jadi tenggelam",
+            "Belum streamline, perlu latihan posisi wajah menghadap bawah",
+            "Berenang datar (flat swimming), belum ada body roll"
+        ]
+    },
+    {
+        label: "Gerakan Tangan (Arm Stroke)",
+        options: [
+            "Kayuhan tangan (push phase) belum maksimal sampai belakang",
+            "Recovery tangan belum ideal, sikut belum high elbow",
+            "Tangan menyilang garis tengah tubuh (crossing over)",
+            "Sikut jatuh saat entry, tangan menepuk air duluan"
+        ]
+    },
+    {
+        label: "Koordinasi & Timing",
+        options: [
+            "Irama gerakan tergesa-gesa, fase glide/meluncur hilang",
+            "Koordinasi tangan dan kaki sudah mulai selaras"
+        ]
+    }
+];
+
+function buildCatatanOptionsHtml() {
+    let html = '<option value=""></option>';
+    CATATAN_PRESET.forEach((grup) => {
+        html += `<optgroup label="${grup.label}">`;
+        grup.options.forEach((teks) => {
+            html += `<option value="${teks.replace(/"/g, "&quot;")}">${teks}</option>`;
+        });
+        html += "</optgroup>";
+    });
+    return html;
+}
+
 let dataRekap = [];
 let selectNamaControl = null;
 let selectCatatanControl = null;
@@ -795,7 +859,8 @@ async function updateCounter(index, tipe, value) {
     let tanggalPayload;
 
     if (value > 0) {
-        const inputCatatan = prompt(`Masukkan catatan baru untuk ${namaSiswa}:`, "Update manual via counter");
+        const labelStatus = tipe === "hadir" ? "Hadir" : "Tidak Hadir";
+        const inputCatatan = await bukaModalCatatan(`Catatan untuk ${namaSiswa} (${labelStatus})`);
         if (inputCatatan === null) return;
         const catatanKetik = inputCatatan.trim() === "" ? "Update manual via counter" : inputCatatan.trim();
 
@@ -1294,6 +1359,8 @@ function initCatatanSelect() {
     const selectEl = $("catatan");
     if (!selectEl || selectCatatanControl) return;
 
+    selectEl.innerHTML = buildCatatanOptionsHtml();
+
     // create: true -> boleh pilih dari dropdown ATAU ketik catatan manual bebas
     selectCatatanControl = new TomSelect("#catatan", {
         create: true,
@@ -1308,6 +1375,72 @@ function initCatatanSelect() {
             }
         }
     });
+}
+
+let modalCatatanControl = null;
+let modalCatatanResolve = null;
+
+function initModalCatatanSelect() {
+    const selectEl = $("modalCatatanSelect");
+    if (!selectEl || modalCatatanControl) return;
+
+    selectEl.innerHTML = buildCatatanOptionsHtml();
+
+    modalCatatanControl = new TomSelect("#modalCatatanSelect", {
+        create: true,
+        createOnBlur: true,
+        allowEmptyOption: true,
+        persist: false,
+        placeholder: "Pilih catatan cepat atau ketik catatan manual..."
+    });
+
+    const btnBatal = $("modalCatatanBatal");
+    const btnSimpan = $("modalCatatanSimpan");
+    const overlay = $("modalCatatanCounter");
+
+    if (btnBatal) btnBatal.addEventListener("click", () => tutupModalCatatan(null));
+    if (btnSimpan) {
+        btnSimpan.addEventListener("click", () => {
+            const nilai = modalCatatanControl ? (modalCatatanControl.getValue() || "") : "";
+            tutupModalCatatan(nilai);
+        });
+    }
+    if (overlay) {
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) tutupModalCatatan(null);
+        });
+    }
+}
+
+// Membuka modal pilih/ketik catatan (dropdown + manual), mengganti prompt() bawaan browser.
+// Mengembalikan Promise<string|null> -> null jika dibatalkan.
+function bukaModalCatatan(judul) {
+    return new Promise((resolve) => {
+        const overlay = $("modalCatatanCounter");
+        const titleEl = $("modalCatatanTitle");
+        if (!overlay || !modalCatatanControl) {
+            resolve(null);
+            return;
+        }
+
+        if (titleEl) titleEl.innerText = judul;
+        modalCatatanControl.clear(true);
+
+        modalCatatanResolve = resolve;
+        overlay.classList.remove("hidden");
+        setTimeout(() => modalCatatanControl?.focus(), 50);
+    });
+}
+
+function tutupModalCatatan(hasil) {
+    const overlay = $("modalCatatanCounter");
+    if (overlay) overlay.classList.add("hidden");
+
+    if (modalCatatanResolve) {
+        const resolveFn = modalCatatanResolve;
+        modalCatatanResolve = null;
+        resolveFn(hasil);
+    }
 }
 
 function getCatatanInputValue() {
@@ -1326,6 +1459,7 @@ function resetCatatanInput() {
 document.addEventListener("DOMContentLoaded", async function () {
     initNamaSelect();
     initCatatanSelect();
+    initModalCatatanSelect();
     updateJamRealtime();
     setInterval(updateJamRealtime, 1000);
     await checkLoginSession();
