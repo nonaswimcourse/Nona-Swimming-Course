@@ -119,39 +119,6 @@
                         <label for="nama">Nama Siswa</label>
                         <select id="nama" placeholder="Ketik atau pilih nama siswa...">
                             <option value=""></option>
-                        <option value="AIRA">AIRA</option>
-                        <option value="ALDEBARAN">ALDEBARAN</option>
-                        <option value="ALFA">ALFA</option>
-                        <option value="ARGHYA">ARGHYA</option>
-                        <option value="ASHIMA">ASHIMA</option>
-                        <option value="BINTANG">BINTANG</option>
-                        <option value="BRANDEN">BRANDEN</option>
-                        <option value="CECIL">CECIL</option>
-                        <option value="DHIFA">DHIFA</option>
-                        <option value="EGA">EGA</option>
-                        <option value="FAISAL">FAISAL</option>
-                        <option value="HAFIZ">HAFIZ</option>
-                        <option value="ICHA">ICHA</option>
-                        <option value="IRUL">IRUL</option>
-                        <option value="KALA">KALA</option>
-                        <option value="KALINGGA">KALINGGA</option>
-                        <option value="KAMIL">KAMIL</option>
-                        <option value="KEANO">KEANO</option>
-                        <option value="KECIL">KECIL</option>
-                        <option value="KHSAN">KHSAN</option>
-                        <option value="KIRAN">KIRAN</option>
-                        <option value="NAJMA">NAJMA</option>
-                        <option value="NAURA">NAURA</option>
-                        <option value="NAZLA">NAZLA</option>
-                        <option value="RAFFA">RAFFA</option>
-                        <option value="RISKI">RISKI</option>
-                        <option value="RISYA">RISYA</option>
-                        <option value="UMMA">UMMA</option>
-                        <option value="YUMNA">YUMNA</option>
-                        <option value="ZIDNI">ZIDNI</option>
-                        <option value="ZULFA">ZULFA</option>
-                        <option value="Hadir">Hadir</option>
-                        <option value="Tidak Hadir">Tidak Hadir</option>
                         </select>
                     </div>
                     <div>
@@ -165,7 +132,14 @@
                             <option value="Tidak Hadir">Tidak Hadir</option>
                         </select>
                     </div>
+                    <div class="add-kontak-wrap">
+                        <label class="add-kontak-label">&nbsp;</label>
+                        <button type="button" class="btn btn-add-kontak" id="btnTambahKontak" onclick="bukaModalKontak()">
+                            <i class="fa fa-user-plus"></i> Tambah Kontak
+                        </button>
+                    </div>
                 </div>
+                <p class="hint-kontak">Pilih nama dari daftar untuk mengisi no. HP secara otomatis. Nama baru? Klik <strong>Tambah Kontak</strong> untuk menyimpannya ke daftar.</p>
 
                 <div class="field-spacer"></div>
 
@@ -231,7 +205,28 @@
         </div>
     </div>
 
+    <div id="modalKontakBaru" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h3>Tambah Kontak Baru</h3>
+            <p class="modal-subtitle">Nama &amp; no. HP akan tersimpan permanen di daftar kontak, walaupun catatan absensinya nanti dihapus.</p>
+            <div class="login-form-group">
+                <label for="kontakNamaInput">Nama Siswa</label>
+                <input type="text" id="kontakNamaInput" placeholder="Contoh: BINTANG" autocomplete="off">
+            </div>
+            <div class="login-form-group">
+                <label for="kontakHpInput">No. HP Orang Tua</label>
+                <input type="text" id="kontakHpInput" placeholder="Contoh: 0812345678" inputmode="numeric" autocomplete="off">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn modal-btn-cancel" id="modalKontakBatal">Batal</button>
+                <button type="button" class="btn btn-primary modal-btn-ok" id="modalKontakSimpan">
+                    <i class="fa fa-check"></i> Simpan Kontak
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="/absensi/pwa.js?v=transparent-v3"></script>
-    <script src="script.js?v=realtime-catatan-v1"></script>
+    <script src="script.js?v=kontak-v1"></script>
 </body>
 </html>

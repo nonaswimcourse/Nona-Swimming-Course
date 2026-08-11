@@ -2,6 +2,7 @@ const TOTAL_PERTEMUAN = 12;
 const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndnbWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
 const TABLE_NAME = "absensinsc";
+const KONTAK_TABLE = "kontak";
 const STORAGE_BUCKET = "laporan-pdf";
 const EDGE_FUNCTION_KIRIM_WA = "dynamic-endpoint";
 
@@ -148,6 +149,8 @@ function buildCatatanOptionsHtml() {
 }
 
 let dataRekap = [];
+let dataKontak = [];
+let kontakMap = new Map();
 let selectNamaControl = null;
 let selectCatatanControl = null;
 
@@ -157,6 +160,8 @@ const CACHE_KEY = "nsc_absensi_cache";
 const CATATAN_HISTORY_PREFIX = "NSC_CATATAN_HISTORY_V1:";
 let realtimeChannel = null;
 let realtimeReloadTimer = null;
+let realtimeChannelKontak = null;
+let realtimeReloadTimerKontak = null;
 
 function $(id) {
     return document.getElementById(id);
@@ -459,6 +464,125 @@ function getDbPayloadFromItem(item, overrides = {}) {
         no_hp: overrides.no_hp ?? item.no_hp ?? "",
         pdf_path: overrides.pdf_path ?? item.pdf_path ?? ""
     };
+}
+
+// ===== Daftar Kontak (nama + no. HP) =====
+// Disimpan terpisah dari tabel absensi supaya nama & no. HP TETAP ADA
+// walaupun catatan/data absensinya dihapus dari rekap.
+
+function normalizeKontakRow(row) {
+    return {
+        nama: normalizeNama(row?.nama),
+        no_hp: String(row?.no_hp ?? "").trim()
+    };
+}
+
+function rebuildKontakMap() {
+    kontakMap = new Map(dataKontak.map((k) => [k.nama, k.no_hp]));
+}
+
+function renderNamaOptions() {
+    if (!selectNamaControl) return;
+    const currentValue = selectNamaControl.getValue();
+
+    selectNamaControl.clearOptions();
+    selectNamaControl.addOption({ value: "", text: "" });
+    dataKontak.forEach((k) => {
+        selectNamaControl.addOption({ value: k.nama, text: k.nama });
+    });
+    selectNamaControl.refreshOptions(false);
+
+    if (currentValue) selectNamaControl.setValue(currentValue, true);
+}
+
+async function muatKontakDariCloud() {
+    try {
+        const { data, error } = await supabaseClient
+            .from(KONTAK_TABLE)
+            .select("nama, no_hp")
+            .order("nama", { ascending: true });
+
+        if (error) throw error;
+
+        dataKontak = (data || []).map(normalizeKontakRow).filter((k) => k.nama);
+        rebuildKontakMap();
+        renderNamaOptions();
+    } catch (error) {
+        console.error("Gagal memuat daftar kontak dari Supabase:", error);
+    }
+}
+
+// Simpan/perbarui satu kontak (nama + no. HP) ke Supabase.
+// no. HP kosong TIDAK akan menimpa no. HP yang sudah tersimpan sebelumnya.
+async function upsertKontak(nama, noHp) {
+    const namaBersih = normalizeNama(nama);
+    if (!namaBersih) return null;
+
+    const existing = dataKontak.find((k) => k.nama === namaBersih);
+    const noHpBersih = String(noHp ?? "").trim();
+    const noHpFinal = noHpBersih || existing?.no_hp || "";
+
+    const { error } = await supabaseClient
+        .from(KONTAK_TABLE)
+        .upsert({ nama: namaBersih, no_hp: noHpFinal }, { onConflict: "nama" });
+
+    if (error) throw error;
+
+    if (existing) {
+        existing.no_hp = noHpFinal;
+    } else {
+        dataKontak.push({ nama: namaBersih, no_hp: noHpFinal });
+        dataKontak.sort((a, b) => a.nama.localeCompare(b.nama, "id"));
+    }
+
+    rebuildKontakMap();
+    renderNamaOptions();
+    return namaBersih;
+}
+
+function jadwalkanReloadKontak() {
+    if (realtimeReloadTimerKontak) clearTimeout(realtimeReloadTimerKontak);
+
+    realtimeReloadTimerKontak = setTimeout(async () => {
+        realtimeReloadTimerKontak = null;
+        const session = await getActiveSession();
+        if (!session) return;
+        await muatKontakDariCloud();
+    }, 600);
+}
+
+function aktifkanRealtimeKontak() {
+    if (realtimeChannelKontak) return;
+
+    realtimeChannelKontak = supabaseClient
+        .channel("kontak-realtime")
+        .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: KONTAK_TABLE },
+            function () {
+                jadwalkanReloadKontak();
+            }
+        )
+        .subscribe(function (status) {
+            console.log("Realtime kontak:", status);
+        });
+}
+
+async function hentikanRealtimeKontak() {
+    if (!realtimeChannelKontak) return;
+
+    try {
+        await supabaseClient.removeChannel(realtimeChannelKontak);
+    } catch (error) {
+        console.warn("Realtime channel kontak gagal dihentikan:", error);
+    } finally {
+        realtimeChannelKontak = null;
+    }
+
+    if (realtimeReloadTimerKontak) {
+        clearTimeout(realtimeReloadTimerKontak);
+        realtimeReloadTimerKontak = null;
+    }
 }
 
 function buildWhatsAppText(item) {
@@ -780,8 +904,10 @@ async function checkLoginSession() {
 
     if (session) {
         showApp();
+        await muatKontakDariCloud();
         await muatDataDariCloud();
         aktifkanRealtimeAbsensi();
+        aktifkanRealtimeKontak();
     } else {
         showLogin();
     }
@@ -817,8 +943,10 @@ async function handleLogin(event) {
         }
 
         showApp();
+        await muatKontakDariCloud();
         await muatDataDariCloud();
         aktifkanRealtimeAbsensi();
+        aktifkanRealtimeKontak();
         if (passwordEl) passwordEl.value = "";
     } catch (error) {
         console.error("Login gagal:", error);
@@ -837,7 +965,10 @@ async function handleLogout() {
         console.error("Logout gagal:", error);
     } finally {
         await hentikanRealtimeAbsensi();
+        await hentikanRealtimeKontak();
         dataRekap = [];
+        dataKontak = [];
+        kontakMap = new Map();
         saveCache();
         renderTable("Silakan login untuk melihat data.");
         showLogin();
@@ -1108,6 +1239,14 @@ async function simpan() {
             .upsert(payload, { onConflict: "absensi" });
 
         if (error) throw error;
+
+        // Simpan nama + no. HP ke daftar kontak (terpisah dari rekap absensi),
+        // supaya tetap ada di dropdown walaupun catatan absensi ini nanti dihapus.
+        try {
+            await upsertKontak(nama, noHpFinal);
+        } catch (kontakError) {
+            console.warn("Gagal menyinkronkan ke daftar kontak:", kontakError);
+        }
 
         const savedItem = {
             ...(existing || {}),
@@ -1424,6 +1563,14 @@ function initNamaSelect() {
         persist: false,
         onChange: function (value) {
             if (value) {
+                // Nama dipilih dari daftar kontak yang sudah tersimpan -> no. HP otomatis terisi,
+                // jadi tidak perlu mengetik ulang.
+                const namaTerpilih = normalizeNama(value);
+                const noHpEl = $("no_hp");
+                if (noHpEl && kontakMap.has(namaTerpilih)) {
+                    noHpEl.value = kontakMap.get(namaTerpilih) || "";
+                }
+
                 if (selectNamaControl) selectNamaControl.blur();
                 document.activeElement?.blur?.();
             }
@@ -1519,6 +1666,88 @@ function tutupModalCatatan(hasil) {
     }
 }
 
+function initModalKontakBaru() {
+    const btnBatal = $("modalKontakBatal");
+    const btnSimpan = $("modalKontakSimpan");
+    const overlay = $("modalKontakBaru");
+
+    if (btnBatal) btnBatal.addEventListener("click", () => tutupModalKontak());
+    if (overlay) {
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) tutupModalKontak();
+        });
+    }
+
+    if (btnSimpan) {
+        const originalHtml = btnSimpan.innerHTML;
+        btnSimpan.addEventListener("click", async () => {
+            const session = await requireSessionOrAlert();
+            if (!session) return;
+
+            const namaInput = $("kontakNamaInput");
+            const hpInput = $("kontakHpInput");
+            const nama = normalizeNama(namaInput?.value || "");
+            const noHp = (hpInput?.value || "").trim();
+
+            if (!nama) {
+                alert("Nama tidak boleh kosong.");
+                namaInput?.focus();
+                return;
+            }
+
+            btnSimpan.disabled = true;
+            btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
+
+            try {
+                await upsertKontak(nama, noHp);
+
+                if (selectNamaControl) {
+                    selectNamaControl.setValue(nama, true);
+                }
+                const noHpEl = $("no_hp");
+                if (noHpEl) noHpEl.value = kontakMap.get(nama) || noHp;
+
+                if (namaInput) namaInput.value = "";
+                if (hpInput) hpInput.value = "";
+
+                tutupModalKontak();
+            } catch (error) {
+                console.error(error);
+                alert("Gagal menyimpan kontak ke Supabase: " + (error?.message || "Terjadi kesalahan."));
+            } finally {
+                btnSimpan.disabled = false;
+                btnSimpan.innerHTML = originalHtml;
+            }
+        });
+    }
+}
+
+function bukaModalKontak() {
+    const overlay = $("modalKontakBaru");
+    if (!overlay) return;
+
+    const namaInput = $("kontakNamaInput");
+    const hpInput = $("kontakHpInput");
+
+    // Prefill dari input nama utama jika sudah diketik tapi belum tersimpan sebagai kontak.
+    if (namaInput) {
+        const currentVal = selectNamaControl ? selectNamaControl.getValue() : "";
+        const currentNama = normalizeNama(currentVal);
+        namaInput.value = currentNama && !kontakMap.has(currentNama) ? currentNama : "";
+    }
+    if (hpInput) {
+        hpInput.value = $("no_hp")?.value.trim() || "";
+    }
+
+    overlay.classList.remove("hidden");
+    setTimeout(() => namaInput?.focus(), 50);
+}
+
+function tutupModalKontak() {
+    const overlay = $("modalKontakBaru");
+    if (overlay) overlay.classList.add("hidden");
+}
+
 function getCatatanInputValue() {
     if (selectCatatanControl) return selectCatatanControl.getValue() || "";
     return $("catatan")?.value || "";
@@ -1536,6 +1765,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     initNamaSelect();
     initCatatanSelect();
     initModalCatatanSelect();
+    initModalKontakBaru();
     updateJamRealtime();
     setInterval(updateJamRealtime, 1000);
     await checkLoginSession();

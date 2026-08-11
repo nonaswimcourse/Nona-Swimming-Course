@@ -384,11 +384,46 @@ textarea {
 }
 
 .row-absensi {
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    align-items: end;
 }
 
 .field-spacer {
     height: 18px;
+}
+
+.add-kontak-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.add-kontak-label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    visibility: hidden;
+}
+
+.btn-add-kontak {
+    background: var(--surface-soft);
+    color: var(--primary);
+    border: 1.5px dashed var(--primary);
+    padding: 0 16px;
+    height: 44px;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.btn-add-kontak:hover {
+    background: var(--primary);
+    color: #fff;
+    border-style: solid;
+}
+
+.hint-kontak {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 10px;
 }
 
 .btn {
@@ -716,6 +751,14 @@ textarea::placeholder {
 
     .row-absensi > div:last-child {
         grid-column: 1 / -1;
+    }
+
+    .add-kontak-label {
+        display: none;
+    }
+
+    .btn-add-kontak {
+        width: 100%;
     }
 }
 
