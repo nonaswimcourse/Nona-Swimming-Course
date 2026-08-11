@@ -136,15 +136,153 @@ const CATATAN_PRESET = [
     }
 ];
 
+// ==========================================================
+// Klasifikasi Otomatis Catatan -> Gaya Renang & Jenis Gerakan
+// ==========================================================
+// Ketika guru mengetik catatan manual (bukan memilih dari preset),
+// teks tsb otomatis dianalisis dan dikelompokkan ke kategori
+// "Gaya ... - Gerakan ..." yang sesuai, lalu disimpan permanen
+// supaya muncul sebagai catatan cepat di kemudian hari.
+
+const GAYA_KEYWORDS = [
+    { label: "Gaya Bebas", katakunci: ["bebas", "freestyle", "front crawl", "crawl"] },
+    { label: "Gaya Dada", katakunci: ["dada", "breaststroke", "katak"] },
+    { label: "Gaya Punggung", katakunci: ["punggung", "backstroke"] },
+    { label: "Gaya Kupu-kupu (Dolphin)", katakunci: ["kupu-kupu", "kupu", "dolphin", "butterfly"] }
+];
+
+const GERAKAN_KEYWORDS = [
+    {
+        label: "Keberanian & Adaptasi Air",
+        katakunci: ["takut", "berani", "ragu", "trauma", "panik", "adaptasi air", "menahan napas di dalam air", "mengambang sendiri"]
+    },
+    { label: "Gerakan Kaki", katakunci: ["kaki", "tendang", "tendangan", "cambuk", "cambukan", "kick", "lutut", "pangkal paha"] },
+    { label: "Gerakan Tangan", katakunci: ["tangan", "kayuh", "kayuhan", "lengan", "sikut", "siku", "recovery", "entry", "dayung", "pull", "high elbow"] },
+    { label: "Koordinasi & Pernapasan", katakunci: ["napas", "nafas", "koordinasi", "irama", "ritme", "breath", "sinkron"] },
+    { label: "Posisi Tubuh", katakunci: ["posisi tubuh", "streamline", "tenggelam", "pinggul", "mendongak", "body roll", "gelombang tubuh", "undulation", "horizontal", "mengapung", "mengambang"] }
+];
+
+// Supaya konsisten dengan nama grup yang sudah ada di CATATAN_PRESET
+// (mis. gaya punggung menggabungkan "Koordinasi & Posisi Tubuh" jadi satu grup).
+const GERAKAN_ALIAS_PER_GAYA = {
+    "Gaya Punggung": {
+        "Koordinasi & Pernapasan": "Koordinasi & Posisi Tubuh",
+        "Posisi Tubuh": "Koordinasi & Posisi Tubuh"
+    },
+    "Gaya Dada": {
+        "Posisi Tubuh": "Koordinasi & Pernapasan"
+    }
+};
+
+function deteksiKataKunci(teksLower, daftar) {
+    for (const item of daftar) {
+        if (item.katakunci.some((kk) => teksLower.includes(kk))) {
+            return item.label;
+        }
+    }
+    return null;
+}
+
+// Menentukan grup klasifikasi (Gaya + Gerakan) dari sebuah teks catatan.
+function klasifikasikanCatatan(teks) {
+    const teksLower = String(teks || "").toLowerCase();
+    const gaya = deteksiKataKunci(teksLower, GAYA_KEYWORDS);
+    const gerakan = deteksiKataKunci(teksLower, GERAKAN_KEYWORDS);
+
+    if (gaya && gerakan) {
+        const alias = GERAKAN_ALIAS_PER_GAYA[gaya]?.[gerakan];
+        return `${gaya} - ${alias || gerakan}`;
+    }
+    if (gaya && !gerakan) {
+        return `${gaya} - Catatan Umum`;
+    }
+    if (!gaya && gerakan === "Keberanian & Adaptasi Air") {
+        return "Umum - Keberanian & Adaptasi Air";
+    }
+    if (!gaya && gerakan) {
+        return `Umum - ${gerakan}`;
+    }
+    return "Umum / Kehadiran";
+}
+
+const CATATAN_CUSTOM_KEY = "nsc_catatan_custom_v1";
+
+// Membaca catatan kustom (hasil klasifikasi otomatis) yang tersimpan di perangkat ini.
+function muatCatatanKustom() {
+    try {
+        const raw = localStorage.getItem(CATATAN_CUSTOM_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch (error) {
+        console.warn("Gagal memuat catatan kustom:", error);
+        return {};
+    }
+}
+
+// Menyimpan catatan baru ke grup klasifikasinya secara permanen (localStorage).
+function simpanCatatanKustomKeStorage(kategori, teks) {
+    const data = muatCatatanKustom();
+    if (!Array.isArray(data[kategori])) data[kategori] = [];
+    if (!data[kategori].includes(teks)) {
+        data[kategori].push(teks);
+        try {
+            localStorage.setItem(CATATAN_CUSTOM_KEY, JSON.stringify(data));
+        } catch (error) {
+            console.warn("Gagal menyimpan catatan kustom:", error);
+        }
+    }
+}
+
+// Mendaftarkan catatan manual yang baru diketik: klasifikasikan otomatis,
+// simpan permanen, lalu sinkronkan ke semua dropdown catatan yang aktif.
+function daftarkanCatatanBaru(teks) {
+    const teksBersih = String(teks || "").trim();
+    if (!teksBersih) return false;
+
+    const kategori = klasifikasikanCatatan(teksBersih);
+    simpanCatatanKustomKeStorage(kategori, teksBersih);
+
+    [selectCatatanControl, modalCatatanControl].forEach((ts) => {
+        if (!ts) return;
+        if (!ts.optgroups[kategori]) {
+            ts.addOptionGroup(kategori, { label: kategori });
+        }
+        if (!ts.options[teksBersih]) {
+            ts.addOption({ value: teksBersih, text: teksBersih, optgroup: kategori });
+        }
+        ts.refreshOptions(false);
+    });
+
+    return { value: teksBersih, text: teksBersih, optgroup: kategori };
+}
+
 function buildCatatanOptionsHtml() {
+    const catatanKustom = muatCatatanKustom();
+    const grupTerpakai = new Set();
     let html = '<option value=""></option>';
+
     CATATAN_PRESET.forEach((grup) => {
+        grupTerpakai.add(grup.label);
+        const tambahan = (catatanKustom[grup.label] || []).filter((teks) => !grup.options.includes(teks));
         html += `<optgroup label="${grup.label}">`;
-        grup.options.forEach((teks) => {
+        [...grup.options, ...tambahan].forEach((teks) => {
             html += `<option value="${teks.replace(/"/g, "&quot;")}">${teks}</option>`;
         });
         html += "</optgroup>";
     });
+
+    // Grup baru hasil klasifikasi otomatis yang belum ada di preset bawaan
+    // (misalnya kombinasi gaya & gerakan yang belum pernah dicatat sebelumnya).
+    Object.keys(catatanKustom).forEach((grupLabel) => {
+        if (grupTerpakai.has(grupLabel)) return;
+        const daftar = catatanKustom[grupLabel];
+        if (!daftar || !daftar.length) return;
+        html += `<optgroup label="${grupLabel}">`;
+        daftar.forEach((teks) => {
+            html += `<option value="${teks.replace(/"/g, "&quot;")}">${teks}</option>`;
+        });
+        html += "</optgroup>";
+    });
+
     return html;
 }
 
@@ -1586,7 +1724,10 @@ function initCatatanSelect() {
 
     // create: true -> boleh pilih dari dropdown ATAU ketik catatan manual bebas
     selectCatatanControl = new TomSelect("#catatan", {
-        create: true,
+        create: function (input) {
+            // Catatan manual otomatis diklasifikasikan ke kategori Gaya & Gerakan.
+            return daftarkanCatatanBaru(input);
+        },
         createOnBlur: true,
         allowEmptyOption: true,
         persist: false,
@@ -1610,7 +1751,10 @@ function initModalCatatanSelect() {
     selectEl.innerHTML = buildCatatanOptionsHtml();
 
     modalCatatanControl = new TomSelect("#modalCatatanSelect", {
-        create: true,
+        create: function (input) {
+            // Catatan manual otomatis diklasifikasikan ke kategori Gaya & Gerakan.
+            return daftarkanCatatanBaru(input);
+        },
         createOnBlur: true,
         allowEmptyOption: true,
         persist: false,
