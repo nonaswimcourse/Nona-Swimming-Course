@@ -263,7 +263,13 @@ function buildCatatanOptionsHtml() {
     CATATAN_PRESET.forEach((grup) => {
         grupTerpakai.add(grup.label);
         const tambahan = (catatanKustom[grup.label] || []).filter((teks) => !grup.options.includes(teks));
-        html += `<optgroup label="${grup.label}">`;
+        // data-value disamakan dengan teks label, supaya ID grup di TomSelect konsisten
+        // dengan "kategori" yang dipakai daftarkanCatatanBaru() saat catatan manual disimpan.
+        // Tanpa ini, TomSelect otomatis kasih ID angka (1,2,3,...) untuk optgroup bawaan HTML,
+        // sehingga grup hasil klasifikasi otomatis (ID = teks) dianggap grup baru yang berbeda
+        // walau labelnya sama -> catatan baru "terpisah", tidak masuk ke baris kelompok aslinya.
+        const grupValue = grup.label.replace(/"/g, "&quot;");
+        html += `<optgroup label="${grup.label}" data-value="${grupValue}">`;
         [...grup.options, ...tambahan].forEach((teks) => {
             html += `<option value="${teks.replace(/"/g, "&quot;")}">${teks}</option>`;
         });
@@ -276,7 +282,8 @@ function buildCatatanOptionsHtml() {
         if (grupTerpakai.has(grupLabel)) return;
         const daftar = catatanKustom[grupLabel];
         if (!daftar || !daftar.length) return;
-        html += `<optgroup label="${grupLabel}">`;
+        const grupValue = grupLabel.replace(/"/g, "&quot;");
+        html += `<optgroup label="${grupLabel}" data-value="${grupValue}">`;
         daftar.forEach((teks) => {
             html += `<option value="${teks.replace(/"/g, "&quot;")}">${teks}</option>`;
         });
