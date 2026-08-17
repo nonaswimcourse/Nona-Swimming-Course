@@ -1724,9 +1724,13 @@ function initCatatanSelect() {
 
     // create: true -> boleh pilih dari dropdown ATAU ketik catatan manual bebas
     selectCatatanControl = new TomSelect("#catatan", {
-        create: function (input) {
+        create: function (input, callback) {
             // Catatan manual otomatis diklasifikasikan ke kategori Gaya & Gerakan.
-            return daftarkanCatatanBaru(input);
+            // PENTING: TomSelect mengharapkan hasilnya dikirim lewat callback(data),
+            // bukan di-return -- kalau di-return saja, kontrol akan terkunci
+            // (lock) permanen dan catatan tidak pernah benar-benar tersimpan
+            // sebagai nilai terpilih.
+            callback(daftarkanCatatanBaru(input));
         },
         createOnBlur: true,
         allowEmptyOption: true,
@@ -1751,9 +1755,11 @@ function initModalCatatanSelect() {
     selectEl.innerHTML = buildCatatanOptionsHtml();
 
     modalCatatanControl = new TomSelect("#modalCatatanSelect", {
-        create: function (input) {
+        create: function (input, callback) {
             // Catatan manual otomatis diklasifikasikan ke kategori Gaya & Gerakan.
-            return daftarkanCatatanBaru(input);
+            // PENTING: kirim hasilnya lewat callback(data), bukan return,
+            // supaya TomSelect benar-benar melepas lock dan memilih item baru ini.
+            callback(daftarkanCatatanBaru(input));
         },
         createOnBlur: true,
         allowEmptyOption: true,
