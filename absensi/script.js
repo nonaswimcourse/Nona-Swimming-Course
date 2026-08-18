@@ -1282,9 +1282,9 @@ async function updateCounter(index, tipe, value) {
 
 async function deleteSiswaByName(namaSiswa, index = null, confirmText = `Hapus data rekap ${namaSiswa} dari sistem Supabase?`) {
     const session = await requireSessionOrAlert();
-    if (!session) return;
+    if (!session) return false;
 
-    if (!confirm(confirmText)) return;
+    if (!confirm(confirmText)) return false;
 
     const btnDelete = index !== null ? $(`btnDelete-${index}`) : null;
     const originalHtml = btnDelete ? btnDelete.innerHTML : "";
@@ -1310,6 +1310,7 @@ async function deleteSiswaByName(namaSiswa, index = null, confirmText = `Hapus d
 
         saveCache();
         renderTable();
+        return true;
     } catch (error) {
         console.error(error);
         alert("Gagal menghapus data dari Supabase: " + (error?.message || "Terjadi kesalahan."));
@@ -1317,6 +1318,32 @@ async function deleteSiswaByName(namaSiswa, index = null, confirmText = `Hapus d
             btnDelete.disabled = false;
             btnDelete.innerHTML = originalHtml || '<i class="fa fa-trash"></i>';
         }
+        return false;
+    }
+}
+
+// Menghapus nama siswa dari daftar kontak (Supabase) supaya nama tersebut
+// tidak lagi muncul di dropdown pilihan nama pada form input absensi.
+async function hapusKontakByNama(namaSiswa) {
+    const namaBersih = normalizeNama(namaSiswa);
+    if (!namaBersih) return false;
+
+    try {
+        const { error } = await supabaseClient
+            .from(KONTAK_TABLE)
+            .delete()
+            .eq("nama", namaBersih);
+
+        if (error) throw error;
+
+        dataKontak = dataKontak.filter((k) => k.nama !== namaBersih);
+        rebuildKontakMap();
+        renderNamaOptions();
+        return true;
+    } catch (error) {
+        console.error("Gagal menghapus kontak dari Supabase:", error);
+        alert("Data absensi berhasil dihapus, tetapi nama gagal dihapus dari daftar pilihan: " + (error?.message || "Terjadi kesalahan."));
+        return false;
     }
 }
 
@@ -1327,7 +1354,17 @@ async function deleteRow(index) {
 }
 
 async function keluarkanSiswa(namaSiswa) {
-    await deleteSiswaByName(namaSiswa, null, `Keluarkan siswa ${namaSiswa} dari les renang?\n\nData absensi akan dihapus dari rekap cloud.`);
+    const berhasil = await deleteSiswaByName(
+        namaSiswa,
+        null,
+        `Keluarkan siswa ${namaSiswa} dari les renang?\n\nData absensi akan dihapus dari rekap cloud, dan nama akan ikut dihapus dari daftar pilihan nama.`
+    );
+
+    // Nama baru dihapus dari daftar pilihan (dropdown) jika penghapusan data
+    // absensi di atas benar-benar berhasil (bukan dibatalkan/gagal).
+    if (berhasil) {
+        await hapusKontakByNama(namaSiswa);
+    }
 }
 
 async function simpan() {
