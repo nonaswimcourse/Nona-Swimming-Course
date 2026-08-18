@@ -15,7 +15,7 @@
 //    untuk role "anon". Lihat catatan SQL di akhir file/README.
 // ======================================================================
 
-const PESERTA_PASSWORD = "GANTI_PASSWORD_PESERTA"; // <-- WAJIB diganti
+const PESERTA_PASSWORD = "NSC"; // <-- WAJIB diganti
 
 const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndnbWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
