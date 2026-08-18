@@ -30,6 +30,8 @@ const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli
 const CATATAN_HISTORY_PREFIX = "NSC_CATATAN_HISTORY_V1:";
 
 let pesertaNamaControl = null;
+let realtimeChannelKontakPeserta = null;
+let realtimeReloadTimerKontakPeserta = null;
 
 function $(id) {
     return document.getElementById(id);
@@ -79,6 +81,39 @@ function tampilkanKontenPeserta() {
     $("pesertaGate")?.classList.add("hidden");
     $("pesertaContent")?.classList.remove("hidden");
     muatDaftarNamaPeserta();
+    aktifkanRealtimeKontakPeserta();
+}
+
+// ===== Sinkronisasi otomatis daftar nama =====
+// Supaya nama yang dihapus/dikeluarkan oleh admin di halaman lain langsung
+// ikut hilang dari dropdown di halaman peserta ini juga (tanpa perlu
+// logout/login ulang atau refresh manual), kita dengarkan perubahan pada
+// tabel "kontak" secara realtime via Supabase.
+
+function jadwalkanReloadKontakPeserta() {
+    if (realtimeReloadTimerKontakPeserta) clearTimeout(realtimeReloadTimerKontakPeserta);
+
+    realtimeReloadTimerKontakPeserta = setTimeout(() => {
+        realtimeReloadTimerKontakPeserta = null;
+        muatDaftarNamaPeserta();
+    }, 600);
+}
+
+function aktifkanRealtimeKontakPeserta() {
+    if (realtimeChannelKontakPeserta) return;
+
+    realtimeChannelKontakPeserta = supabaseClient
+        .channel("kontak-realtime-peserta")
+        .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: KONTAK_TABLE },
+            function () {
+                jadwalkanReloadKontakPeserta();
+            }
+        )
+        .subscribe(function (status) {
+            console.log("Realtime kontak (peserta):", status);
+        });
 }
 
 // ===== Daftar nama (untuk selection) =====
