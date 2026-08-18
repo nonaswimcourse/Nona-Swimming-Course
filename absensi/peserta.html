@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#234a84">
+    <title>Cek Catatan Peserta - Absensi NSC</title>
+    <meta name="description" content="Halaman peserta untuk melihat catatan &amp; riwayat kehadiran, tanpa perlu akun admin/pelatih.">
+
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png?v=transparent-v3">
+    <link rel="shortcut icon" href="favicon.ico?v=transparent-v3">
+
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="peserta.css">
+</head>
+<body>
+
+    <!-- Gerbang password peserta (BUKAN login admin/pelatih) -->
+    <div id="pesertaGate" class="login-wrapper">
+        <div class="login-card">
+            <div class="login-logo-container">
+                <img src="Logo percobaan.png" alt="Logo NSC" class="login-logo">
+            </div>
+            <h2>Cek Catatan Peserta</h2>
+            <p>Masukkan password peserta untuk melihat catatan &amp; riwayat kehadiran.</p>
+
+            <form id="pesertaGateForm" onsubmit="return handlePesertaLogin(event)">
+                <div class="login-form-group">
+                    <label for="pesertaPassword">Password Peserta</label>
+                    <div class="password-container">
+                        <input type="password" id="pesertaPassword" required placeholder="••••••••" autocomplete="off">
+                        <button type="button" class="toggle-password-btn" onclick="togglePesertaPasswordVisibility()" aria-label="Tampilkan atau sembunyikan password">
+                            <i id="pesertaEyeIcon" class="fa fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <p id="pesertaGateError" class="peserta-error hidden">Password salah. Silakan coba lagi.</p>
+                <button type="submit" class="login-btn">
+                    <i class="fa fa-right-to-bracket"></i> Lihat Catatan
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p>Nona Swimming Course &copy; 2026</p>
+                <p class="peserta-back-link"><a href="index.html"><i class="fa fa-arrow-left"></i> Kembali ke Absensi Admin/Pelatih</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Konten peserta: pilih nama -> tampil catatan -->
+    <div id="pesertaContent" class="hidden">
+        <div class="header">
+            <div class="header-left">
+                <img src="Logo percobaan.png" alt="Logo NSC" class="header-logo">
+                <div class="header-text">
+                    <h1>CATATAN PESERTA</h1>
+                    <p>Nona Swimming Course</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="logout-main-btn" onclick="handlePesertaLogout()">
+                    <i class="fa fa-arrow-right-from-bracket"></i> Keluar
+                </button>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="card">
+                <h2>Pilih Nama Peserta</h2>
+                <p class="hint-kontak">Ketik atau pilih nama siswa untuk melihat catatan &amp; riwayat kehadirannya.</p>
+                <div class="field-spacer"></div>
+                <label for="pesertaNama">Nama Siswa</label>
+                <select id="pesertaNama" placeholder="Ketik atau pilih nama siswa...">
+                    <option value=""></option>
+                </select>
+            </div>
+
+            <div id="pesertaHasil" class="card hidden">
+                <div class="rekap-header-wrapper">
+                    <div class="rekap-title-area">
+                        <h2 id="pesertaNamaTerpilih">-</h2>
+                        <p id="pesertaRingkasan">Memuat data...</p>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Waktu</th>
+                                <th>Status</th>
+                                <th>Catatan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pesertaTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="pesertaKosong" class="card hidden">
+                <p class="table-empty-inline"><i class="fa fa-circle-info"></i> Belum ada data absensi untuk nama ini.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="peserta.js?v=1"></script>
+</body>
+</html>

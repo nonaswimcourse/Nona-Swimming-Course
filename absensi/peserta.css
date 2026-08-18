@@ -1,0 +1,36 @@
+.peserta-error {
+    color: var(--danger);
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: -8px;
+    margin-bottom: 4px;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.status-badge.status-hadir {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.status-badge.status-tidak {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.table-empty-inline {
+    padding: 10px 4px;
+    color: var(--muted);
+    font-weight: 600;
+}
