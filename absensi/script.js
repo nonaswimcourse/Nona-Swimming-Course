@@ -314,6 +314,11 @@ let jamManualTerpilih = null;
 let menitManualTerpilih = null;
 const JAM_PICKER_ITEM_HEIGHT = 40;
 
+// Waktu untuk modal update counter (+/- di tabel rekap)
+let counterWaktuMode = "otomatis";
+let counterJamTerpilih = null;
+let counterMenitTerpilih = null;
+
 function $(id) {
     return document.getElementById(id);
 }
@@ -1212,7 +1217,6 @@ async function updateCounter(index, tipe, value) {
     const namaSiswa = targetSiswa.nama;
     let baruHadir = targetSiswa.hadir;
     let baruTidakHadir = targetSiswa.tidakHadir;
-    const waktuSekarangISO = new Date().toISOString();
     let riwayatBaru;
     let tanggalPayload;
 
@@ -1222,6 +1226,9 @@ async function updateCounter(index, tipe, value) {
         if (inputCatatan === null) return;
         const catatanKetik = inputCatatan.trim() === "" ? "Update manual via counter" : inputCatatan.trim();
 
+        // Waktu mengikuti pilihan Otomatis (sekarang) / Manual (tanggal + scroll jam) di modal catatan.
+        const waktuTerpilihISO = getWaktuCounterTerpilih().toISOString();
+
         const statusCatatan = tipe === "hadir" ? "Hadir" : "Tidak Hadir";
         if (tipe === "hadir") {
             baruHadir += 1;
@@ -1229,9 +1236,11 @@ async function updateCounter(index, tipe, value) {
             baruTidakHadir += 1;
         }
 
-        riwayatBaru = tambahRiwayatCatatan(targetSiswa.riwayatCatatan, catatanKetik, waktuSekarangISO, statusCatatan);
-        tanggalPayload = waktuSekarangISO;
+        riwayatBaru = tambahRiwayatCatatan(targetSiswa.riwayatCatatan, catatanKetik, waktuTerpilihISO, statusCatatan);
+        tanggalPayload = waktuTerpilihISO;
+        resetCounterWaktuInput();
     } else {
+        const waktuSekarangISO = new Date().toISOString();
         if (tipe === "hadir") {
             if (baruHadir === 0) return;
             baruHadir -= 1;
@@ -1844,6 +1853,17 @@ function initModalCatatanSelect() {
     if (btnBatal) btnBatal.addEventListener("click", () => tutupModalCatatan(null));
     if (btnSimpan) {
         btnSimpan.addEventListener("click", () => {
+            if (counterWaktuMode === "manual") {
+                const tanggalVal = $("tanggalCounterManual")?.value || "";
+                if (!tanggalVal) {
+                    alert("Silakan pilih tanggal terlebih dahulu!");
+                    return;
+                }
+                if (counterJamTerpilih === null || counterMenitTerpilih === null) {
+                    alert("Silakan pilih jam terlebih dahulu!");
+                    return;
+                }
+            }
             const nilai = modalCatatanControl ? (modalCatatanControl.getValue() || "") : "";
             tutupModalCatatan(nilai);
         });
@@ -1868,6 +1888,7 @@ function bukaModalCatatan(judul) {
 
         if (titleEl) titleEl.innerText = judul;
         modalCatatanControl.clear(true);
+        resetCounterWaktuInput();
 
         modalCatatanResolve = resolve;
         overlay.classList.remove("hidden");
@@ -2014,6 +2035,51 @@ function resetWaktuAbsensiInput() {
     if ($("jamManualLabel")) $("jamManualLabel").innerText = "-- : --";
 }
 
+/* ===== Waktu untuk modal update counter (+/- di tabel rekap) ===== */
+
+function setCounterWaktuMode(mode) {
+    counterWaktuMode = mode === "manual" ? "manual" : "otomatis";
+
+    const btnOtomatis = $("btnCounterModeOtomatis");
+    const btnManual = $("btnCounterModeManual");
+    const fieldsWrap = $("counterManualFields");
+
+    btnOtomatis?.classList.toggle("active", counterWaktuMode === "otomatis");
+    btnManual?.classList.toggle("active", counterWaktuMode === "manual");
+    fieldsWrap?.classList.toggle("hidden", counterWaktuMode !== "manual");
+
+    if (counterWaktuMode === "manual") {
+        const tanggalEl = $("tanggalCounterManual");
+        if (tanggalEl && !tanggalEl.value) {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, "0");
+            const dd = String(now.getDate()).padStart(2, "0");
+            tanggalEl.value = `${yyyy}-${mm}-${dd}`;
+        }
+    }
+}
+
+function resetCounterWaktuInput() {
+    setCounterWaktuMode("otomatis");
+    counterJamTerpilih = null;
+    counterMenitTerpilih = null;
+    if ($("tanggalCounterManual")) $("tanggalCounterManual").value = "";
+    if ($("jamCounterManualLabel")) $("jamCounterManualLabel").innerText = "-- : --";
+}
+
+// Menentukan Date final untuk update counter, sesuai mode Otomatis/Manual yang dipilih di modal catatan.
+function getWaktuCounterTerpilih() {
+    if (counterWaktuMode === "manual") {
+        const tanggalVal = $("tanggalCounterManual")?.value || "";
+        if (tanggalVal && counterJamTerpilih !== null && counterMenitTerpilih !== null) {
+            const [tahun, bulan, tgl] = tanggalVal.split("-").map(Number);
+            return new Date(tahun, bulan - 1, tgl, counterJamTerpilih, counterMenitTerpilih, 0);
+        }
+    }
+    return new Date();
+}
+
 function buatKolomJamPicker(containerId, jumlah, nilaiTerpilih) {
     const container = $(containerId);
     if (!container) return;
@@ -2044,28 +2110,59 @@ function buatKolomJamPicker(containerId, jumlah, nilaiTerpilih) {
     tandaiItemAktif(container);
 }
 
+// Nilai sementara hasil scroll, dibaca oleh callback saat tombol "Pilih Jam" ditekan.
+let jamPickerTempJam = null;
+let jamPickerTempMenit = null;
+let jamPickerOnConfirm = null;
+
 function tandaiItemAktif(container) {
     if (!container) return;
     const index = Math.round(container.scrollTop / JAM_PICKER_ITEM_HEIGHT);
     const items = container.querySelectorAll(".jam-picker-item");
     items.forEach((el, i) => el.classList.toggle("active", i === index));
 
-    if (container.id === "scrollJam") jamManualTerpilih = index;
-    if (container.id === "scrollMenit") menitManualTerpilih = index;
+    if (container.id === "scrollJam") jamPickerTempJam = index;
+    if (container.id === "scrollMenit") jamPickerTempMenit = index;
 }
 
-function bukaModalJam() {
+// Modal jam dipakai bersama (form input & update counter). onConfirm(jam, menit) dipanggil saat "Pilih Jam" ditekan.
+function bukaModalJamGeneric(jamAwal, menitAwal, onConfirm) {
     const overlay = $("modalJamPicker");
     if (!overlay) return;
 
-    const now = new Date();
-    const jamAwal = jamManualTerpilih !== null ? jamManualTerpilih : now.getHours();
-    const menitAwal = menitManualTerpilih !== null ? menitManualTerpilih : now.getMinutes();
-
+    jamPickerOnConfirm = onConfirm;
     buatKolomJamPicker("scrollJam", 24, jamAwal);
     buatKolomJamPicker("scrollMenit", 60, menitAwal);
 
     overlay.classList.remove("hidden");
+}
+
+function bukaModalJam() {
+    const now = new Date();
+    const jamAwal = jamManualTerpilih !== null ? jamManualTerpilih : now.getHours();
+    const menitAwal = menitManualTerpilih !== null ? menitManualTerpilih : now.getMinutes();
+
+    bukaModalJamGeneric(jamAwal, menitAwal, (jam, menit) => {
+        jamManualTerpilih = jam;
+        menitManualTerpilih = menit;
+        if ($("jamManualLabel")) {
+            $("jamManualLabel").innerText = `${String(jam).padStart(2, "0")} : ${String(menit).padStart(2, "0")}`;
+        }
+    });
+}
+
+function bukaModalJamCounter() {
+    const now = new Date();
+    const jamAwal = counterJamTerpilih !== null ? counterJamTerpilih : now.getHours();
+    const menitAwal = counterMenitTerpilih !== null ? counterMenitTerpilih : now.getMinutes();
+
+    bukaModalJamGeneric(jamAwal, menitAwal, (jam, menit) => {
+        counterJamTerpilih = jam;
+        counterMenitTerpilih = menit;
+        if ($("jamCounterManualLabel")) {
+            $("jamCounterManualLabel").innerText = `${String(jam).padStart(2, "0")} : ${String(menit).padStart(2, "0")}`;
+        }
+    });
 }
 
 function tutupModalJam() {
@@ -2095,10 +2192,10 @@ function initModalJamPicker() {
             if (scrollJamEl) tandaiItemAktif(scrollJamEl);
             if (scrollMenitEl) tandaiItemAktif(scrollMenitEl);
 
-            const jam = jamManualTerpilih ?? 0;
-            const menit = menitManualTerpilih ?? 0;
-            if ($("jamManualLabel")) {
-                $("jamManualLabel").innerText = `${String(jam).padStart(2, "0")} : ${String(menit).padStart(2, "0")}`;
+            const jam = jamPickerTempJam ?? 0;
+            const menit = jamPickerTempMenit ?? 0;
+            if (typeof jamPickerOnConfirm === "function") {
+                jamPickerOnConfirm(jam, menit);
             }
             tutupModalJam();
         });
@@ -2106,16 +2203,17 @@ function initModalJamPicker() {
 }
 
 function initTanggalManualClick() {
-    const tanggalEl = $("tanggalManual");
-    if (!tanggalEl) return;
-    tanggalEl.addEventListener("click", () => {
-        if (typeof tanggalEl.showPicker === "function") {
-            try {
-                tanggalEl.showPicker();
-            } catch (e) {
-                /* Browser tidak mendukung showPicker(), abaikan */
+    [$("tanggalManual"), $("tanggalCounterManual")].forEach((tanggalEl) => {
+        if (!tanggalEl) return;
+        tanggalEl.addEventListener("click", () => {
+            if (typeof tanggalEl.showPicker === "function") {
+                try {
+                    tanggalEl.showPicker();
+                } catch (e) {
+                    /* Browser tidak mendukung showPicker(), abaikan */
+                }
             }
-        }
+        });
     });
 }
 

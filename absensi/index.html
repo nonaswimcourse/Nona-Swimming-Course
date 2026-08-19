@@ -224,6 +224,34 @@
             <h3 id="modalCatatanTitle">Catatan Tambahan</h3>
             <p class="modal-subtitle">Pilih catatan cepat atau ketik catatan manual di bawah ini.</p>
             <select id="modalCatatanSelect" placeholder="Pilih catatan cepat atau ketik catatan manual..."></select>
+
+            <div class="waktu-absensi-wrap">
+                <label>Waktu Absensi</label>
+                <div class="waktu-mode-toggle">
+                    <button type="button" class="waktu-mode-btn active" id="btnCounterModeOtomatis" onclick="setCounterWaktuMode('otomatis')">
+                        <i class="fa fa-bolt"></i> Otomatis (Sekarang)
+                    </button>
+                    <button type="button" class="waktu-mode-btn" id="btnCounterModeManual" onclick="setCounterWaktuMode('manual')">
+                        <i class="fa fa-sliders"></i> Manual
+                    </button>
+                </div>
+
+                <div class="waktu-manual-fields hidden" id="counterManualFields">
+                    <div class="waktu-manual-row">
+                        <div>
+                            <label for="tanggalCounterManual">Tanggal</label>
+                            <input type="date" id="tanggalCounterManual">
+                        </div>
+                        <div>
+                            <label for="btnPilihJamCounter">Jam</label>
+                            <button type="button" class="btn-pilih-jam" id="btnPilihJamCounter" onclick="bukaModalJamCounter()">
+                                <i class="fa fa-clock"></i> <span id="jamCounterManualLabel">-- : --</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="modal-actions">
                 <button type="button" class="btn modal-btn-cancel" id="modalCatatanBatal">Batal</button>
                 <button type="button" class="btn btn-primary modal-btn-ok" id="modalCatatanSimpan">
