@@ -948,3 +948,163 @@ textarea::placeholder {
 .modal-btn-cancel:hover {
     background: var(--border);
 }
+
+/* Waktu Absensi: toggle Otomatis / Manual */
+.waktu-absensi-wrap {
+    margin-top: 20px;
+}
+
+.waktu-mode-toggle {
+    display: flex;
+    gap: 6px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.waktu-mode-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    transition: background .2s ease, color .2s ease, box-shadow .2s ease;
+}
+
+.waktu-mode-btn:hover {
+    color: var(--primary);
+}
+
+.waktu-mode-btn.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    box-shadow: 0 6px 14px rgba(35, 74, 132, 0.22);
+}
+
+.waktu-manual-fields {
+    margin-top: 14px;
+}
+
+.waktu-manual-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.btn-pilih-jam {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 13px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-soft);
+    color: var(--text);
+    font-weight: 700;
+    font-size: 15px;
+    text-align: left;
+    transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.btn-pilih-jam i {
+    color: var(--primary);
+}
+
+.btn-pilih-jam:hover,
+.btn-pilih-jam:focus {
+    border-color: var(--primary);
+    background: var(--surface);
+    box-shadow: 0 0 0 4px rgba(35, 74, 132, 0.12);
+}
+
+/* Modal Jam Picker (scroll wheel) */
+.modal-box-jam {
+    max-width: 320px;
+}
+
+.jam-picker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 160px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.jam-picker-highlight {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    top: 50%;
+    height: 40px;
+    transform: translateY(-50%);
+    background: rgba(35, 74, 132, 0.08);
+    border-top: 1.5px solid rgba(35, 74, 132, 0.35);
+    border-bottom: 1.5px solid rgba(35, 74, 132, 0.35);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.jam-picker-col {
+    position: relative;
+    width: 80px;
+    height: 160px;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    padding: 60px 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.jam-picker-col::-webkit-scrollbar {
+    display: none;
+}
+
+.jam-picker-item {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    scroll-snap-align: center;
+    font-size: 17px;
+    font-weight: 600;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: color .15s ease, font-size .15s ease, font-weight .15s ease;
+}
+
+.jam-picker-item.active {
+    color: var(--primary);
+    font-weight: 800;
+    font-size: 23px;
+}
+
+.jam-picker-sep {
+    position: relative;
+    z-index: 1;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--primary);
+    padding: 0 4px;
+}
+
+@media (max-width: 768px) {
+    .waktu-manual-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}

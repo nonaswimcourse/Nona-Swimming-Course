@@ -308,6 +308,12 @@ let realtimeReloadTimer = null;
 let realtimeChannelKontak = null;
 let realtimeReloadTimerKontak = null;
 
+// Waktu Absensi: mode otomatis (default) atau manual (pilih tanggal + scroll jam)
+let waktuAbsensiMode = "otomatis";
+let jamManualTerpilih = null;
+let menitManualTerpilih = null;
+const JAM_PICKER_ITEM_HEIGHT = 40;
+
 function $(id) {
     return document.getElementById(id);
 }
@@ -1403,7 +1409,26 @@ async function simpan() {
         const nTidakHadir = (existing?.tidakHadir || 0) + (status === "Tidak Hadir" ? 1 : 0);
         const noHpFinal = nomorHpInput !== "" ? nomorHpInput : (existing?.no_hp || "");
 
-        const waktuSekarangISO = new Date().toISOString();
+        let waktuTerpilih;
+        if (waktuAbsensiMode === "manual") {
+            const tanggalManualVal = $("tanggalManual")?.value || "";
+            if (!tanggalManualVal) {
+                alert("Silakan pilih tanggal absensi terlebih dahulu!");
+                setButtonLoading(btnSimpan, false, "", '<i class="fa fa-plus-circle"></i> Simpan Data');
+                return;
+            }
+            if (jamManualTerpilih === null || menitManualTerpilih === null) {
+                alert("Silakan pilih jam absensi terlebih dahulu!");
+                setButtonLoading(btnSimpan, false, "", '<i class="fa fa-plus-circle"></i> Simpan Data');
+                return;
+            }
+            const [tahun, bulan, tgl] = tanggalManualVal.split("-").map(Number);
+            waktuTerpilih = new Date(tahun, bulan - 1, tgl, jamManualTerpilih, menitManualTerpilih, 0);
+        } else {
+            waktuTerpilih = new Date();
+        }
+
+        const waktuSekarangISO = waktuTerpilih.toISOString();
         const riwayatBaru = tambahRiwayatCatatan(existing?.riwayatCatatan, catatanTeks, waktuSekarangISO, status);
         const payload = {
             absensi: nama,
@@ -1463,6 +1488,7 @@ async function simpan() {
 
         resetCatatanInput();
         if ($("no_hp")) $("no_hp").value = "";
+        resetWaktuAbsensiInput();
 
         alert("Data berhasil disimpan ke Supabase!");
     } catch (error) {
@@ -1955,11 +1981,151 @@ function resetCatatanInput() {
     }
 }
 
+/* ===== Waktu Absensi: toggle Otomatis / Manual + scroll picker jam ===== */
+
+function setWaktuMode(mode) {
+    waktuAbsensiMode = mode === "manual" ? "manual" : "otomatis";
+
+    const btnOtomatis = $("btnModeOtomatis");
+    const btnManual = $("btnModeManual");
+    const fieldsWrap = $("waktuManualFields");
+
+    btnOtomatis?.classList.toggle("active", waktuAbsensiMode === "otomatis");
+    btnManual?.classList.toggle("active", waktuAbsensiMode === "manual");
+    fieldsWrap?.classList.toggle("hidden", waktuAbsensiMode !== "manual");
+
+    if (waktuAbsensiMode === "manual") {
+        const tanggalEl = $("tanggalManual");
+        if (tanggalEl && !tanggalEl.value) {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, "0");
+            const dd = String(now.getDate()).padStart(2, "0");
+            tanggalEl.value = `${yyyy}-${mm}-${dd}`;
+        }
+    }
+}
+
+function resetWaktuAbsensiInput() {
+    setWaktuMode("otomatis");
+    jamManualTerpilih = null;
+    menitManualTerpilih = null;
+    if ($("tanggalManual")) $("tanggalManual").value = "";
+    if ($("jamManualLabel")) $("jamManualLabel").innerText = "-- : --";
+}
+
+function buatKolomJamPicker(containerId, jumlah, nilaiTerpilih) {
+    const container = $(containerId);
+    if (!container) return;
+
+    let html = "";
+    for (let i = 0; i < jumlah; i++) {
+        html += `<div class="jam-picker-item" data-value="${i}">${String(i).padStart(2, "0")}</div>`;
+    }
+    container.innerHTML = html;
+
+    container.querySelectorAll(".jam-picker-item").forEach((el) => {
+        el.addEventListener("click", () => {
+            el.scrollIntoView({ block: "center", behavior: "smooth" });
+        });
+    });
+
+    let scrollTimer = null;
+    container.addEventListener("scroll", () => {
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(() => {
+            tandaiItemAktif(container);
+        }, 100);
+    });
+
+    // Set posisi awal (default: jam/menit sekarang jika belum ada pilihan)
+    const startIndex = nilaiTerpilih !== null && nilaiTerpilih !== undefined ? nilaiTerpilih : 0;
+    container.scrollTop = startIndex * JAM_PICKER_ITEM_HEIGHT;
+    tandaiItemAktif(container);
+}
+
+function tandaiItemAktif(container) {
+    if (!container) return;
+    const index = Math.round(container.scrollTop / JAM_PICKER_ITEM_HEIGHT);
+    const items = container.querySelectorAll(".jam-picker-item");
+    items.forEach((el, i) => el.classList.toggle("active", i === index));
+
+    if (container.id === "scrollJam") jamManualTerpilih = index;
+    if (container.id === "scrollMenit") menitManualTerpilih = index;
+}
+
+function bukaModalJam() {
+    const overlay = $("modalJamPicker");
+    if (!overlay) return;
+
+    const now = new Date();
+    const jamAwal = jamManualTerpilih !== null ? jamManualTerpilih : now.getHours();
+    const menitAwal = menitManualTerpilih !== null ? menitManualTerpilih : now.getMinutes();
+
+    buatKolomJamPicker("scrollJam", 24, jamAwal);
+    buatKolomJamPicker("scrollMenit", 60, menitAwal);
+
+    overlay.classList.remove("hidden");
+}
+
+function tutupModalJam() {
+    const overlay = $("modalJamPicker");
+    if (overlay) overlay.classList.add("hidden");
+}
+
+function initModalJamPicker() {
+    const overlay = $("modalJamPicker");
+    const btnBatal = $("modalJamBatal");
+    const btnSimpanJam = $("modalJamSimpan");
+
+    if (overlay) {
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) tutupModalJam();
+        });
+    }
+
+    if (btnBatal) {
+        btnBatal.addEventListener("click", tutupModalJam);
+    }
+
+    if (btnSimpanJam) {
+        btnSimpanJam.addEventListener("click", () => {
+            const scrollJamEl = $("scrollJam");
+            const scrollMenitEl = $("scrollMenit");
+            if (scrollJamEl) tandaiItemAktif(scrollJamEl);
+            if (scrollMenitEl) tandaiItemAktif(scrollMenitEl);
+
+            const jam = jamManualTerpilih ?? 0;
+            const menit = menitManualTerpilih ?? 0;
+            if ($("jamManualLabel")) {
+                $("jamManualLabel").innerText = `${String(jam).padStart(2, "0")} : ${String(menit).padStart(2, "0")}`;
+            }
+            tutupModalJam();
+        });
+    }
+}
+
+function initTanggalManualClick() {
+    const tanggalEl = $("tanggalManual");
+    if (!tanggalEl) return;
+    tanggalEl.addEventListener("click", () => {
+        if (typeof tanggalEl.showPicker === "function") {
+            try {
+                tanggalEl.showPicker();
+            } catch (e) {
+                /* Browser tidak mendukung showPicker(), abaikan */
+            }
+        }
+    });
+}
+
 document.addEventListener("DOMContentLoaded", async function () {
     initNamaSelect();
     initCatatanSelect();
     initModalCatatanSelect();
     initModalKontakBaru();
+    initModalJamPicker();
+    initTanggalManualClick();
     updateJamRealtime();
     setInterval(updateJamRealtime, 1000);
     await checkLoginSession();

@@ -142,6 +142,33 @@
                 </div>
                 <p class="hint-kontak">Pilih nama dari daftar untuk mengisi no. HP secara otomatis. Nama baru? Klik <strong>Tambah Kontak</strong> untuk menyimpannya ke daftar.</p>
 
+                <div class="waktu-absensi-wrap">
+                    <label>Waktu Absensi</label>
+                    <div class="waktu-mode-toggle">
+                        <button type="button" class="waktu-mode-btn active" id="btnModeOtomatis" onclick="setWaktuMode('otomatis')">
+                            <i class="fa fa-bolt"></i> Otomatis (Sekarang)
+                        </button>
+                        <button type="button" class="waktu-mode-btn" id="btnModeManual" onclick="setWaktuMode('manual')">
+                            <i class="fa fa-sliders"></i> Manual
+                        </button>
+                    </div>
+
+                    <div class="waktu-manual-fields hidden" id="waktuManualFields">
+                        <div class="waktu-manual-row">
+                            <div>
+                                <label for="tanggalManual">Tanggal</label>
+                                <input type="date" id="tanggalManual">
+                            </div>
+                            <div>
+                                <label for="btnPilihJam">Jam</label>
+                                <button type="button" class="btn-pilih-jam" id="btnPilihJam" onclick="bukaModalJam()">
+                                    <i class="fa fa-clock"></i> <span id="jamManualLabel">-- : --</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="field-spacer"></div>
 
                 <label for="catatan">Catatan</label>
@@ -201,6 +228,25 @@
                 <button type="button" class="btn modal-btn-cancel" id="modalCatatanBatal">Batal</button>
                 <button type="button" class="btn btn-primary modal-btn-ok" id="modalCatatanSimpan">
                     <i class="fa fa-check"></i> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalJamPicker" class="modal-overlay hidden">
+        <div class="modal-box modal-box-jam">
+            <h3>Pilih Jam Absensi</h3>
+            <p class="modal-subtitle">Geser (scroll) atau ketuk angka untuk memilih jam &amp; menit.</p>
+            <div class="jam-picker">
+                <div class="jam-picker-highlight"></div>
+                <div class="jam-picker-col" id="scrollJam"></div>
+                <div class="jam-picker-sep">:</div>
+                <div class="jam-picker-col" id="scrollMenit"></div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn modal-btn-cancel" id="modalJamBatal">Batal</button>
+                <button type="button" class="btn btn-primary modal-btn-ok" id="modalJamSimpan">
+                    <i class="fa fa-check"></i> Pilih Jam
                 </button>
             </div>
         </div>
