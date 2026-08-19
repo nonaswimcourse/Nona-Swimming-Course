@@ -301,7 +301,24 @@
         </div>
     </div>
 
+    <div id="modalEditNama" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h3>Edit Nama Siswa</h3>
+            <p class="modal-subtitle">Nama akan diperbarui di data rekap &amp; daftar kontak, riwayat catatan absensi tidak akan hilang.</p>
+            <div class="login-form-group">
+                <label for="editNamaInput">Nama Baru</label>
+                <input type="text" id="editNamaInput" placeholder="Contoh: BINTANG" autocomplete="off">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn modal-btn-cancel" id="modalEditNamaBatal">Batal</button>
+                <button type="button" class="btn btn-primary modal-btn-ok" id="modalEditNamaSimpan">
+                    <i class="fa fa-check"></i> Simpan Nama
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="/absensi/pwa.js?v=transparent-v3"></script>
-    <script src="script.js?v=kontak-v1"></script>
+    <script src="script.js?v=kontak-v2"></script>
 </body>
 </html>

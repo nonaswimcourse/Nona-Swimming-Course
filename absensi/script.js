@@ -1026,6 +1026,9 @@ function renderTable(emptyMessage = "Belum ada data rekap.") {
                         <button class="btn-action btn-excel" title="Download Excel Harian Siswa" onclick="exportSiswaExcel(${index})">
                             <i class="fa fa-file-excel"></i>
                         </button>
+                        <button class="btn-action btn-edit" title="Edit Nama Siswa" onclick="bukaModalEditNama(${index})">
+                            <i class="fa fa-pen"></i>
+                        </button>
                         <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})">
                             <i class="fa fa-trash"></i>
                         </button>
@@ -1379,6 +1382,141 @@ async function keluarkanSiswa(namaSiswa) {
     // absensi di atas benar-benar berhasil (bukan dibatalkan/gagal).
     if (berhasil) {
         await hapusKontakByNama(namaSiswa);
+    }
+}
+
+// ===== Edit Nama Siswa =====
+// Mengubah nama siswa di tabel rekap (absensinsc) sekaligus di daftar kontak
+// (kontak), supaya nama tetap konsisten di seluruh sistem tanpa menghapus
+// riwayat/catatan absensi yang sudah ada.
+let editNamaIndex = null;
+
+function bukaModalEditNama(index) {
+    const item = dataRekap[index];
+    if (!item) return;
+
+    editNamaIndex = index;
+
+    const overlay = $("modalEditNama");
+    const input = $("editNamaInput");
+    if (input) input.value = item.nama;
+    if (overlay) overlay.classList.remove("hidden");
+    setTimeout(() => input?.focus(), 50);
+}
+
+function tutupModalEditNama() {
+    const overlay = $("modalEditNama");
+    if (overlay) overlay.classList.add("hidden");
+    editNamaIndex = null;
+}
+
+async function simpanEditNama() {
+    const session = await requireSessionOrAlert();
+    if (!session) return;
+
+    if (editNamaIndex === null) return;
+    const item = dataRekap[editNamaIndex];
+    if (!item) return;
+
+    const input = $("editNamaInput");
+    const namaBaru = normalizeNama(input?.value || "");
+    const namaLama = item.nama;
+
+    if (!namaBaru) {
+        alert("Nama tidak boleh kosong.");
+        input?.focus();
+        return;
+    }
+
+    if (namaBaru === namaLama) {
+        tutupModalEditNama();
+        return;
+    }
+
+    const sudahDipakai =
+        dataRekap.some((row, idx) => idx !== editNamaIndex && row.nama === namaBaru) ||
+        dataKontak.some((k) => k.nama === namaBaru);
+
+    if (sudahDipakai) {
+        alert(`Nama "${namaBaru}" sudah dipakai siswa lain. Silakan gunakan nama lain.`);
+        input?.focus();
+        return;
+    }
+
+    const btnSimpan = $("modalEditNamaSimpan");
+    const originalHtml = btnSimpan ? btnSimpan.innerHTML : "";
+    if (btnSimpan) {
+        btnSimpan.disabled = true;
+        btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
+    }
+
+    try {
+        const { error: errorRekap } = await supabaseClient
+            .from(TABLE_NAME)
+            .update({ nama: namaBaru, absensi: namaBaru })
+            .eq("absensi", namaLama);
+
+        if (errorRekap) throw errorRekap;
+
+        const kontakAda = dataKontak.some((k) => k.nama === namaLama);
+        if (kontakAda) {
+            const { error: errorKontak } = await supabaseClient
+                .from(KONTAK_TABLE)
+                .update({ nama: namaBaru })
+                .eq("nama", namaLama);
+
+            if (errorKontak) throw errorKontak;
+        }
+
+        dataRekap[editNamaIndex] = {
+            ...item,
+            nama: namaBaru,
+            absensi: namaBaru
+        };
+        dataRekap.sort((a, b) => a.nama.localeCompare(b.nama, "id"));
+
+        const kontakEntry = dataKontak.find((k) => k.nama === namaLama);
+        if (kontakEntry) {
+            kontakEntry.nama = namaBaru;
+            dataKontak.sort((a, b) => a.nama.localeCompare(b.nama, "id"));
+        }
+
+        rebuildKontakMap();
+        renderNamaOptions();
+        saveCache();
+        renderTable();
+        tutupModalEditNama();
+    } catch (error) {
+        console.error(error);
+        alert("Gagal mengubah nama di Supabase: " + (error?.message || "Terjadi kesalahan."));
+    } finally {
+        if (btnSimpan) {
+            btnSimpan.disabled = false;
+            btnSimpan.innerHTML = originalHtml;
+        }
+    }
+}
+
+function initModalEditNama() {
+    const btnBatal = $("modalEditNamaBatal");
+    const btnSimpan = $("modalEditNamaSimpan");
+    const overlay = $("modalEditNama");
+    const input = $("editNamaInput");
+
+    if (btnBatal) btnBatal.addEventListener("click", () => tutupModalEditNama());
+    if (overlay) {
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) tutupModalEditNama();
+        });
+    }
+    if (btnSimpan) btnSimpan.addEventListener("click", () => simpanEditNama());
+    if (input) {
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                simpanEditNama();
+            }
+        });
     }
 }
 
@@ -2222,6 +2360,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     initCatatanSelect();
     initModalCatatanSelect();
     initModalKontakBaru();
+    initModalEditNama();
     initModalJamPicker();
     initTanggalManualClick();
     updateJamRealtime();
