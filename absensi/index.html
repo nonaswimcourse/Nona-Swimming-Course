@@ -200,11 +200,14 @@
                     </div>
                 </div>
 
+                <div class="kelas-tabs" id="kelasTabs"></div>
+
                 <div class="table-wrapper">
                     <table class="table">
                         <thead>
                             <tr>
                                 <th>Nama</th>
+                                <th>Kelas</th>
                                 <th>Hadir</th>
                                 <th>Tidak Hadir</th>
                                 <th>Total</th>
@@ -292,6 +295,16 @@
                 <label for="kontakHpInput">No. HP Orang Tua</label>
                 <input type="text" id="kontakHpInput" placeholder="Contoh: 0812345678" inputmode="numeric" autocomplete="off">
             </div>
+            <div class="login-form-group">
+                <label for="kontakKelasInput">Kelas</label>
+                <select id="kontakKelasInput">
+                    <option value="Prestasi">Prestasi</option>
+                    <option value="Menengah">Menengah</option>
+                    <option value="Pemula A">Pemula A</option>
+                    <option value="Pemula B">Pemula B</option>
+                </select>
+                <p class="hint-kontak">Siswa baru disarankan mulai dari <strong>Kelas Prestasi</strong> (kelas evaluasi), lalu dipindah ke kelas yang sesuai lewat dropdown "Kelas" di tabel rekap.</p>
+            </div>
             <div class="modal-actions">
                 <button type="button" class="btn modal-btn-cancel" id="modalKontakBatal">Batal</button>
                 <button type="button" class="btn btn-primary modal-btn-ok" id="modalKontakSimpan">
@@ -319,6 +332,6 @@
     </div>
 
     <script src="/absensi/pwa.js?v=transparent-v3"></script>
-    <script src="script.js?v=kontak-v2"></script>
+    <script src="script.js?v=kelas-v1"></script>
 </body>
 </html>

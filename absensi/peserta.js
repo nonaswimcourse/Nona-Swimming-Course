@@ -29,6 +29,17 @@ const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"
 const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const CATATAN_HISTORY_PREFIX = "NSC_CATATAN_HISTORY_V1:";
 
+// Kelas siswa & target jumlah pertemuan (Pemula A/B = 15x, lainnya = 12x),
+// dipakai untuk menampilkan info kelas di ringkasan catatan peserta.
+const KELAS_LIST = ["Prestasi", "Menengah", "Pemula A", "Pemula B"];
+const KELAS_DEFAULT = "Prestasi";
+const KELAS_TARGET_PERTEMUAN = { "Prestasi": 12, "Menengah": 12, "Pemula A": 15, "Pemula B": 15 };
+function normalizeKelas(value) {
+    const bersih = String(value ?? "").trim();
+    return KELAS_LIST.includes(bersih) ? bersih : KELAS_DEFAULT;
+}
+let pesertaKelasMap = new Map();
+
 let pesertaNamaControl = null;
 let realtimeChannelKontakPeserta = null;
 let realtimeReloadTimerKontakPeserta = null;
@@ -136,16 +147,20 @@ async function muatDaftarNamaPeserta() {
     try {
         const { data, error } = await supabaseClient
             .from(KONTAK_TABLE)
-            .select("nama")
+            .select("nama, kelas")
             .order("nama", { ascending: true });
 
         if (error) throw error;
 
+        pesertaKelasMap = new Map();
         pesertaNamaControl.clearOptions();
         pesertaNamaControl.addOption({ value: "", text: "" });
         (data || []).forEach((row) => {
             const nama = String(row?.nama ?? "").trim();
-            if (nama) pesertaNamaControl.addOption({ value: nama, text: nama });
+            if (nama) {
+                pesertaNamaControl.addOption({ value: nama, text: nama });
+                pesertaKelasMap.set(nama, normalizeKelas(row?.kelas));
+            }
         });
         pesertaNamaControl.refreshOptions(false);
     } catch (error) {
@@ -260,8 +275,11 @@ async function tampilkanCatatanUntukNama(nama) {
         const hadir = toInt(data.hadir);
         const tidakHadir = toInt(data.tidak_hadir);
 
+        const kelasSiswa = pesertaKelasMap.get(nama) || KELAS_DEFAULT;
+        const targetSiswa = KELAS_TARGET_PERTEMUAN[kelasSiswa] || 12;
+
         $("pesertaNamaTerpilih").textContent = nama;
-        $("pesertaRingkasan").textContent = `Hadir: ${hadir}  |  Tidak Hadir: ${tidakHadir}  |  Total: ${hadir + tidakHadir} pertemuan`;
+        $("pesertaRingkasan").textContent = `Kelas: ${kelasSiswa}  |  Hadir: ${hadir}/${targetSiswa}  |  Tidak Hadir: ${tidakHadir}`;
 
         if (riwayat.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4" class="table-empty">Belum ada catatan untuk siswa ini.</td></tr>`;

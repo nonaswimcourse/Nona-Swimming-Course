@@ -1,4 +1,38 @@
 const TOTAL_PERTEMUAN = 12;
+
+// ==========================================================
+// Kelas / Kategori Siswa
+// ==========================================================
+// Setiap siswa (kontak) punya satu "kelas" aktif. Siswa baru selalu
+// masuk ke "Prestasi" dulu (kelas evaluasi/percobaan) sampai proses
+// evaluasi selesai, baru kemudian dikeluarkan & dipindah ke kelas
+// yang sesuai (Menengah, Pemula A, atau Pemula B) lewat dropdown
+// "Kelas" di baris tabel rekap.
+const KELAS_LIST = ["Prestasi", "Menengah", "Pemula A", "Pemula B"];
+const KELAS_DEFAULT = "Prestasi";
+
+// Target jumlah pertemuan berbeda untuk kelas Pemula (A & B): 15x pertemuan.
+// Kelas Prestasi & Menengah tetap memakai TOTAL_PERTEMUAN (12x).
+const KELAS_TARGET_PERTEMUAN = {
+    "Prestasi": TOTAL_PERTEMUAN,
+    "Menengah": TOTAL_PERTEMUAN,
+    "Pemula A": 15,
+    "Pemula B": 15
+};
+
+function normalizeKelas(value) {
+    const bersih = String(value ?? "").trim();
+    return KELAS_LIST.includes(bersih) ? bersih : KELAS_DEFAULT;
+}
+
+function getTargetPertemuanKelas(kelas) {
+    const k = normalizeKelas(kelas);
+    return KELAS_TARGET_PERTEMUAN[k] ?? TOTAL_PERTEMUAN;
+}
+
+// Kelas aktif yang sedang ditampilkan di tab Rekap Data.
+let activeKelasTab = KELAS_DEFAULT;
+
 const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndnbWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
 const TABLE_NAME = "absensinsc";
@@ -629,12 +663,20 @@ function getDbPayloadFromItem(item, overrides = {}) {
 function normalizeKontakRow(row) {
     return {
         nama: normalizeNama(row?.nama),
-        no_hp: String(row?.no_hp ?? "").trim()
+        no_hp: String(row?.no_hp ?? "").trim(),
+        kelas: normalizeKelas(row?.kelas)
     };
 }
 
 function rebuildKontakMap() {
-    kontakMap = new Map(dataKontak.map((k) => [k.nama, k.no_hp]));
+    kontakMap = new Map(dataKontak.map((k) => [k.nama, k]));
+}
+
+// Kelas aktif seorang siswa, dicari dari daftar kontak. Siswa yang belum
+// tercatat di daftar kontak (mis. data lama) dianggap "Prestasi" (default).
+function getKelasSiswa(nama) {
+    const kontak = kontakMap.get(normalizeNama(nama));
+    return normalizeKelas(kontak?.kelas);
 }
 
 function renderNamaOptions() {
@@ -655,7 +697,7 @@ async function muatKontakDariCloud() {
     try {
         const { data, error } = await supabaseClient
             .from(KONTAK_TABLE)
-            .select("nama, no_hp")
+            .select("nama, no_hp, kelas")
             .order("nama", { ascending: true });
 
         if (error) throw error;
@@ -663,37 +705,72 @@ async function muatKontakDariCloud() {
         dataKontak = (data || []).map(normalizeKontakRow).filter((k) => k.nama);
         rebuildKontakMap();
         renderNamaOptions();
+        // Render ulang tabel rekap supaya pengelompokan tab Kelas ikut ter-update
+        // jika ada perubahan kelas kontak dari sesi/perangkat lain (realtime).
+        if (Array.isArray(dataRekap) && dataRekap.length > 0) renderTable();
     } catch (error) {
         console.error("Gagal memuat daftar kontak dari Supabase:", error);
     }
 }
 
-// Simpan/perbarui satu kontak (nama + no. HP) ke Supabase.
+// Simpan/perbarui satu kontak (nama + no. HP + kelas) ke Supabase.
 // no. HP kosong TIDAK akan menimpa no. HP yang sudah tersimpan sebelumnya.
-async function upsertKontak(nama, noHp) {
+// kelas juga TIDAK akan menimpa kelas yang sudah ada jika tidak diisi
+// (undefined/null); siswa baru tanpa kelas otomatis masuk "Prestasi".
+async function upsertKontak(nama, noHp, kelas) {
     const namaBersih = normalizeNama(nama);
     if (!namaBersih) return null;
 
     const existing = dataKontak.find((k) => k.nama === namaBersih);
     const noHpBersih = String(noHp ?? "").trim();
     const noHpFinal = noHpBersih || existing?.no_hp || "";
+    const kelasFinal = kelas !== undefined && kelas !== null && kelas !== ""
+        ? normalizeKelas(kelas)
+        : normalizeKelas(existing?.kelas);
 
     const { error } = await supabaseClient
         .from(KONTAK_TABLE)
-        .upsert({ nama: namaBersih, no_hp: noHpFinal }, { onConflict: "nama" });
+        .upsert({ nama: namaBersih, no_hp: noHpFinal, kelas: kelasFinal }, { onConflict: "nama" });
 
     if (error) throw error;
 
     if (existing) {
         existing.no_hp = noHpFinal;
+        existing.kelas = kelasFinal;
     } else {
-        dataKontak.push({ nama: namaBersih, no_hp: noHpFinal });
+        dataKontak.push({ nama: namaBersih, no_hp: noHpFinal, kelas: kelasFinal });
         dataKontak.sort((a, b) => a.nama.localeCompare(b.nama, "id"));
     }
 
     rebuildKontakMap();
     renderNamaOptions();
     return namaBersih;
+}
+
+// Memindahkan siswa dari satu kelas ke kelas lain (dipanggil dari dropdown
+// "Kelas" di tabel rekap). Nomor HP tidak diubah.
+async function pindahKelasSiswa(nama, kelasBaru, selectEl) {
+    const session = await requireSessionOrAlert();
+    if (!session) {
+        renderTable();
+        return;
+    }
+
+    const namaBersih = normalizeNama(nama);
+    const kelasTervalidasi = normalizeKelas(kelasBaru);
+
+    if (selectEl) selectEl.disabled = true;
+
+    try {
+        await upsertKontak(namaBersih, undefined, kelasTervalidasi);
+        renderTable();
+    } catch (error) {
+        console.error("Gagal memindahkan kelas siswa:", error);
+        alert("Gagal memindahkan kelas siswa: " + (error?.message || "Terjadi kesalahan."));
+        renderTable();
+    } finally {
+        if (selectEl) selectEl.disabled = false;
+    }
 }
 
 function jadwalkanReloadKontak() {
@@ -742,9 +819,12 @@ async function hentikanRealtimeKontak() {
 }
 
 function buildWhatsAppText(item) {
-    const statusTarget = item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`;
+    const kelasSiswa = getKelasSiswa(item.nama);
+    const target = getTargetPertemuanKelas(kelasSiswa);
+    const statusTarget = item.hadir >= target ? "LENGKAP" : `${item.hadir}/${target}`;
     return `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
 
+Kelas: *${kelasSiswa}*
 Total Hadir: *${item.hadir}* Pertemuan
 Tidak Hadir: *${item.tidakHadir}* Pertemuan
 Status Target: *${statusTarget}*
@@ -848,12 +928,16 @@ async function buildSiswaPdfBlob(item) {
 
     await addPdfHeader(doc, "LAPORAN ABSENSI INDIVIDU SISWA", "Nona Swimming Course (NSC)");
 
+    const kelasSiswa = getKelasSiswa(item.nama);
+    const targetSiswa = getTargetPertemuanKelas(kelasSiswa);
+
     const rows = [
         ["Nama Siswa", item.nama],
+        ["Kelas", kelasSiswa],
         ["No. HP Orang Tua", item.no_hp || "-"],
         ["Total Kehadiran (Hadir)", `${item.hadir} Pertemuan`],
         ["Total Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-        ["Status Pertemuan", item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+        ["Status Pertemuan", item.hadir >= targetSiswa ? "LENGKAP" : `${item.hadir}/${targetSiswa}`],
         ["Tanggal Terakhir Diinput", item.tanggalRealtime || formatTanggalIndonesia(item.rawDate)],
         ["Catatan Khusus", item.catatan || "-"]
     ];
@@ -914,17 +998,26 @@ async function buildSiswaPdfBlob(item) {
     return doc.output("blob");
 }
 
-async function buildTotalPdfBlob() {
+// Mengambil daftar siswa untuk kelas tertentu (default: kelas tab yang sedang aktif).
+function getDataRekapByKelas(kelas = activeKelasTab) {
+    const kelasTervalidasi = normalizeKelas(kelas);
+    return dataRekap.filter((item) => getKelasSiswa(item.nama) === kelasTervalidasi);
+}
+
+async function buildTotalPdfBlob(kelas = activeKelasTab) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const kelasTervalidasi = normalizeKelas(kelas);
+    const target = getTargetPertemuanKelas(kelasTervalidasi);
+    const daftarSiswa = getDataRekapByKelas(kelasTervalidasi);
 
-    await addPdfHeader(doc, "LAPORAN REKAP TOTAL KEHADIRAN", `Nona Swimming Course - Total Target: ${TOTAL_PERTEMUAN} Pertemuan`);
+    await addPdfHeader(doc, "LAPORAN REKAP TOTAL KEHADIRAN", `Nona Swimming Course - Kelas ${kelasTervalidasi} - Target: ${target} Pertemuan`);
 
-    const rows = dataRekap.map((item) => [
+    const rows = daftarSiswa.map((item) => [
         item.nama,
         item.hadir,
         item.tidakHadir,
-        item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
+        item.hadir >= target ? "LENGKAP" : `${item.hadir}/${target}`,
         item.tanggalRealtime || formatTanggalIndonesia(item.rawDate),
         item.catatan || "-"
     ]);
@@ -968,22 +1061,69 @@ function prosesUnduhFile(blob, namaFile) {
     }
 }
 
+// Render pill tab kelas (Prestasi / Menengah / Pemula A / Pemula B) + badge
+// jumlah siswa di tiap kelas, supaya guru tahu berapa siswa yang masih
+// "menumpuk" di Kelas Prestasi dan perlu dipindah.
+function renderKelasTabs() {
+    const wrap = $("kelasTabs");
+    if (!wrap) return;
+
+    const jumlahPerKelas = {};
+    KELAS_LIST.forEach((k) => { jumlahPerKelas[k] = 0; });
+    (Array.isArray(dataRekap) ? dataRekap : []).forEach((item) => {
+        const k = getKelasSiswa(item.nama);
+        jumlahPerKelas[k] = (jumlahPerKelas[k] || 0) + 1;
+    });
+
+    wrap.innerHTML = KELAS_LIST.map((k) => {
+        const aktif = k === activeKelasTab ? "active" : "";
+        return `<button type="button" class="kelas-tab-btn ${aktif}" onclick="gantiKelasTab('${k.replace(/'/g, "\\'")}')">
+            ${escapeHtml(k)} <span class="kelas-tab-count">${jumlahPerKelas[k] || 0}</span>
+        </button>`;
+    }).join("");
+}
+
+function gantiKelasTab(kelas) {
+    activeKelasTab = normalizeKelas(kelas);
+    renderTable();
+}
+
+function buildKelasSelectOptionsHtml(kelasTerpilih) {
+    return KELAS_LIST.map((k) => {
+        const selected = k === kelasTerpilih ? "selected" : "";
+        return `<option value="${escapeHtml(k)}" ${selected}>${escapeHtml(k)}</option>`;
+    }).join("");
+}
+
 function renderTable(emptyMessage = "Belum ada data rekap.") {
     const tbody = $("tbody");
     if (!tbody) return;
 
+    renderKelasTabs();
+
+    const targetPertemuan = getTargetPertemuanKelas(activeKelasTab);
+    const totalTextEl = $("totalPertemuanText");
+    if (totalTextEl) {
+        totalTextEl.innerText = `Total ${targetPertemuan} Pertemuan Les Renang \u2014 Kelas ${activeKelasTab}`;
+    }
+
     if (!Array.isArray(dataRekap) || dataRekap.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="table-empty">${escapeHtml(emptyMessage)}</td></tr>`;
-        const totalTextEl = $("totalPertemuanText");
-        if (totalTextEl) totalTextEl.innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">${escapeHtml(emptyMessage)}</td></tr>`;
         return;
     }
 
     let html = "";
+    let jumlahTampil = 0;
+
     dataRekap.forEach((item, index) => {
-        const totalBadge = item.hadir >= TOTAL_PERTEMUAN
+        const kelasSiswa = getKelasSiswa(item.nama);
+        if (kelasSiswa !== activeKelasTab) return;
+        jumlahTampil++;
+
+        const targetSiswa = getTargetPertemuanKelas(kelasSiswa);
+        const totalBadge = item.hadir >= targetSiswa
             ? `<span class="total-lengkap">LENGKAP</span>`
-            : `<span class="total-fraction">${item.hadir}/${TOTAL_PERTEMUAN}</span>`;
+            : `<span class="total-fraction">${item.hadir}/${targetSiswa}</span>`;
 
         const nomorWA = normalizePhone(item.no_hp);
         const waLink = nomorWA ? buildWhatsAppLink(item) : "#";
@@ -992,10 +1132,16 @@ function renderTable(emptyMessage = "Belum ada data rekap.") {
 
         const namaEsc = escapeHtml(item.nama);
         const tanggalDisplay = escapeHtml(item.tanggalRealtime || formatTanggalIndonesia(item.rawDate));
+        const namaAttrAman = escapeHtml(item.nama).replaceAll("'", "&#39;");
 
         html += `
             <tr>
                 <td>${namaEsc}</td>
+                <td>
+                    <select class="kelas-select" title="Pindah Kelas" onchange="pindahKelasSiswa('${namaAttrAman}', this.value, this)">
+                        ${buildKelasSelectOptionsHtml(kelasSiswa)}
+                    </select>
+                </td>
                 <td>
                     <div class="counter-box">
                         <button class="counter-btn" onclick="updateCounter(${index}, 'hadir', -1)" aria-label="Kurangi hadir">-</button>
@@ -1032,7 +1178,7 @@ function renderTable(emptyMessage = "Belum ada data rekap.") {
                         <button class="btn-action btn-delete" title="Hapus Data Siswa" id="btnDelete-${index}" onclick="deleteRow(${index})">
                             <i class="fa fa-trash"></i>
                         </button>
-                        <button class="btn-action btn-kick" title="Keluarkan Siswa" onclick="keluarkanSiswa('${escapeHtml(item.nama).replaceAll("'", "&#39;")}')">
+                        <button class="btn-action btn-kick" title="Keluarkan Siswa" onclick="keluarkanSiswa('${namaAttrAman}')">
                             <i class="fa fa-user-minus"></i>
                         </button>
                     </div>
@@ -1040,9 +1186,12 @@ function renderTable(emptyMessage = "Belum ada data rekap.") {
             </tr>`;
     });
 
+    if (jumlahTampil === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Belum ada siswa di Kelas ${escapeHtml(activeKelasTab)}.</td></tr>`;
+        return;
+    }
+
     tbody.innerHTML = html;
-    const totalTextEl = $("totalPertemuanText");
-    if (totalTextEl) totalTextEl.innerText = `Total ${TOTAL_PERTEMUAN} Pertemuan Les Renang`;
 }
 
 function showTab(tab, btn) {
@@ -1650,16 +1799,20 @@ async function exportSiswaExcel(index) {
     const item = dataRekap[index];
     if (!item) return;
 
+    const kelasSiswa = getKelasSiswa(item.nama);
+    const targetSiswa = getTargetPertemuanKelas(kelasSiswa);
+
     const worksheetData = [
         ["LAPORAN ABSENSI INDIVIDU SISWA"],
         ["Nona Swimming Course (NSC)"],
         [],
         ["Komponen", "Keterangan"],
         ["Nama Siswa", item.nama],
+        ["Kelas", kelasSiswa],
         ["No. HP Orang Tua", item.no_hp || "-"],
         ["Jumlah Kehadiran", `${item.hadir} Pertemuan`],
         ["Tidak Hadir", `${item.tidakHadir} Pertemuan`],
-        ["Status Target", item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`],
+        ["Status Target", item.hadir >= targetSiswa ? "LENGKAP" : `${item.hadir}/${targetSiswa}`],
         ["Tanggal Terakhir Update", item.tanggalRealtime || formatTanggalIndonesia(item.rawDate)],
         ["Catatan Terakhir", item.catatan || "-"],
         [],
@@ -1686,24 +1839,28 @@ async function exportSiswaExcel(index) {
 }
 
 async function exportTotalExcel() {
-    if (dataRekap.length === 0) {
-        alert("Tidak ada data untuk diekspor!");
+    const kelasTervalidasi = activeKelasTab;
+    const daftarSiswa = getDataRekapByKelas(kelasTervalidasi);
+    const target = getTargetPertemuanKelas(kelasTervalidasi);
+
+    if (daftarSiswa.length === 0) {
+        alert(`Tidak ada data untuk diekspor di Kelas ${kelasTervalidasi}!`);
         return;
     }
 
     const worksheetData = [
         ["LAPORAN REKAP TOTAL KEHADIRAN SISWA"],
-        ["Nona Swimming Course (NSC)"],
+        [`Nona Swimming Course (NSC) - Kelas ${kelasTervalidasi}`],
         [],
         ["Nama Siswa", "Hadir", "Tidak Hadir", "Rasio", "Tanggal Terbaru", "Catatan Terakhir", "No. HP"]
     ];
 
-    dataRekap.forEach((item) => {
+    daftarSiswa.forEach((item) => {
         worksheetData.push([
             item.nama,
             item.hadir,
             item.tidakHadir,
-            item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`,
+            item.hadir >= target ? "LENGKAP" : `${item.hadir}/${target}`,
             item.tanggalRealtime || formatTanggalIndonesia(item.rawDate),
             item.catatan || "-",
             item.no_hp || "-"
@@ -1715,7 +1872,7 @@ async function exportTotalExcel() {
     XLSX.utils.book_append_sheet(wb, ws, "Total Absensi");
     const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     const blob = new Blob([wbout], { type: "application/octet-stream" });
-    prosesUnduhFile(blob, "Rekap_Total_Absensi_NSC.xlsx");
+    prosesUnduhFile(blob, `Rekap_Total_Absensi_NSC_${slugifyFileName(kelasTervalidasi)}.xlsx`);
 }
 
 async function exportSiswaPDF(index) {
@@ -1732,14 +1889,17 @@ async function exportSiswaPDF(index) {
 }
 
 async function exportTotalPDF() {
-    if (dataRekap.length === 0) {
-        alert("Tidak ada data untuk diekspor!");
+    const kelasTervalidasi = activeKelasTab;
+    const daftarSiswa = getDataRekapByKelas(kelasTervalidasi);
+
+    if (daftarSiswa.length === 0) {
+        alert(`Tidak ada data untuk diekspor di Kelas ${kelasTervalidasi}!`);
         return;
     }
 
     try {
-        const blob = await buildTotalPdfBlob();
-        downloadBlob(blob, "Rekap_Total_Absensi_NSC.pdf");
+        const blob = await buildTotalPdfBlob(kelasTervalidasi);
+        downloadBlob(blob, `Rekap_Total_Absensi_NSC_${slugifyFileName(kelasTervalidasi)}.pdf`);
     } catch (error) {
         console.error("Gagal export PDF total:", error);
         alert("Terjadi kesalahan saat menyusun layout PDF Total.");
@@ -1811,9 +1971,12 @@ if (!publicUrl) {
 
 const publicUrlDownload = `${publicUrl}?download=${encodeURIComponent(namaBerkasPDF)}`;
 
+const kelasSiswaWA = getKelasSiswa(item.nama);
+const targetSiswaWA = getTargetPertemuanKelas(kelasSiswaWA);
 const pesanWAPDF = `Halo Bapak/Ibu, berikut laporan absensi Ananda *${item.nama}* di *Nona Swimming Course*.
 
-Status Kehadiran: *${item.hadir >= TOTAL_PERTEMUAN ? "LENGKAP" : `${item.hadir}/${TOTAL_PERTEMUAN}`}*
+Kelas: *${kelasSiswaWA}*
+Status Kehadiran: *${item.hadir >= targetSiswaWA ? "LENGKAP" : `${item.hadir}/${targetSiswaWA}`}*
 Catatan Evaluasi Terakhir: _${item.catatan || "-"}_
 Riwayat catatan lengkap tersedia di dalam PDF.
 
@@ -1923,7 +2086,7 @@ function initNamaSelect() {
                 const namaTerpilih = normalizeNama(value);
                 const noHpEl = $("no_hp");
                 if (noHpEl && kontakMap.has(namaTerpilih)) {
-                    noHpEl.value = kontakMap.get(namaTerpilih) || "";
+                    noHpEl.value = kontakMap.get(namaTerpilih)?.no_hp || "";
                 }
 
                 if (selectNamaControl) selectNamaControl.blur();
@@ -2065,8 +2228,10 @@ function initModalKontakBaru() {
 
             const namaInput = $("kontakNamaInput");
             const hpInput = $("kontakHpInput");
+            const kelasInput = $("kontakKelasInput");
             const nama = normalizeNama(namaInput?.value || "");
             const noHp = (hpInput?.value || "").trim();
+            const kelas = normalizeKelas(kelasInput?.value || KELAS_DEFAULT);
 
             if (!nama) {
                 alert("Nama tidak boleh kosong.");
@@ -2078,16 +2243,17 @@ function initModalKontakBaru() {
             btnSimpan.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menyimpan...';
 
             try {
-                await upsertKontak(nama, noHp);
+                await upsertKontak(nama, noHp, kelas);
 
                 if (selectNamaControl) {
                     selectNamaControl.setValue(nama, true);
                 }
                 const noHpEl = $("no_hp");
-                if (noHpEl) noHpEl.value = kontakMap.get(nama) || noHp;
+                if (noHpEl) noHpEl.value = kontakMap.get(nama)?.no_hp || noHp;
 
                 if (namaInput) namaInput.value = "";
                 if (hpInput) hpInput.value = "";
+                if (kelasInput) kelasInput.value = KELAS_DEFAULT;
 
                 tutupModalKontak();
             } catch (error) {
@@ -2107,6 +2273,7 @@ function bukaModalKontak() {
 
     const namaInput = $("kontakNamaInput");
     const hpInput = $("kontakHpInput");
+    const kelasInput = $("kontakKelasInput");
 
     // Prefill dari input nama utama jika sudah diketik tapi belum tersimpan sebagai kontak.
     if (namaInput) {
@@ -2116,6 +2283,10 @@ function bukaModalKontak() {
     }
     if (hpInput) {
         hpInput.value = $("no_hp")?.value.trim() || "";
+    }
+    // Kontak baru selalu dimulai dari Kelas Prestasi (kelas evaluasi/percobaan).
+    if (kelasInput) {
+        kelasInput.value = KELAS_DEFAULT;
     }
 
     overlay.classList.remove("hidden");

@@ -1,6 +1,6 @@
 /* NSC Service Worker - Realtime Catatan PDF Compact v3 (peserta realtime sync) */
 
-const CACHE_VERSION = "nsc-absensi-realtime-catatan-compact-v3";
+const CACHE_VERSION = "nsc-absensi-kelas-v4";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
