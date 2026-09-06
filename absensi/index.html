@@ -202,6 +202,14 @@
 
                 <div class="kelas-tabs" id="kelasTabs"></div>
 
+                <div class="cari-nama-wrap">
+                    <i class="fa fa-magnifying-glass cari-nama-icon"></i>
+                    <input type="text" id="cariNamaRekap" class="cari-nama-input" placeholder="Cari nama siswa di kelas ini..." oninput="cariNamaRekapBerubah(this.value)" autocomplete="off">
+                    <button type="button" class="cari-nama-clear hidden" id="btnClearCariNama" onclick="clearCariNamaRekap()" aria-label="Hapus pencarian">
+                        <i class="fa fa-xmark"></i>
+                    </button>
+                </div>
+
                 <div class="table-wrapper">
                     <table class="table">
                         <thead>
@@ -332,6 +340,6 @@
     </div>
 
     <script src="/absensi/pwa.js?v=transparent-v3"></script>
-    <script src="script.js?v=kelas-v1"></script>
+    <script src="script.js?v=kelas-search-v2"></script>
 </body>
 </html>

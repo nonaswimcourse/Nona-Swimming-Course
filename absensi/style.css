@@ -538,6 +538,61 @@ textarea {
     background: #b91c1c;
 }
 
+/* Kotak pencarian nama siswa di dalam tabel rekap (per kelas aktif) */
+.cari-nama-wrap {
+    position: relative;
+    margin-bottom: 16px;
+    max-width: 360px;
+}
+
+.cari-nama-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.cari-nama-input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 11px 40px 11px 38px;
+    font-size: 14.5px;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.cari-nama-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(35, 74, 132, 0.12);
+}
+
+.cari-nama-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+}
+
+.cari-nama-clear:hover {
+    background: #e2e8f0;
+    color: var(--danger);
+}
+
 /* Tab Kelas (Prestasi / Menengah / Pemula A / Pemula B) di Rekap Data */
 .kelas-tabs {
     display: flex;

@@ -33,6 +33,9 @@ function getTargetPertemuanKelas(kelas) {
 // Kelas aktif yang sedang ditampilkan di tab Rekap Data.
 let activeKelasTab = KELAS_DEFAULT;
 
+// Kata kunci pencarian nama di dalam tabel rekap (per kelas yang sedang aktif).
+let rekapSearchQuery = "";
+
 const SUPABASE_URL = "https://mjfwgmhuengvfdagbcsk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZndnbWh1ZW5ndmZkYWdiY3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDczMTMsImV4cCI6MjA5Njg4MzMxM30.NxZY9zHP9zQmHRsgpcGZyk3t7_xaGFFuTa3bYIAD384";
 const TABLE_NAME = "absensinsc";
@@ -1085,7 +1088,31 @@ function renderKelasTabs() {
 
 function gantiKelasTab(kelas) {
     activeKelasTab = normalizeKelas(kelas);
+    // Pencarian direset setiap ganti kelas, supaya tidak bingung menyangka
+    // kelas baru "kosong" padahal cuma tersaring oleh kata kunci kelas lama.
+    rekapSearchQuery = "";
+    const searchInput = $("cariNamaRekap");
+    if (searchInput) searchInput.value = "";
+    const btnClear = $("btnClearCariNama");
+    if (btnClear) btnClear.classList.add("hidden");
     renderTable();
+}
+
+function cariNamaRekapBerubah(value) {
+    rekapSearchQuery = String(value ?? "").trim();
+    const btnClear = $("btnClearCariNama");
+    if (btnClear) btnClear.classList.toggle("hidden", rekapSearchQuery === "");
+    renderTable();
+}
+
+function clearCariNamaRekap() {
+    rekapSearchQuery = "";
+    const searchInput = $("cariNamaRekap");
+    if (searchInput) searchInput.value = "";
+    const btnClear = $("btnClearCariNama");
+    if (btnClear) btnClear.classList.add("hidden");
+    renderTable();
+    searchInput?.focus();
 }
 
 function buildKelasSelectOptionsHtml(kelasTerpilih) {
@@ -1114,10 +1141,12 @@ function renderTable(emptyMessage = "Belum ada data rekap.") {
 
     let html = "";
     let jumlahTampil = 0;
+    const kataKunci = rekapSearchQuery.trim().toLowerCase();
 
     dataRekap.forEach((item, index) => {
         const kelasSiswa = getKelasSiswa(item.nama);
         if (kelasSiswa !== activeKelasTab) return;
+        if (kataKunci && !item.nama.toLowerCase().includes(kataKunci)) return;
         jumlahTampil++;
 
         const targetSiswa = getTargetPertemuanKelas(kelasSiswa);
@@ -1187,7 +1216,10 @@ function renderTable(emptyMessage = "Belum ada data rekap.") {
     });
 
     if (jumlahTampil === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Belum ada siswa di Kelas ${escapeHtml(activeKelasTab)}.</td></tr>`;
+        const pesanKosong = kataKunci
+            ? `Tidak ditemukan siswa bernama "${escapeHtml(rekapSearchQuery.trim())}" di Kelas ${escapeHtml(activeKelasTab)}.`
+            : `Belum ada siswa di Kelas ${escapeHtml(activeKelasTab)}.`;
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">${pesanKosong}</td></tr>`;
         return;
     }
 
