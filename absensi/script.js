@@ -16,8 +16,8 @@ const KELAS_DEFAULT = "Prestasi";
 const KELAS_TARGET_PERTEMUAN = {
     "Prestasi": TOTAL_PERTEMUAN,
     "Menengah": TOTAL_PERTEMUAN,
-    "Pemula A": 15,
-    "Pemula B": 15
+    "Pemula A": 12,
+    "gPemula B": 15
 };
 
 function normalizeKelas(value) {
