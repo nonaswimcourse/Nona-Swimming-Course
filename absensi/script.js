@@ -11,13 +11,13 @@ const TOTAL_PERTEMUAN = 12;
 const KELAS_LIST = ["Prestasi", "Menengah", "Pemula A", "Pemula B"];
 const KELAS_DEFAULT = "Prestasi";
 
-// Target jumlah pertemuan berbeda untuk kelas Pemula (A & B): 15x pertemuan.
-// Kelas Prestasi & Menengah tetap memakai TOTAL_PERTEMUAN (12x).
+// Target jumlah pertemuan berbeda untuk kelas Pemula B: 15x pertemuan.
+// Kelas Prestasi, Menengah, & Pemula A tetap memakai TOTAL_PERTEMUAN (12x).
 const KELAS_TARGET_PERTEMUAN = {
     "Prestasi": TOTAL_PERTEMUAN,
     "Menengah": TOTAL_PERTEMUAN,
     "Pemula A": 12,
-    "gPemula B": 15
+    "Pemula B": 15
 };
 
 function normalizeKelas(value) {
