@@ -33,7 +33,7 @@ const CATATAN_HISTORY_PREFIX = "NSC_CATATAN_HISTORY_V1:";
 // dipakai untuk menampilkan info kelas di ringkasan catatan peserta.
 const KELAS_LIST = ["Prestasi", "Menengah", "Pemula A", "Pemula B"];
 const KELAS_DEFAULT = "Prestasi";
-const KELAS_TARGET_PERTEMUAN = { "Prestasi": 12, "Menengah": 12, "Pemula A": 15, "Pemula B": 15 };
+const KELAS_TARGET_PERTEMUAN = { "Prestasi": 12, "Menengah": 12, "Pemula A": 12, "Pemula B": 15 };
 function normalizeKelas(value) {
     const bersih = String(value ?? "").trim();
     return KELAS_LIST.includes(bersih) ? bersih : KELAS_DEFAULT;
