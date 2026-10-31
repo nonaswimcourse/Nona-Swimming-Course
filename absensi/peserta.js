@@ -293,9 +293,9 @@ async function tampilkanCatatanUntukNama(nama) {
             return;
         }
 
+        // Urut dari tanggal terlama (atas) ke terbaru (bawah).
         tbody.innerHTML = riwayat
             .slice()
-            .reverse() // catatan terbaru di atas
             .map((entry) => {
                 const statusClass = entry.status === "Hadir" ? "status-hadir" : (entry.status === "Tidak Hadir" ? "status-tidak" : "");
                 const statusText = entry.status || "-";
