@@ -173,6 +173,8 @@
 
                 <label for="catatan">Catatan</label>
                 <select id="catatan" placeholder="Pilih catatan cepat atau ketik catatan manual..."></select>
+                <p class="hint-kontak">Catatan yang pernah diketik manual tersimpan di dropdown. Buka dropdown lalu klik ikon <i class="fa fa-trash"></i> untuk menghapus satu catatan, atau
+                    <button type="button" class="link-hapus-catatan" onclick="hapusSemuaCatatanKustom()">hapus semua catatan tersimpan</button>.</p>
                 <button class="btn btn-primary" id="btnSimpan" onclick="simpan()">
                     <i class="fa fa-plus-circle"></i> Simpan Data
                 </button>
@@ -310,6 +312,7 @@
                     <option value="Menengah">Menengah</option>
                     <option value="Pemula A">Pemula A</option>
                     <option value="Pemula B">Pemula B</option>
+                    <option value="Privat">Privat</option>
                 </select>
                 <p class="hint-kontak">Siswa baru disarankan mulai dari <strong>Kelas Prestasi</strong> (kelas evaluasi), lalu dipindah ke kelas yang sesuai lewat dropdown "Kelas" di tabel rekap.</p>
             </div>
@@ -340,6 +343,6 @@
     </div>
 
     <script src="/absensi/pwa.js?v=transparent-v3"></script>
-    <script src="script.js?v=kelas-search-v2"></script>
+    <script src="script.js?v=privat-v1"></script>
 </body>
 </html>

@@ -8,7 +8,7 @@ const TOTAL_PERTEMUAN = 12;
 // evaluasi selesai, baru kemudian dikeluarkan & dipindah ke kelas
 // yang sesuai (Menengah, Pemula A, atau Pemula B) lewat dropdown
 // "Kelas" di baris tabel rekap.
-const KELAS_LIST = ["Prestasi", "Menengah", "Pemula A", "Pemula B"];
+const KELAS_LIST = ["Prestasi", "Menengah", "Pemula A", "Pemula B", "Privat"];
 const KELAS_DEFAULT = "Prestasi";
 
 // Target jumlah pertemuan berbeda untuk kelas Pemula B: 15x pertemuan.
@@ -17,7 +17,8 @@ const KELAS_TARGET_PERTEMUAN = {
     "Prestasi": TOTAL_PERTEMUAN,
     "Menengah": TOTAL_PERTEMUAN,
     "Pemula A": 12,
-    "Pemula B": 15
+    "Pemula B": 15,
+    "Privat": 12
 };
 
 function normalizeKelas(value) {
@@ -292,6 +293,81 @@ function daftarkanCatatanBaru(teks) {
     return { value: teksBersih, text: teksBersih, optgroup: kategori };
 }
 
+// Catatan kustom = catatan yang pernah diketik manual lalu tersimpan di perangkat ini
+// (bukan preset bawaan). Hanya catatan kustom yang boleh dihapus.
+function adalahCatatanKustom(teks) {
+    if (CATATAN_PRESET.some((grup) => grup.options.includes(teks))) return false;
+    const data = muatCatatanKustom();
+    return Object.values(data).some((daftar) => Array.isArray(daftar) && daftar.includes(teks));
+}
+
+function simpanDataCatatanKustom(data) {
+    try {
+        localStorage.setItem(CATATAN_CUSTOM_KEY, JSON.stringify(data));
+    } catch (error) {
+        console.warn("Gagal menyimpan catatan kustom:", error);
+    }
+}
+
+function hapusDariDropdownCatatan(teks) {
+    [selectCatatanControl, modalCatatanControl].forEach((ts) => {
+        if (!ts) return;
+        if (ts.options[teks]) ts.removeOption(teks);
+        ts.refreshOptions(false);
+    });
+}
+
+function hapusCatatanKustom(teks, tanyaDulu = true) {
+    if (!adalahCatatanKustom(teks)) return false;
+    if (tanyaDulu && !confirm(`Hapus catatan tersimpan ini?\n\n"${teks}"\n\nRiwayat absensi siswa tidak terpengaruh.`)) return false;
+
+    const data = muatCatatanKustom();
+    Object.keys(data).forEach((kategori) => {
+        if (!Array.isArray(data[kategori])) return;
+        data[kategori] = data[kategori].filter((item) => item !== teks);
+        if (data[kategori].length === 0) delete data[kategori];
+    });
+    simpanDataCatatanKustom(data);
+    hapusDariDropdownCatatan(teks);
+    return true;
+}
+
+function hapusSemuaCatatanKustom() {
+    const data = muatCatatanKustom();
+    const semua = Object.values(data).flat().filter((t) => typeof t === "string");
+    if (semua.length === 0) {
+        alert("Belum ada catatan tersimpan yang bisa dihapus.");
+        return;
+    }
+    if (!confirm(`Hapus SEMUA ${semua.length} catatan yang tersimpan di dropdown?\n\nCatatan bawaan dan riwayat absensi siswa tidak ikut terhapus.`)) return;
+
+    simpanDataCatatanKustom({});
+    semua.forEach(hapusDariDropdownCatatan);
+}
+
+// Tampilan opsi dropdown: catatan kustom diberi tombol hapus (ikon tong sampah).
+const CATATAN_RENDER = {
+    option: function (data, escape) {
+        const bisaHapus = adalahCatatanKustom(data.value);
+        const tombol = bisaHapus
+            ? `<button type="button" class="catatan-hapus-btn" data-hapus="${escape(data.value)}" title="Hapus catatan tersimpan" aria-label="Hapus catatan tersimpan"><i class="fa fa-trash"></i></button>`
+            : "";
+        return `<div class="catatan-opsi"><span class="catatan-opsi-teks">${escape(data.text)}</span>${tombol}</div>`;
+    }
+};
+
+// Klik tombol hapus ditangkap lebih dulu (capture) supaya tidak ikut memilih opsinya.
+function pasangTombolHapusCatatan(ts) {
+    if (!ts || !ts.dropdown) return;
+    ts.dropdown.addEventListener("click", (e) => {
+        const btn = e.target.closest?.(".catatan-hapus-btn");
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        hapusCatatanKustom(btn.getAttribute("data-hapus") || "");
+    }, true);
+}
+
 function buildCatatanOptionsHtml() {
     const catatanKustom = muatCatatanKustom();
     const grupTerpakai = new Set();
@@ -443,6 +519,16 @@ function normalizeRiwayatCatatan(list, fallbackTanggal = new Date().toISOString(
             };
         })
         .filter(Boolean)
+        .map((entry, idx) => ({ entry, idx }))
+        .sort((a, b) => {
+            const ta = new Date(a.entry.tanggal).getTime();
+            const tb = new Date(b.entry.tanggal).getTime();
+            const va = Number.isNaN(ta) ? 0 : ta;
+            const vb = Number.isNaN(tb) ? 0 : tb;
+            // Urut dari tanggal terlama ke terbaru; kalau sama, ikuti urutan input.
+            return va - vb || a.idx - b.idx;
+        })
+        .map(({ entry }) => entry)
         .slice(-TOTAL_PERTEMUAN);
 }
 
@@ -1064,7 +1150,7 @@ function prosesUnduhFile(blob, namaFile) {
     }
 }
 
-// Render pill tab kelas (Prestasi / Menengah / Pemula A / Pemula B) + badge
+// Render pill tab kelas (Prestasi / Menengah / Pemula A / Pemula B / Privat) + badge
 // jumlah siswa di tiap kelas, supaya guru tahu berapa siswa yang masih
 // "menumpuk" di Kelas Prestasi dan perlu dipindah.
 function renderKelasTabs() {
@@ -1421,7 +1507,7 @@ async function updateCounter(index, tipe, value) {
         }
 
         riwayatBaru = tambahRiwayatCatatan(targetSiswa.riwayatCatatan, catatanKetik, waktuTerpilihISO, statusCatatan);
-        tanggalPayload = waktuTerpilihISO;
+        tanggalPayload = getTanggalTerakhirRiwayat(riwayatBaru, waktuTerpilihISO);
         resetCounterWaktuInput();
     } else {
         const waktuSekarangISO = new Date().toISOString();
@@ -1756,8 +1842,10 @@ async function simpan() {
             waktuTerpilih = new Date();
         }
 
-        const waktuSekarangISO = waktuTerpilih.toISOString();
-        const riwayatBaru = tambahRiwayatCatatan(existing?.riwayatCatatan, catatanTeks, waktuSekarangISO, status);
+        const waktuInputISO = waktuTerpilih.toISOString();
+        const riwayatBaru = tambahRiwayatCatatan(existing?.riwayatCatatan, catatanTeks, waktuInputISO, status);
+        // "Tanggal Terbaru" selalu tanggal paling akhir di riwayat, walau yang baru diinput tanggal lampau.
+        const waktuSekarangISO = getTanggalTerakhirRiwayat(riwayatBaru, waktuInputISO);
         const payload = {
             absensi: nama,
             nama,
@@ -2147,6 +2235,7 @@ function initCatatanSelect() {
         createOnBlur: true,
         allowEmptyOption: true,
         persist: false,
+        render: CATATAN_RENDER,
         placeholder: "Pilih catatan cepat atau ketik catatan manual...",
         onChange: function (value) {
             if (value) {
@@ -2155,6 +2244,7 @@ function initCatatanSelect() {
             }
         }
     });
+    pasangTombolHapusCatatan(selectCatatanControl);
 }
 
 let modalCatatanControl = null;
@@ -2176,8 +2266,10 @@ function initModalCatatanSelect() {
         createOnBlur: true,
         allowEmptyOption: true,
         persist: false,
+        render: CATATAN_RENDER,
         placeholder: "Pilih catatan cepat atau ketik catatan manual..."
     });
+    pasangTombolHapusCatatan(modalCatatanControl);
 
     const btnBatal = $("modalCatatanBatal");
     const btnSimpan = $("modalCatatanSimpan");

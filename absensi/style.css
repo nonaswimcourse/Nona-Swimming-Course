@@ -1243,3 +1243,47 @@ textarea::placeholder {
         gap: 8px;
     }
 }
+
+/* Opsi catatan di dropdown dengan tombol hapus */
+.catatan-opsi {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.catatan-opsi-teks {
+    flex: 1;
+    min-width: 0;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.catatan-hapus-btn {
+    flex: 0 0 auto;
+    border: none;
+    background: transparent;
+    color: #dc2626;
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.catatan-hapus-btn:hover {
+    background: rgba(220, 38, 38, 0.12);
+}
+
+.link-hapus-catatan {
+    border: none;
+    background: none;
+    padding: 0;
+    color: #dc2626;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}

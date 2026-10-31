@@ -31,9 +31,9 @@ const CATATAN_HISTORY_PREFIX = "NSC_CATATAN_HISTORY_V1:";
 
 // Kelas siswa & target jumlah pertemuan (Pemula A/B = 15x, lainnya = 12x),
 // dipakai untuk menampilkan info kelas di ringkasan catatan peserta.
-const KELAS_LIST = ["Prestasi", "Menengah", "Pemula A", "Pemula B"];
+const KELAS_LIST = ["Prestasi", "Menengah", "Pemula A", "Pemula B", "Privat"];
 const KELAS_DEFAULT = "Prestasi";
-const KELAS_TARGET_PERTEMUAN = { "Prestasi": 12, "Menengah": 12, "Pemula A": 12, "Pemula B": 15 };
+const KELAS_TARGET_PERTEMUAN = { "Prestasi": 12, "Menengah": 12, "Pemula A": 12, "Pemula B": 15, "Privat": 12 };
 function normalizeKelas(value) {
     const bersih = String(value ?? "").trim();
     return KELAS_LIST.includes(bersih) ? bersih : KELAS_DEFAULT;
@@ -190,7 +190,14 @@ function normalizeRiwayatCatatan(list, fallbackTanggal) {
                 catatan
             };
         })
-        .filter(Boolean);
+        .filter(Boolean)
+        .map((entry, idx) => ({ entry, idx }))
+        .sort((a, b) => {
+            const ta = new Date(a.entry.tanggal).getTime();
+            const tb = new Date(b.entry.tanggal).getTime();
+            return (Number.isNaN(ta) ? 0 : ta) - (Number.isNaN(tb) ? 0 : tb) || a.idx - b.idx;
+        })
+        .map(({ entry }) => entry);
 }
 
 function parseCatatanHistory(rawCatatan, fallbackTanggal) {
