@@ -17,8 +17,8 @@ const KELAS_TARGET_PERTEMUAN = {
     "Prestasi": TOTAL_PERTEMUAN,
     "Menengah": TOTAL_PERTEMUAN,
     "Pemula A": 12,
-    "Pemula B": 15,
-    "Privat": 12
+    "Pemula B": 12,
+    "Privat": 10
 };
 
 function normalizeKelas(value) {
